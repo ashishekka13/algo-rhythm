@@ -220,7 +220,7 @@
   .col { display:flex; flex-direction:column; gap:20px; min-width:0; }
 
   /* Inputs and lists */
-  input[type="text"], input[type="search"] { width:100%; min-height:48px; padding:12px 16px; border-radius:var(--radius-inner); border:1px solid var(--line);
+  input[type="text"], input[type="search"], input[type="password"], input[type="email"] { width:100%; min-height:48px; padding:12px 16px; border-radius:var(--radius-inner); border:1px solid var(--line);
     background:rgba(0,0,0,.25); transition:border-color .2s ease; }
   input::placeholder { color:var(--ink-3); }
   input:focus { outline:none; border-color:var(--acc); }
@@ -393,7 +393,20 @@
   #v-landing .row2 > * { flex:1; min-width:180px; }
   #startparty { min-height:56px; border:0; border-radius:var(--radius-inner); background:var(--acc); color:#09090B; font-size:18px; font-weight:700; }
   #joincode { text-transform:uppercase; letter-spacing:.2em; font-family:var(--mono); }
-  #landmsg { min-height:1.3em; color:var(--bad); }
+  #landmsg, #authmsg { min-height:1.3em; color:var(--bad); margin:0; }
+  .authform { display:grid; gap:8px; }
+  .authform label { font-size:14px; font-weight:600; color:var(--ink-2); margin-top:4px; }
+  .authform .btn { min-height:48px; margin-top:8px; }
+  .btn.primary { background:var(--acc); color:#09090B; border:0; }
+  .hint, .switch, .who { color:var(--ink-2); font-size:14px; margin:0; }
+  .linkbtn { background:none; border:0; padding:4px 2px; color:var(--acc); font:inherit; font-weight:600; cursor:pointer; text-decoration:underline; }
+  #signedin { display:grid; gap:12px; }
+  dialog#created { max-width:min(420px, calc(100vw - 32px)); border:1px solid var(--line); border-radius:var(--radius-card);
+    background:var(--bg); color:var(--ink); padding:24px; }
+  dialog#created::backdrop { background:rgba(0,0,0,.6); }
+  dialog#created h2 { margin:0 0 8px; }
+  dialog#created p { color:var(--ink-2); margin:0 0 16px; line-height:1.5; }
+  dialog#created .btn { min-height:44px; min-width:96px; }
   .hostonly { margin-top:12px; }
 
   @keyframes pulse { 50% { opacity:.4; transform:scale(.8); } }
@@ -426,7 +439,31 @@
   <p class="lead">Start a party on the device connected to the speakers: it plays and mixes the music. Everyone else joins with the party code to request songs and vote.</p>
   <section class="glass choice" aria-labelledby="h-start">
     <h2 id="h-start">Start a party</h2>
-    <button id="startparty" type="button">Start a party on this device</button>
+    <div id="signedin" hidden>
+      <p class="who">Signed in as <b id="whoami"></b> · <button type="button" class="linkbtn" id="signout">Sign out</button></p>
+      <button id="startparty" type="button">Start a party on this device</button>
+    </div>
+    <form id="loginform" class="authform" hidden>
+      <p class="hint">Hosting needs an account. Guests join without one.</p>
+      <label for="li-user">Username</label>
+      <input id="li-user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <label for="li-pass">Password</label>
+      <input id="li-pass" type="password" autocomplete="current-password" required>
+      <button class="btn primary" type="submit">Sign in</button>
+      <p class="switch">No account? <button type="button" class="linkbtn" id="toregister">Register</button></p>
+    </form>
+    <form id="registerform" class="authform" hidden>
+      <label for="rg-user">Username</label>
+      <input id="rg-user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" required>
+      <label for="rg-email">Email</label>
+      <input id="rg-email" type="email" autocomplete="email" maxlength="254" required>
+      <label for="rg-pass">Password</label>
+      <input id="rg-pass" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+      <p class="hint">At least 8 characters. New accounts are approved by hand, within 24 hours.</p>
+      <button class="btn primary" type="submit">Create account</button>
+      <p class="switch">Have an account? <button type="button" class="linkbtn" id="tologin">Sign in</button></p>
+    </form>
+    <p id="authmsg" role="alert"></p>
   </section>
   <section class="glass choice" aria-labelledby="h-join">
     <h2 id="h-join">Join a party</h2>
@@ -437,6 +474,12 @@
     </form>
   </section>
   <div id="landmsg" role="alert"></div>
+  <dialog id="created" aria-labelledby="created-h">
+    <h2 id="created-h">Account created</h2>
+    <p>It will take up to 24 hours to approve. Once it is approved, sign in here to host a party. You can join parties
+      without an account in the meantime.</p>
+    <form method="dialog"><button class="btn primary" type="submit">OK</button></form>
+  </dialog>
 </div>
 </template>
 
@@ -1390,12 +1433,74 @@ function connect() {
     setTimeout(connect, Math.min(30000, 1000 * 2 ** sockTries++));     // back off: 1, 2, 4 ... 30 s
   };
 }
+// hosting needs a signed-in, approved account (the session is an HttpOnly cookie); joining does not
+async function postJson(url, data) {
+  const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data)});
+  let d = {};
+  try { d = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+}
+function showAuth(user, mode) {
+  $("signedin").hidden = !user;
+  $("loginform").hidden = !!user || mode === "register";
+  $("registerform").hidden = !!user || mode !== "register";
+  if (user) $("whoami").textContent = user.username;
+  $("authmsg").textContent = "";
+}
+function nextPath() {                                 // /login?next=/p/CODE/host: only paths on this site
+  const n = new URLSearchParams(location.search).get("next") || "";
+  return /^\/[^/\\]/.test(n) ? n : null;
+}
+function authSetup() {
+  fetch("/api/auth/me", {cache: "no-store"}).then(r => r.json()).then(d => {
+    showAuth(d.user, "login");
+    if (!d.user && location.pathname === "/login") $("li-user").focus();
+  }).catch(() => showAuth(null, "login"));
+  $("toregister").onclick = () => { showAuth(null, "register"); $("rg-user").focus(); };
+  $("tologin").onclick = () => { showAuth(null, "login"); $("li-user").focus(); };
+  $("loginform").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const b = ev.submitter || $("loginform").querySelector("button[type=submit]");
+    b.disabled = true;
+    try {
+      const d = await postJson("/api/auth/login", {username: $("li-user").value.trim(), password: $("li-pass").value});
+      $("li-pass").value = "";
+      const next = nextPath();
+      if (next) { location.href = next; return; }
+      showAuth(d.user);
+    } catch (e) { $("authmsg").textContent = e.message; }
+    b.disabled = false;
+  });
+  $("registerform").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const b = ev.submitter || $("registerform").querySelector("button[type=submit]");
+    b.disabled = true;
+    try {
+      const d = await postJson("/api/auth/register", {username: $("rg-user").value.trim(), email: $("rg-email").value.trim(),
+                                                      password: $("rg-pass").value});
+      $("registerform").reset();
+      showAuth(null, "login");
+      $("li-user").value = d.username;
+      const dlg = $("created");
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    } catch (e) { $("authmsg").textContent = e.message; }
+    b.disabled = false;
+  });
+  $("signout").onclick = async () => {
+    try { await postJson("/api/auth/logout", {}); } catch (e) {}
+    showAuth(null, "login");
+  };
+}
+
 function landingSetup() {
+  authSetup();
   $("startparty").onclick = async () => {
     $("startparty").disabled = true;
     try {
       const r = await fetch("/api/parties", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({level: "medium"})});
       const d = await r.json();
+      if (r.status === 401 && d.login) { showAuth(null, "login"); $("authmsg").textContent = d.error; $("startparty").disabled = false; return; }
       if (!r.ok) throw new Error(d.error || r.status);
       localStorage.setItem("algo-host-" + d.code, d.host_key);           // this browser is the host; the key never leaves it
       location.href = d.host;

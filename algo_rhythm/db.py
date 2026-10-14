@@ -4,7 +4,7 @@ No migrations: create_all() on start makes any missing table. Add Alembic once t
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import (JSON, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine, inspect,
+from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine, inspect,
                         text)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
@@ -71,6 +71,37 @@ class Party(Base):
     state: Mapped[dict | None] = mapped_column(Json, nullable=True)
     version: Mapped[int | None] = mapped_column(Integer, nullable=True)  # bumped on every change of state
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    owner_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # users.id of the host who started it
+
+
+class User(Base):
+    """A host account (algo_rhythm.accounts). Signups start inactive until someone approves them by hand."""
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(32), unique=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(200))
+    active: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class LoginSession(Base):
+    """A signed-in browser: the sha256 of its cookie's token."""
+    __tablename__ = "login_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AuthEvent(Base):
+    """A failed sign-in or a signup, by address or name: counted for the rate limits."""
+    __tablename__ = "auth_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(128), index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 
 class Play(Base):

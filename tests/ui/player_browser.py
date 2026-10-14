@@ -111,6 +111,24 @@ def live_check(browser, base):
     page.on("pageerror", lambda e: errors.append(f"host: {e}"))
     page.on("console", lambda m: m.type == "error" and errors.append(f"host console: {m.text}"))
     page.goto(base + "/")
+    # a signup gets the "approval within 24 hours" dialog and cannot sign in yet; the approved host signs in
+    page.click("#toregister")
+    page.fill("#rg-user", "fresh")
+    page.fill("#rg-email", "fresh@example.com")
+    page.fill("#rg-pass", "longenough1")
+    page.click("#registerform button[type=submit]")
+    page.wait_for_selector("dialog#created[open]")
+    if "24 hours" not in page.inner_text("dialog#created"):
+        problems.append("the signup dialog does not say approval takes 24 hours")
+    page.click("dialog#created button")
+    page.fill("#li-pass", "longenough1")  # the username is filled in already
+    page.click("#loginform button[type=submit]")
+    page.wait_for_function("document.getElementById('authmsg').textContent.includes('approval')")
+    page.fill("#li-user", "host")
+    page.fill("#li-pass", "host-password")
+    page.click("#loginform button[type=submit]")
+    page.wait_for_selector("#signedin:not([hidden])")
+    errors[:] = [e for e in errors if "status of 401" not in e]  # the refused sign-in above, on purpose
     page.click("#startparty")
     page.wait_for_url("**/p/*/host")
     code = page.url.rstrip("/").split("/")[-2]
@@ -171,6 +189,8 @@ def main(library="test_library"):
     port = free_port()
     serve(port)
     base = f"http://127.0.0.1:{port}"
+    from algo_rhythm import accounts
+    accounts.create("host", "host@example.com", "host-password", active=True)
     code, _ = party.create("medium")
     party.start(code)
     party.advance(code)

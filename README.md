@@ -185,8 +185,23 @@ details, the planner's reasons and a FLAC clip of the server's render), `song_re
 `reactions`, `transition_reviews`, `assets` (MC lines, fills, art), `ai_cache`, `ai_calls`. Tables are created on first
 connect; a column added later is added by `db.add_missing_columns`.
 
+### 4.10 Host accounts (`accounts.py`)
+Starting a party needs a signed-in, approved account; guests join with the code and no account. The start page
+(`/`, or `/login`) signs in or registers. A signup (username, email, password) is saved with `active = false` and the
+page says approval takes up to 24 hours; nobody can sign in with it until someone turns it on:
+
+    DATABASE_URL=... python -m algo_rhythm.accounts list
+    DATABASE_URL=... python -m algo_rhythm.accounts activate NAME        (deactivate NAME to turn one off)
+    DATABASE_URL=... python -m algo_rhythm.accounts add NAME EMAIL --active    prints a generated password once
+
+Or in SQL: `UPDATE users SET active = true, approved_at = now() WHERE username = 'NAME';`. On Cloud SQL, reach the
+database through `cloud-sql-proxy` (the URL is in the secret `database-url`). Passwords are scrypt hashes; a sign-in
+is an HttpOnly cookie for 30 days (only its sha256 is stored, in `login_sessions`). Failed sign-ins and signups are
+rate limited per address and per name (`auth_events`). Each party records its host in `parties.owner_id`.
+
 ## 5. Decisions the user made
-- 4 energy levels, held until changed. The user controls playback. No sign-in for now.
+- 4 energy levels, held until changed. The user controls playback.
+- Hosting needs an account; joining does not. Signups wait for approval by hand (2026-10-15).
 - A web app on Google Cloud: stateless server, Cloud SQL, the browser plays and mixes; WebSockets now, at most one
   server instance; LISTEN/NOTIFY when it has to scale (2026-10-14).
 - No pitch change in a mix: the server renders each join's overlap with a pitch-keeping stretch and the browser plays

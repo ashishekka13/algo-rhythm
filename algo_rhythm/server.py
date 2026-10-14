@@ -11,8 +11,10 @@ The host's actions carry its key (header X-Host-Key; ?key= on the WebSocket), re
 import argparse
 import json
 import logging
+import os
 import re
 import sys
+import threading
 from pathlib import Path
 
 import uvicorn
@@ -20,7 +22,7 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from algo_rhythm import config, hub, library, live, live_plan, party, repository, storage
+from algo_rhythm import accounts, config, hub, library, live, live_plan, party, repository, storage
 
 log = logging.getLogger("algo_rhythm.server")
 MAX_BODY = 4096
@@ -71,6 +73,8 @@ def create_app():
     @app.on_event("startup")
     def warm():
         library.get()  # the first request should not wait for the library
+        if os.environ.get("WARM_UP", "1" if os.environ.get("K_SERVICE") else "0") == "1":  # on Cloud Run by default
+            threading.Thread(target=party.warm_up, name="warm-up", daemon=True).start()
 
     page_html = (STATIC / "live.html").read_bytes()
 
@@ -142,6 +146,10 @@ def create_app():
 
     @app.get("/")
     def landing():
+        return page()
+
+    @app.get("/login")
+    def login_page():  # the start page, opened at its sign-in form
         return page()
 
     @app.get("/p/{code}")
@@ -217,12 +225,64 @@ def create_app():
             return JSONResponse({"error": "no such image"}, 404)
         return media_file(f"art/{name}")
 
+    # ---- host accounts: hosting needs one, joining does not
+    def client_ip(request):
+        # Cloud Run appends the caller's address to X-Forwarded-For: the last entry is the one a client cannot forge
+        fwd = request.headers.get("x-forwarded-for", "")
+        return (fwd.split(",")[-1].strip() if fwd else (request.client.host if request.client else "?"))[:64]
+
+    async def signed_in(request):
+        return await run_in_threadpool(accounts.user_for, request.cookies.get(accounts.COOKIE))
+
+    @app.get("/api/auth/me")
+    async def me(request: Request):
+        return JSONResponse({"user": await signed_in(request)}, headers={"Cache-Control": "no-store"})
+
+    @app.post("/api/auth/register")
+    async def register(request: Request):
+        data = await body(request)
+        try:
+            name = await run_in_threadpool(accounts.register, data.get("username"), data.get("email"),
+                                           data.get("password"), client_ip(request))
+        except accounts.AuthError as e:
+            return JSONResponse({"error": str(e)}, 400)
+        except accounts.Limited as e:
+            return JSONResponse({"error": str(e)}, 429)
+        log.info("account %s signed up (waiting for approval)", name)
+        return JSONResponse({"ok": True, "username": name, "active": False}, 201)
+
+    @app.post("/api/auth/login")
+    async def login(request: Request):
+        data = await body(request)
+        try:
+            token, name = await run_in_threadpool(accounts.login, data.get("username"), data.get("password"),
+                                                  client_ip(request))
+        except accounts.AuthError as e:
+            return JSONResponse({"error": str(e)}, 401)
+        except accounts.Limited as e:
+            return JSONResponse({"error": str(e)}, 429)
+        resp = JSONResponse({"user": {"username": name}})
+        https = (request.headers.get("x-forwarded-proto") or request.url.scheme) == "https"
+        resp.set_cookie(accounts.COOKIE, token, max_age=accounts.SESSION_DAYS * 86400, httponly=True, samesite="lax",
+                        secure=https, path="/")
+        return resp
+
+    @app.post("/api/auth/logout")
+    async def logout(request: Request):
+        await run_in_threadpool(accounts.logout, request.cookies.get(accounts.COOKIE))
+        resp = JSONResponse({"user": None})
+        resp.delete_cookie(accounts.COOKIE, path="/")
+        return resp
+
     # ---- parties
     @app.post("/api/parties")
     async def create_party(request: Request):
         data = await body(request)
-        code, key = await run_in_threadpool(party.create, data.get("level", "medium"))
-        log.info("party %s created", code)
+        user = await signed_in(request)
+        if not user:
+            return JSONResponse({"error": "Sign in to host a party.", "login": True}, 401)
+        code, key = await run_in_threadpool(party.create, data.get("level", "medium"), user["id"])
+        log.info("party %s created by %s", code, user["username"])
         return {"code": code, "host_key": key, "host": f"/p/{code}/host", "guest": f"/p/{code}", "screen": f"/p/{code}/screen"}
 
     @app.get("/api/p/{code}/state")

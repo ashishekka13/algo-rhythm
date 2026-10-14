@@ -72,8 +72,9 @@ def new_state(level):
                    "last_at": None}}
 
 
-def create(level="medium"):
-    """A new party: (code, host key). Only the hash of the key is stored; the host's page keeps the key."""
+def create(level="medium", owner_id=None):
+    """A new party: (code, host key). Only the hash of the key is stored; the host's page keeps the key.
+    owner_id: the host account that started it (algo_rhythm.accounts)."""
     if level not in live_plan.LEVELS:
         raise ValueError("unknown level")
     key = secrets.token_urlsafe(24)
@@ -83,7 +84,7 @@ def create(level="medium"):
             if not s.scalar(select(db.Party.id).where(db.Party.code == code)):
                 break
         s.add(db.Party(level=level, code=code, host_key=hash_key(key), state=new_state(level), version=0,
-                       updated_at=db.now()))
+                       updated_at=db.now(), owner_id=owner_id))
         s.commit()
     return code, key
 
@@ -355,6 +356,26 @@ def advance(code, swap=False):
         finally:
             if "render" in t.stages:
                 log.info("advance %s timing %s", code, t.summary(status=result["status"], swap=swap))
+
+
+def warm_up():
+    """Render one join in the background when a server starts: the first join on a cold Cloud Run instance took ~25 s
+    longer than the rest (first use of the audio libraries), and that was a real party's first join."""
+    t0 = time.perf_counter()
+    try:
+        with RENDER_SLOTS:
+            lib = library.get()
+            if len(lib.songs) < 2:
+                return
+            planner = lib.planner()
+            ea = planner.first_song(0.5)
+            i = next(k for k in range(len(lib.songs)) if k != ea["song"])
+            eb = planner.entry(i, planner.win[i][0], {}, "blend", "warm-up", 0.7, 0.0)
+            a = joins.load(lib.root, lib.songs[ea["song"]], ea["window"])
+            joins.render_join(lib.root, lib.songs, ea, a, 0, eb)
+        log.info("warm-up join rendered in %.1f s", time.perf_counter() - t0)
+    except Exception:
+        log.exception("warm-up join failed (the first party's first join will be slower)")
 
 
 def _give_up(code, token, swap, drop, name=None):

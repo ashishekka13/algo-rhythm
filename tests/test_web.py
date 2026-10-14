@@ -40,9 +40,40 @@ def main(library="test_library"):
     assert len(songs) == c.get("/health").json()["songs"] >= 8
     assert c.get("/api/search", params={"q": "Synth 03"}).json()[0]["name"].startswith("Synth 03")
 
+    # host accounts: hosting needs an approved, signed-in account; a signup waits for approval
+    from algo_rhythm import accounts
+    r = c.post("/api/parties", json={"level": "medium"})
+    assert r.status_code == 401 and r.json()["login"], r.text
+    r = c.post("/api/auth/register", json={"username": "NewHost", "email": "new@example.com", "password": "longenough1"})
+    assert r.status_code == 201 and r.json() == {"ok": True, "username": "newhost", "active": False}, r.text
+    with repository.session() as sdb:
+        u = sdb.scalar(select(db.User).where(db.User.username == "newhost"))
+    assert u and u.active is False and u.password_hash.startswith("scrypt$") and "longenough1" not in u.password_hash
+    r = c.post("/api/auth/login", json={"username": "newhost", "password": "longenough1"})
+    assert r.status_code == 401 and "approval" in r.json()["error"] and accounts.COOKIE not in r.cookies, r.text
+    for bad, why in (({"username": "newhost", "email": "x@example.com", "password": "longenough1"}, "taken"),
+                     ({"username": "other", "email": "NEW@example.com", "password": "longenough1"}, "email"),
+                     ({"username": "ab", "email": "a@example.com", "password": "longenough1"}, "Username"),
+                     ({"username": "abc", "email": "not-an-email", "password": "longenough1"}, "email"),
+                     ({"username": "abc", "email": "a@example.com", "password": "short"}, "Password")):
+        r = c.post("/api/auth/register", json=bad)
+        assert r.status_code == 400 and why in r.json()["error"], (bad, r.text)
+    accounts.set_active("newhost", True)  # approved by hand
+    r = c.post("/api/auth/login", json={"username": "newhost", "password": "wrong-password"})
+    assert r.status_code == 401 and r.json()["error"] == "Wrong username or password.", r.text
+    r = c.post("/api/auth/login", json={"username": "nobody", "password": "wrong-password"})
+    assert r.status_code == 401 and r.json()["error"] == "Wrong username or password.", r.text
+    r = c.post("/api/auth/login", json={"username": "NewHost", "password": "longenough1"})
+    assert r.status_code == 200 and r.json()["user"]["username"] == "newhost", r.text
+    assert "httponly" in r.headers["set-cookie"].lower() and "samesite=lax" in r.headers["set-cookie"].lower()
+    assert c.get("/api/auth/me").json()["user"]["username"] == "newhost"
+    assert c.get("/login").status_code == 200
+
     # a party: the host gets a key, guests only the code
     r = c.post("/api/parties", json={"level": "medium"})
     code, key = r.json()["code"], r.json()["host_key"]
+    with repository.session() as sdb:
+        assert sdb.scalar(select(db.Party.owner_id).where(db.Party.code == code)) == u.id
     H = {"X-Host-Key": key}
     s = c.get(f"/api/p/{code}/state").json()
     assert s["api"] == live.API_VERSION and s["status"] == "idle" and "engine" not in s, s.keys()
@@ -153,6 +184,13 @@ def main(library="test_library"):
     # start over
     s = c.post(f"/api/p/{code}/transport", json={"action": "restart"}, headers=H).json()
     assert s["status"] == "idle" and s["engine"]["epoch"] == 1 and not s["engine"]["items"], s["engine"]
+    # sign out; then failed sign-ins from one address are limited
+    assert c.post("/api/auth/logout", json={}).status_code == 200 and c.get("/api/auth/me").json()["user"] is None
+    assert c.post("/api/parties", json={"level": "medium"}).status_code == 401
+    codes = [c.post("/api/auth/login", json={"username": "newhost", "password": "nope-nope"}).status_code
+             for _ in range(accounts.LOGIN_FAILS)]
+    assert codes[-1] == 429 and set(codes[:-1]) <= {401, 429}, codes
+    assert c.post("/api/auth/login", json={"username": "newhost", "password": "longenough1"}).status_code == 429
     print(f"WEB PASS (party {code}, {n_plays} plays recorded, join recipe {len(str(join)) // 1024} KB)")
 
 

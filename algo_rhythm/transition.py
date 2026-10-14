@@ -168,17 +168,23 @@ def _vocal_db(v, sr):
     return 20 * np.log10(np.sqrt((m[:n * h].reshape(n, h) ** 2).mean(axis=1)) + 1e-9)
 
 
+SUNG_FLOOR_DB = (-45, -53)  # open, close: never below these, so an instrumental's separation noise is not singing
+
+
 def sung_segments(v, sr, ref=None, open_rel=-18, close_rel=-26, merge_s=0.15, min_s=0.12):
     """Where the voice sings, as (start, end) seconds, from a 20 ms envelope of the vocal stem. Hysteresis: a segment
     opens above ref+open_rel and closes only below ref+close_rel, so a dip inside a held note is not a gap; dips under
-    merge_s are joined, blips under min_s dropped. ref = the voice's loud level (default: measured on v itself)."""
+    merge_s are joined, blips under min_s dropped. ref = the voice's loud level (default: measured on v itself).
+    Both thresholds have an absolute floor (SUNG_FLOOR_DB): judged against itself alone, a stem of separation noise
+    read as sung throughout. Real singing sits far above it (its open threshold measured -36 dBFS or higher)."""
     db = _vocal_db(v, sr)
     ref = vocal_ref_db(v, sr) if ref is None else ref
+    t_open, t_close = max(ref + open_rel, SUNG_FLOOR_DB[0]), max(ref + close_rel, SUNG_FLOOR_DB[1])
     segs, on, start = [], False, 0
     for k, x in enumerate(db):
-        if not on and x > ref + open_rel:
+        if not on and x > t_open:
             on, start = True, k
-        elif on and x < ref + close_rel:
+        elif on and x < t_close:
             on = False
             segs.append([start, k])
     if on:

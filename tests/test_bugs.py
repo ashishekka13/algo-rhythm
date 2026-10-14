@@ -5,7 +5,7 @@
   5. one song without vibe data leaves every other song's vibe ranks alone (dj.finalize);
   6. Gemini's answers are matched by the row number they carry, never by position or a reworded name (enrich.match);
   7. a vocal stem that is only separation noise does not read as singing; a sung stem reads as before
-     (tagger.vocal_frames_from_stem);
+     (tagger.vocal_frames_from_stem, and transition.sung_segments for the voice gates);
   1. a song window read on its own is the same audio as the window cut from the whole file.
 """
 import copy
@@ -75,6 +75,19 @@ def check_vocal_floor(library):
     was, now = float(np.mean(old(str(tmp / "noise.wav")))), float(np.mean(new(tmp / "noise.wav")))
     assert was > 0.5 and now < 0.01, (was, now)
     print(f"7. a sung stem reads exactly as before ({len(stems)} stems); separation noise read as {was:.0%} singing, now {now:.0%}")
+    # the voice gates and the MC's room use transition.sung_segments: the same floor there
+    from algo_rhythm import transition
+    floor = transition.SUNG_FLOOR_DB
+    for st in stems:
+        v, sr = sf.read(st, always_2d=True)
+        transition.SUNG_FLOOR_DB = (-999, -999)
+        old_segs = transition.sung_segments(v, sr)
+        transition.SUNG_FLOOR_DB = floor
+        assert transition.sung_segments(v, sr) == old_segs, st.name
+    loud_noise = rng.standard_normal((44100 * 30, 2)) * 10 ** (-50 / 20)
+    sung = sum(b - a for a, b in transition.sung_segments(loud_noise, 44100))
+    assert sung == 0, sung
+    print("7b. sung segments: the same for sung stems; none in separation noise at -50 dBFS")
 
 
 def check_window_read(library):

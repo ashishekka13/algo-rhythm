@@ -7,7 +7,7 @@ a laptop; the web server only reads what these write.
     python -m algo_rhythm.pipeline art [--limit N]   one image per song (costs about $0.04 each; see algo_rhythm.art)
 
 Environment: DATABASE_URL (Cloud SQL), SOURCE_URL (gs://bucket/prefix of the originals: any folders of .mp3, .wav,
-.flac, .ogg), STORAGE_URL (gs://bucket/prefix of the library the browser plays), GEMINI_API_KEY (details, art).
+.flac, .ogg), STORAGE_URL (gs://bucket/prefix of the library the browser plays), GEMINI_API_KEY or the service account (details, art).
 `songs` splits the work over the job's tasks (CLOUD_RUN_TASK_INDEX of CLOUD_RUN_TASK_COUNT): run it with
 --tasks 10 and ten machines take a tenth each. It is safe to run again: a song already analysed is skipped.
 

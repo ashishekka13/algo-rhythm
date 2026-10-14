@@ -132,7 +132,7 @@ def run_db(model=MODEL, force=False):
     if not todo and not names:
         print("nothing to do: every song already has an answer")
         return 0, 0
-    genai.api_key()
+    genai.auth_headers()
     done = 0
     jobs = [(todo[i:i + BATCH], ask) for i in range(0, len(todo), BATCH)]
     jobs += [(names[i:i + NAME_BATCH], ask_names) for i in range(0, len(names), NAME_BATCH)]
@@ -192,7 +192,7 @@ def main(argv=None):
         print("nothing to do: every song already has an answer")
         return 0
     try:
-        genai.api_key()
+        genai.auth_headers()
     except genai.GenAIError as e:
         sys.exit(str(e))
     done = 0

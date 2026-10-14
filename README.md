@@ -56,7 +56,7 @@ and `LIBRARY/stems` (see Offline jobs), or the synthetic one for trying it out:
 | `STORAGE_URL` | unset = audio is in `LIBRARY_DIR` | `gs://bucket/prefix` or `file:///abs/path`; files are fetched into `LIBRARY_DIR` when the server needs them |
 | `LIBRARY_DIR` | the path given on the command line | Local library folder, or the cache for the bucket |
 | `SOURCE_URL` | jobs only | `gs://bucket/prefix` of the original audio |
-| `GEMINI_API_KEY` | `~/.config/song-matcher/gemini_key` | Secret Manager on GCP |
+| `GEMINI_API_KEY` | `~/.config/song-matcher/gemini_key` | none: Vertex AI as the service account (`GEMINI_AUTH=adc`) |
 | `GEMINI_BACKEND` | `vertex` | `vertex`: Vertex AI express-mode key. `studio`: an AI Studio key |
 | `GEMINI_MODEL`, `GEMINI_DAILY_CAP` | `gemini-3.5-flash-lite`, 200 | Text model and the daily cap on text requests |
 | `GEMINI_EMBED_MODEL` | `gemini-embedding-001` | Search by meaning |

@@ -5,8 +5,7 @@
 #   deploy/gcp.sh apis         enable the APIs (free)
 #   deploy/gcp.sh registry     Artifact Registry repository for the images (storage billed, cents)
 #   deploy/gcp.sh sql          Cloud SQL PostgreSQL 16 instance, database and user (billed: ~$10/month at db-f1-micro)
-#   deploy/gcp.sh secrets      DATABASE_URL and GEMINI_API_KEY in Secret Manager (asks for the Gemini key; free tier)
-#   deploy/gcp.sh account      service account for the server and jobs, and its roles (free)
+#   deploy/gcp.sh account      service account for the server and jobs, and its roles (free; Gemini runs as it)
 #   deploy/gcp.sh cors         let browsers fetch audio from the bucket (free)
 #   deploy/gcp.sh build        build both images in Cloud Build (billed per build minute, about 15 min)
 #   deploy/gcp.sh server       deploy the web server on Cloud Run (billed per request time; scales to zero)
@@ -31,6 +30,7 @@ REPO=${REPO:-algo-rhythm}
 SERVICE=${SERVICE:-algo-rhythm-web}           # alongside the Oct 10 service "algo-rhythm"
 SA_NAME=${SA_NAME:-algo-rhythm-run}
 SA="$SA_NAME@$PROJECT.iam.gserviceaccount.com"
+AI_SA=${AI_SA:-gemini-algorythm@$PROJECT.iam.gserviceaccount.com}  # every Gemini / Vertex AI call runs as this account
 TAG=${TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M)}
 API_IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPO/server:$TAG"
 JOBS_IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPO/jobs:$TAG"
@@ -71,12 +71,6 @@ sql)
     echo "the database password is only in the secret database-url"
   fi
   ;;
-secrets)
-  if ! $G secrets describe gemini-api-key >/dev/null 2>&1; then
-    read -r -s -p "Gemini API key (Vertex AI express or AI Studio; not echoed): " KEY; echo
-    printf '%s' "$KEY" | $G secrets create gemini-api-key --data-file=- --replication-policy=automatic
-  fi
-  ;;
 account)
   $G iam service-accounts describe "$SA" >/dev/null 2>&1 || \
     $G iam service-accounts create "$SA_NAME" --display-name="algo-rhythm server and jobs"
@@ -87,7 +81,12 @@ account)
   # signed URLs: the account signs for itself through IAM
   $G iam service-accounts add-iam-policy-binding "$SA" --member="serviceAccount:$SA" \
     --role=roles/iam.serviceAccountTokenCreator >/dev/null
-  echo "service account $SA ready"
+  # Gemini on Vertex AI (no API key): $SA impersonates $AI_SA, which alone holds roles/aiplatform.user
+  $G projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$AI_SA" --role=roles/aiplatform.user \
+    --condition=None >/dev/null
+  $G iam service-accounts add-iam-policy-binding "$AI_SA" --member="serviceAccount:$SA" \
+    --role=roles/iam.serviceAccountTokenCreator >/dev/null
+  echo "service account $SA ready (AI as $AI_SA)"
   ;;
 cors)
   # every address of the service (Cloud Run gives two), plus a laptop's
@@ -109,16 +108,16 @@ build)
 server)
   # One instance at most for now: the WebSocket hub is in-process (algo_rhythm/hub.py says how to lift this).
   $G run deploy "$SERVICE" --image="$API_IMAGE" --region="$REGION" --service-account="$SA" \
-    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=database-url:latest,GEMINI_API_KEY=gemini-api-key:latest" \
-    --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,MC_TTS=gemini,LOG_LEVEL=INFO" \
+    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=database-url:latest" \
+    --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT,MC_TTS=gemini,LOG_LEVEL=INFO" \
     --cpu=2 --memory=4Gi --concurrency=40 --min-instances=0 --max-instances=1 --timeout=3600 \
     --session-affinity --cpu-boost --allow-unauthenticated
   $G run services describe "$SERVICE" --region="$REGION" --format="value(status.url)"
   ;;
 jobs)
   COMMON=(--image="$JOBS_IMAGE" --region="$REGION" --service-account="$SA" --set-cloudsql-instances="$CONN"
-          --set-secrets="DATABASE_URL=database-url:latest,GEMINI_API_KEY=gemini-api-key:latest"
-          --set-env-vars="SOURCE_URL=gs://$BUCKET/$SOURCE_PREFIX,STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex")
+          --set-secrets="DATABASE_URL=database-url:latest"
+          --set-env-vars="SOURCE_URL=gs://$BUCKET/$SOURCE_PREFIX,STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT")
   # songs: 25 tasks of about 4 songs (Demucs on 4 vCPU takes ~6 min a song; a task has 60 min), 4 at a time
   # (4 x 4 vCPU: the project's 20 vCPU per region leaves room for the server)
   for spec in "songs:25:4:4:8Gi:3600" "details:1:1:1:2Gi:1800" "art:1:1:1:2Gi:3600"; do

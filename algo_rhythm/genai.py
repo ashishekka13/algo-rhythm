@@ -3,9 +3,13 @@
     from algo_rhythm import genai
     answer = genai.generate("talk", "talk-v1", [{"text": prompt}], schema)
 
-Key: env GEMINI_API_KEY, else ~/.config/song-matcher/gemini_key. Model: env GEMINI_MODEL (default gemini-3.5-flash-lite).
-Backend: env GEMINI_BACKEND = "vertex" (default; Vertex AI express-mode key, global endpoint, or the regional one when
-VERTEX_LOCATION and GOOGLE_CLOUD_PROJECT are set) or "studio" (an AI Studio key, generativelanguage.googleapis.com).
+Auth: env GEMINI_API_KEY, else ~/.config/song-matcher/gemini_key; with no key (or GEMINI_AUTH=adc), Vertex uses the
+service account (Application Default Credentials: Cloud Run's account, or `gcloud auth application-default login`),
+which needs roles/aiplatform.user. Env GEMINI_SERVICE_ACCOUNT: impersonate that account for every AI call instead (the
+caller needs roles/iam.serviceAccountTokenCreator on it). Model: env GEMINI_MODEL (default gemini-3.5-flash-lite).
+Backend: env GEMINI_BACKEND = "vertex" (default; an express-mode key on the global endpoint, or the project's endpoint at
+VERTEX_LOCATION, default global, for the service account or when VERTEX_LOCATION is set; project: GOOGLE_CLOUD_PROJECT,
+else the credentials') or "studio" (an AI Studio key, generativelanguage.googleapis.com).
 Daily cap: env GEMINI_DAILY_CAP (default 200), a cost guard on text requests.
 Embeddings: genai.embed(texts, task_type=...) with env GEMINI_EMBED_MODEL (default gemini-embedding-001); they do not
 count against the cap.
@@ -15,6 +19,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 
@@ -25,7 +30,7 @@ truststore.inject_into_ssl()  # corporate root certificate; TLS checks stay on
 
 STUDIO = "https://generativelanguage.googleapis.com/v1beta/models/{}"
 VERTEX = "https://aiplatform.googleapis.com/v1/publishers/google/models/{}"
-VERTEX_REGIONAL = "https://{loc}-aiplatform.googleapis.com/v1/projects/{project}/locations/{loc}/publishers/google/models/{}"
+VERTEX_PROJECT = "https://{host}/v1/projects/{project}/locations/{loc}/publishers/google/models/{}"
 EMBED_DIM = 768        # the embedding models allow 128-3072; 768 keeps a library's vectors small
 EMBED_BATCH = 100      # texts per embedding request (Vertex refuses more than 250 instances)
 KEY_FILE = Path.home() / ".config/song-matcher/gemini_key"
@@ -81,19 +86,67 @@ def model_url(model, method):
     if backend() == "studio":
         return STUDIO.format(model) + ":" + method
     loc = os.environ.get("VERTEX_LOCATION")
-    if not loc:
+    if not loc and api_key():
         return VERTEX.format(model) + ":" + method
-    project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-    if not project:
-        raise GenAIError("VERTEX_LOCATION needs GOOGLE_CLOUD_PROJECT")
-    return VERTEX_REGIONAL.format(model, loc=loc, project=project) + ":" + method
+    loc = loc or "global"
+    host = "aiplatform.googleapis.com" if loc == "global" else f"{loc}-aiplatform.googleapis.com"
+    return VERTEX_PROJECT.format(model, host=host, loc=loc, project=project()) + ":" + method
 
 
 def api_key():
-    k = os.environ.get("GEMINI_API_KEY") or (KEY_FILE.read_text().strip() if KEY_FILE.exists() else "")
-    if not k:
-        raise GenAIError("No key: set GEMINI_API_KEY or put it in " + str(KEY_FILE))
-    return k
+    """The API key, or None: then Vertex uses the service account. GEMINI_AUTH=adc ignores any key."""
+    if os.environ.get("GEMINI_AUTH") == "adc":
+        return None
+    return os.environ.get("GEMINI_API_KEY") or (KEY_FILE.read_text().strip() if KEY_FILE.exists() else None)
+
+
+_adc = {"creds": None, "project": None, "lock": threading.Lock()}
+
+
+def _credentials():
+    """Application Default Credentials, refreshed when the token is about to run out. GenAIError when there are none."""
+    with _adc["lock"]:
+        try:
+            import google.auth
+            import google.auth.transport.requests
+            if _adc["creds"] is None:
+                scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+                creds, _adc["project"] = google.auth.default(scopes=scopes)
+                sa = os.environ.get("GEMINI_SERVICE_ACCOUNT")
+                if sa:
+                    from google.auth import impersonated_credentials
+                    creds = impersonated_credentials.Credentials(source_credentials=creds, target_principal=sa,
+                                                                 target_scopes=scopes)
+                    # name@PROJECT.iam.gserviceaccount.com: bill the account's own project
+                    if sa.endswith(".iam.gserviceaccount.com"):
+                        _adc["project"] = sa.split("@")[1].split(".")[0]
+                _adc["creds"] = creds
+            if not _adc["creds"].valid:
+                _adc["creds"].refresh(google.auth.transport.requests.Request())
+        except Exception as e:
+            raise GenAIError(f"No key and no service account ({type(e).__name__}): set GEMINI_API_KEY, put it in "
+                             f"{KEY_FILE}, or run `gcloud auth application-default login`") from None
+        return _adc["creds"]
+
+
+def project():
+    p = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    if not p:
+        _credentials()
+        p = _adc["project"]
+    if not p:
+        raise GenAIError("Vertex with the service account needs GOOGLE_CLOUD_PROJECT")
+    return p
+
+
+def auth_headers():
+    """{"x-goog-api-key": key}, or the service account's bearer token on Vertex. GenAIError when neither is there."""
+    key = api_key()
+    if key:
+        return {"x-goog-api-key": key}
+    if backend() == "studio":
+        raise GenAIError("No key: AI Studio needs GEMINI_API_KEY or the key in " + str(KEY_FILE))
+    return {"Authorization": "Bearer " + _credentials().token}
 
 
 def cache_key(model, task, prompt_version, parts, schema):
@@ -137,14 +190,13 @@ def validate(value, schema, path="answer"):
 def _send(url, body, timeout, spend=True):
     """POST with retries on transient errors; QuotaError on 429 at once. Returns the response JSON.
     spend=False: not counted against GEMINI_DAILY_CAP (embeddings use another model and allowance)."""
-    key = api_key()
     for attempt in range(RETRIES + 1):
         if attempt:
             time.sleep(BACKOFF_S * 2 ** (attempt - 1))
         if spend:
             _spend_one()
         try:
-            r = requests.post(url, headers={"x-goog-api-key": key}, json=body, timeout=timeout)
+            r = requests.post(url, headers=auth_headers(), json=body, timeout=timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
             last = f"{type(e).__name__}"
             continue

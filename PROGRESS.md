@@ -6,8 +6,10 @@ Updated 2026-10-15. The approach is in `README.md`; this file is the status.
 - **Architecture:** stateless FastAPI server (Cloud Run), Cloud SQL for the library and every party's session, the
   host's browser plays and mixes (Web Audio, `static/player.js`) from per-join recipes the server makes; WebSockets
   for live updates (one instance for now). Guests join with a party code; the host holds a key.
-- **The browser's mix is checked against the server's:** songs either side of a join sample for sample, overlaps
-  within 0.5 dB, beats within 5 samples (0.1 ms) through a 15 s blend, Chromium's MP3 timing equal to the server's.
+- **The browser's mix is checked against the server's:** songs either side of a join sample for sample, the overlap
+  the server's render (an MP3 asset per join, pitch kept), no click at the seams, Chromium's MP3 timing equal to the
+  server's. (The first version changed playback speed in the browser for the beat match; the pitch wobbled beat by
+  beat through every blend, so the server's overlap replaced it on 2026-10-15.)
 - **Found and fixed on the way:** a vocal-swap blend left a residue louder than the voice (song and stem were
   stretched separately and subtracted); the planner crashed when every following song had played lately; song
   files with "#" in the name could not be fetched.

@@ -388,7 +388,7 @@ def advance(code, swap=False):
     line = _mc_line(lib, snap["mc"], snap["level"], J, j, rng)
     item = recipe.join_item(a, j, J, asset=lambda kind, audio: library.store_asset(kind, audio),
                             mc_line=line[:3] if line else None)
-    body_start = j.plan["b_skip"] if j.plan["kind"] == "blend" else 0
+    body_start = j.nxt_skip
     # 3. attach it, unless the party moved on meanwhile (restart, another swap)
     with locked(code) as (row, st):
         sess = session_from(st, lib)

@@ -111,14 +111,13 @@ algo-rhythm/
 
 - **The server plans, the browser plays.** When a song goes on the air, the host's page asks `/advance`: the server
   picks the next song (the planner, as before), renders the join with numpy and rubberband to check it (the same QA
-  as always: holes, bumps, two voices, other parts of the song auditioned) and answers with a **recipe**: one "play"
-  per source (song or vocal stem, a time map that sets its playback rate for the beat warp, a gain curve, a highpass
-  sweep for the bass swap). `player.js` schedules those plays with the Web Audio API, a minute or more ahead.
+  as always: holes, bumps, two voices, other parts of the song auditioned) and answers with a **recipe**: the
+  outgoing song until the join, the join's overlap (the server's own render, stored as an MP3 asset: the beat match
+  there is a pitch-kept stretch, which the Web Audio API cannot do), then the incoming song, plus the MC's line.
+  Every play runs at normal speed; `player.js` schedules them with the Web Audio API, a minute or more ahead.
 - **The browser's join is the server's join.** `tests/test_recipe.py` (numpy) and `tests/ui/player_browser.py`
-  (Chromium) check it: the songs either side sample for sample, overlaps within 0.5 dB, the beats within 5 samples
-  through a 15 s blend, 0 samples between Chromium's and the server's decoding. One difference by design: the
-  browser changes a song's speed for a blend (the pitch moves with it, like a turntable, at most the 10% tempo gate)
-  where the server's check stretches without changing pitch.
+  (Chromium) check it: the songs either side sample for sample, the overlap the server's audio through the MP3, no
+  click at either seam, 0 samples between Chromium's and the server's decoding.
 - **Every song and stem is one MP3 encoding** (`media.py`), so every decoder places every sample the same way: a stem
   subtracts cleanly from its song in the browser, and the beat grids from the analysis hold.
 - **Stateless:** a party's whole session (vibe, queue, timeline with each join's recipe, requests, the MC) is a JSON
@@ -190,7 +189,8 @@ connect; a column added later is added by `db.add_missing_columns`.
 - 4 energy levels, held until changed. The user controls playback. No sign-in for now.
 - A web app on Google Cloud: stateless server, Cloud SQL, the browser plays and mixes; WebSockets now, at most one
   server instance; LISTEN/NOTIFY when it has to scale (2026-10-14).
-- Blends change speed in the browser (the pitch follows), rather than a pitch-keeping stretcher (2026-10-14).
+- No pitch change in a mix: the server renders each join's overlap with a pitch-keeping stretch and the browser plays
+  it (2026-10-15; the first web version changed speed in the browser, and the pitch wobbled through blends).
 - Best bit of the next song first; every song reaches a proper verse; parts of 50 to 140 s.
 - Never two voices at once; never fade or cut a lyric.
 - Requests from the library only, 1 to 3 songs out. No downloader.

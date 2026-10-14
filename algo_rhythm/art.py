@@ -1,7 +1,7 @@
 """Song art: one generated image per song, made once ahead of time and animated by the page (no AI while music plays).
 
     python -m algo_rhythm.art LIBRARY --dry-run        what it would make, the prompts and the cost (no calls)
-    python -m algo_rhythm.art LIBRARY [--limit N] [--force] [--jobs 2]
+    python -m algo_rhythm.art LIBRARY [--limit N] [--force] [--jobs 1]
 
 Images come from Gemini's image model through the gateway (same Vertex AI key and daily cap), prompted from the
 song's Gemini details (mood, style, occasion, era, energy) with no faces, text or posters. Each is stored as
@@ -15,7 +15,7 @@ import json
 import logging
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from algo_rhythm import config, dj, genai, storage
@@ -74,7 +74,7 @@ def generate(song, send=None):
     return to_jpeg(base64.b64decode(part["inlineData"]["data"]))
 
 
-def run(library, songs, *, jobs=2, send=None):
+def run(library, songs, *, jobs=1, send=None):
     """Make art for `songs`, saving each image and the index as it goes. Returns (made, failed)."""
     library = Path(library)
     (library / "art").mkdir(exist_ok=True)
@@ -90,8 +90,11 @@ def run(library, songs, *, jobs=2, send=None):
                 log.info("rate-limited; trying %s again in %d s", s["name"][:40], wait)
                 sleep(wait)
 
-    with ThreadPoolExecutor(jobs) as pool:
-        for fut in [pool.submit(one, s) for s in songs]:
+    # saved in the order they finish (one song waiting out a 429 holds up no other); stopping cancels what has not
+    # started, so no image is paid for and then dropped
+    pool = ThreadPoolExecutor(jobs)
+    try:
+        for fut in as_completed([pool.submit(one, s) for s in songs]):
             try:
                 s, jpg = fut.result()
             except genai.QuotaError as e:
@@ -111,6 +114,8 @@ def run(library, songs, *, jobs=2, send=None):
                 storage.upload(library / INDEX, INDEX)
             made += 1
             print(f"art {made}: {s['name'][:50]}", flush=True)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
     return made, failed
 
 
@@ -120,7 +125,7 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", help="show what would be made and the cost; no calls")
     ap.add_argument("--limit", type=int, help="make at most this many images")
     ap.add_argument("--force", action="store_true", help="remake images that already exist")
-    ap.add_argument("--jobs", type=int, default=2)
+    ap.add_argument("--jobs", type=int, default=1)
     args = ap.parse_args(argv)
     library = args.library.resolve()
     songs, _ = dj.load_library(library)

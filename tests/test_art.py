@@ -51,6 +51,13 @@ def main():
         raise genai.RateLimited("429")
     waited.clear()
     assert art.run(Path(tempfile.mkdtemp()), [song], jobs=1, send=busy) == (0, 1) and waited == list(art.WAITS_S)
+    # the daily cap stops the run and cancels the songs not yet started: nothing is paid for and dropped
+    sent_n = []
+    def capped(url, body, timeout):
+        sent_n.append(1)
+        raise genai.QuotaError("daily Gemini cap reached")
+    three = [dict(song, sha256=c * 64) for c in "cde"]
+    assert art.run(Path(tempfile.mkdtemp()), three, jobs=1, send=capped) == (0, 1) and len(sent_n) == 1, sent_n
     print("ART PASS")
 
 

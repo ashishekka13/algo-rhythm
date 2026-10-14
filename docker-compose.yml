@@ -1,0 +1,19 @@
+# Local stand-in for Cloud SQL. Storage needs nothing locally: leave STORAGE_URL unset or use file://.
+# Start the database, import the library, then run the player natively for sound:
+#   docker compose up -d db
+#   DATABASE_URL=postgresql+psycopg://algorhythm:algorhythm@localhost:5432/algorhythm python -m algo_rhythm.importer library_100
+#   DATABASE_URL=postgresql+psycopg://algorhythm:algorhythm@localhost:5432/algorhythm python -m algo_rhythm.server library_100
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: algorhythm
+      POSTGRES_PASSWORD: algorhythm
+      POSTGRES_DB: algorhythm
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U algorhythm"]
+      interval: 5s
+volumes:
+  pgdata:

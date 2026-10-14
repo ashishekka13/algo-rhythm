@@ -1,0 +1,510 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "song-matcher/tag_schema/2.0",
+  "title": "Song tags v2 (one file per song, written by tagger.py)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "file",
+    "sha256",
+    "title",
+    "artist",
+    "metadata_source",
+    "duration_s",
+    "tempo",
+    "beats",
+    "key",
+    "loudness",
+    "energy",
+    "structure",
+    "phrases",
+    "hooks",
+    "vectors",
+    "vocal_ratio",
+    "embedding",
+    "quality"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^2\\.\\d+$"
+    },
+    "file": {
+      "type": "string",
+      "minLength": 1,
+      "description": "audio path relative to the library root"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artist": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "metadata_source": {
+      "enum": [
+        "file_tags",
+        "filename"
+      ]
+    },
+    "duration_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "tempo": {
+      "type": "object",
+      "required": [
+        "bpm",
+        "confidence",
+        "beat_count",
+        "beat_strength",
+        "grid_shift_ms",
+        "half_double",
+        "kick_band_bpm"
+      ],
+      "properties": {
+        "bpm": {
+          "type": "number",
+          "minimum": 40,
+          "maximum": 250
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "beat_count": {
+          "type": "integer",
+          "minimum": 33
+        },
+        "beat_strength": {
+          "type": "number",
+          "minimum": 0
+        },
+        "grid_shift_ms": {
+          "type": "number"
+        },
+        "half_double": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "kick_band_bpm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "beats": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "minItems": 33
+    },
+    "key": {
+      "type": "object",
+      "required": [
+        "name",
+        "camelot",
+        "confidence",
+        "margin",
+        "runner_up"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-G]#? (major|minor)$"
+        },
+        "camelot": {
+          "type": "string",
+          "pattern": "^(1[0-2]|[1-9])[AB]$"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "margin": {
+          "type": "number",
+          "minimum": 0
+        },
+        "runner_up": {
+          "type": "string"
+        }
+      }
+    },
+    "loudness": {
+      "type": "object",
+      "required": [
+        "lufs",
+        "peak_dbfs"
+      ],
+      "properties": {
+        "lufs": {
+          "type": "number",
+          "minimum": -70,
+          "maximum": 0
+        },
+        "peak_dbfs": {
+          "type": "number"
+        }
+      }
+    },
+    "energy": {
+      "type": "object",
+      "required": [
+        "score",
+        "brightness_hz",
+        "onset_rate",
+        "percussive_ratio",
+        "measured_over_s"
+      ],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "brightness_hz": {
+          "type": "number",
+          "minimum": 0
+        },
+        "onset_rate": {
+          "type": "number",
+          "minimum": 0
+        },
+        "percussive_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "measured_over_s": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "structure": {
+      "type": "object",
+      "required": [
+        "intro_end_s",
+        "outro_start_s",
+        "phrase_anchor_s"
+      ],
+      "properties": {
+        "intro_end_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "outro_start_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "phrase_anchor_s": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "phrases": {
+      "type": "object",
+      "required": [
+        "start_beats",
+        "energy",
+        "repetition",
+        "score"
+      ],
+      "properties": {
+        "start_beats": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "energy": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "repetition": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "score": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "start_beat",
+          "end_beat",
+          "start_s",
+          "end_s",
+          "score"
+        ],
+        "properties": {
+          "start_beat": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_beat": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "start_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "vectors": {
+      "type": "object",
+      "required": [
+        "chroma",
+        "mfcc_mean",
+        "mfcc_std",
+        "spectral_contrast"
+      ],
+      "properties": {
+        "chroma": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 12,
+          "maxItems": 12
+        },
+        "mfcc_mean": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 13,
+          "maxItems": 13
+        },
+        "mfcc_std": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 13,
+          "maxItems": 13
+        },
+        "spectral_contrast": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 7,
+          "maxItems": 7
+        }
+      }
+    },
+    "vocal_ratio": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "embedding": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "number"
+      }
+    },
+    "quality": {
+      "type": "object",
+      "required": [
+        "flags"
+      ],
+      "properties": {
+        "flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "duration_out_of_range",
+              "low_tempo_confidence",
+              "tempo_disagreement",
+              "tempo_octave_ambiguous",
+              "low_key_margin",
+              "too_few_phrases",
+              "long_intro",
+              "clipped_source"
+            ]
+          }
+        }
+      }
+    },
+    "vibe": {
+      "type": "object",
+      "required": [
+        "arousal",
+        "valence",
+        "danceability",
+        "acousticness",
+        "felt_bpm",
+        "dynamics",
+        "mix_in_ease",
+        "mix_out_ease"
+      ],
+      "properties": {
+        "arousal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "valence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "danceability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "acousticness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "felt_bpm": {
+          "type": "number"
+        },
+        "dynamics": {
+          "type": "object",
+          "properties": {
+            "peak_position": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "drop_contrast": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "range": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "mix_in_ease": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mix_out_ease": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "phrase_mix": {
+          "type": "object",
+          "required": [
+            "rms_db",
+            "perc",
+            "steady"
+          ],
+          "properties": {
+            "rms_db": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "perc": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "steady": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "vocal": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "low_db": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "vocal_activity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "vocal_source": {
+          "enum": [
+            "demucs",
+            "proxy"
+          ]
+        }
+      }
+    }
+  }
+}

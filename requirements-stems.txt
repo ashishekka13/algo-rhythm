@@ -1,0 +1,8 @@
+# Demucs vocal separation (stems.py) runs in its own environment: .venv-stems
+demucs==4.1.0
+torch
+julius
+soundfile
+numpy
+truststore
+mlx-whisper  # tools/lyrics.py (Apple Silicon)

@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="en" class="e-medium loading">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>algo-rhythm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* One page, three views (admin at /, guest at /guest, presenter at /presenter). Tokens follow the frontend plan, section 5. */
+  :root {
+    --bg:#09090B; --ink:#F5F8FF; --ink-2:rgba(245,248,255,.68); --ink-3:rgba(245,248,255,.46);
+    --line:rgba(245,248,255,.09); --glass:rgba(255,255,255,.045); --success:#00BE6F; --bad:#FF7B6E; --warn:#F2B84B;
+    --radius-card:24px; --radius-inner:16px; --radius-pill:999px;
+    --font:"Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ease:cubic-bezier(.23,1,.32,1);
+    --low:#75A3FF; --medium:#2DD4BF; --high:#FF9A3D; --max:#FF5A67;
+    color-scheme:dark;
+  }
+  /* Energy themes: one class on <html>. --beat is replaced by the real BPM once a song plays. */
+  .e-low    { --acc:#75A3FF; --acc-2:#305EFF; --beat:1.3s; }
+  .e-medium { --acc:#2DD4BF; --acc-2:#0D9488; --beat:.95s; }
+  .e-high   { --acc:#FF9A3D; --acc-2:#FC6D0B; --beat:.68s; }
+  .e-max    { --acc:#FF5A67; --acc-2:#E11D2E; --beat:.5s; }
+  /* Mood themes: one m-* class on <html> (the picked vibe, else the playing song's mood), after the energy class so it wins.
+     Registered colours cross-fade over 2.4 s. Every --acc is 7:1 or more on the dark ground (AA for text); --tint colours the ground. */
+  @property --acc { syntax:"<color>"; inherits:true; initial-value:#2DD4BF; }
+  @property --acc-2 { syntax:"<color>"; inherits:true; initial-value:#0D9488; }
+  @property --tint { syntax:"<color>"; inherits:true; initial-value:#09090B; }
+  html { transition:--acc 2.4s ease, --acc-2 2.4s ease, --tint 2.4s ease; }
+  .m-chill      { --acc:#5EEAD4; --acc-2:#38BDF8; --tint:#06282B; }
+  .m-sad        { --acc:#9DB0E8; --acc-2:#4C5FA8; --tint:#0C1230; }
+  .m-romantic   { --acc:#FF7AB6; --acc-2:#E0457B; --tint:#300A20; }
+  .m-groove     { --acc:#B98CFF; --acc-2:#2DD4BF; --tint:#1A0F36; }
+  .m-party      { --acc:#FFB23E; --acc-2:#FF5FA2; --tint:#2E1505; }
+  .m-peak       { --acc:#FF6B85; --acc-2:#FF2BD6; --tint:#38040F; }
+  .m-devotional { --acc:#FFC857; --acc-2:#F28C28; --tint:#2A1A04; }
+
+  * { box-sizing:border-box; }
+  html { background:var(--bg); -webkit-text-size-adjust:100%; }
+  body { margin:0; background:transparent; color:var(--ink); font:15px/1.45 var(--font); caret-color:var(--acc); }
+  ::selection { background:color-mix(in srgb, var(--acc) 40%, transparent); }
+  :focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+  button, input { font:inherit; color:inherit; }
+  button { cursor:pointer; -webkit-tap-highlight-color:transparent; min-height:44px; }
+  button:active { transform:scale(.97); }
+  a { color:inherit; }
+  [hidden] { display:none !important; }
+  .num, .mono { font-variant-numeric:tabular-nums; }
+  .mono { font-family:var(--mono); }
+  .label { font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  h2 { font-size:clamp(22px, 2.4vw, 30px); font-weight:600; letter-spacing:-.02em; margin:0 0 14px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  h2 small { font-size:13px; font-weight:400; color:var(--ink-3); letter-spacing:0; }
+
+  /* Album-colour ambience: soft blobs in the song's generated palette, fading over 3 s on a song change */
+  .ambience { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  .ambience i { position:absolute; width:52vmax; height:52vmax; border-radius:50%; filter:blur(120px); opacity:.16;
+    background-color:#2a2f3a; transition:background-color 3s ease; }
+  .ambience i:nth-child(1) { left:-18vmax; top:-22vmax; }
+  .ambience i:nth-child(2) { right:-20vmax; top:10vh; }
+  .ambience i:nth-child(3) { left:20vw; bottom:-30vmax; }
+  /* Mood ambience: the ground takes the mood's tint and a soft glow of its two colours (::before); each mood moves it its own way.
+     Only transform and opacity animate (cheap on a phone). Sad adds slow rain (::after). The beat flash never runs faster than 3 a second (--beat is at least .34 s). */
+  .ambience { background:radial-gradient(120% 90% at 50% 0%, var(--tint), var(--bg) 75%); }
+  .ambience::before, .ambience::after { content:""; position:absolute; pointer-events:none; }
+  .ambience::before { inset:-10%; opacity:.22;
+    background:radial-gradient(40% 35% at 25% 30%, var(--acc), transparent 70%), radial-gradient(45% 40% at 75% 70%, var(--acc-2), transparent 70%); }
+  .m-romantic .ambience::before, .m-devotional .ambience::before { animation:breathe 7s ease-in-out infinite; }
+  .m-romantic .ambience i { animation:breathe 9s ease-in-out infinite; }
+  .m-chill .ambience::before { animation:sway 16s ease-in-out infinite alternate; }
+  .m-chill .ambience i { animation:sway 20s ease-in-out infinite alternate; }
+  .m-sad .ambience::before { opacity:.16; animation:mist 26s ease-in-out infinite alternate; }
+  .m-sad .ambience i { animation:mist 30s ease-in-out infinite alternate; }
+  .m-sad .ambience::after { left:0; right:0; top:-240px; height:calc(100% + 240px); opacity:.5; animation:rain 5s linear infinite;
+    background:repeating-linear-gradient(100deg, transparent 0 46px, rgba(170,185,225,.07) 46px 47px, transparent 47px 91px); background-size:100% 240px; }
+  .m-groove .ambience::before { animation:thump calc(var(--beat) * 2) ease-out infinite; }
+  .m-party .ambience::before { animation:thump var(--beat) ease-out infinite; }
+  .m-party .ambience i { animation:sway 12s ease-in-out infinite alternate; }
+  .m-peak .ambience::before { animation:flash var(--beat) ease-out infinite; }
+  .m-peak .ambience i { opacity:.22; animation:thump var(--beat) ease-out infinite; }
+  @keyframes breathe { 50% { transform:scale(1.12); opacity:.32; } }
+  @keyframes sway { to { transform:translate(6vmax, 3vmax) rotate(8deg); } }
+  @keyframes mist { to { transform:translate(-3vmax, 7vmax); opacity:.1; } }
+  @keyframes rain { to { transform:translateY(240px); } }
+  @keyframes thump { 0% { transform:scale(1.06); opacity:.32; } 60%, 100% { transform:none; } }
+  @keyframes flash { 0% { transform:scale(1.08); opacity:.42; } 50%, 100% { transform:none; opacity:.24; } }
+
+  .glass { background:var(--glass); border:1px solid var(--line); border-radius:var(--radius-card); padding:20px;
+    -webkit-backdrop-filter:blur(24px) saturate(140%); backdrop-filter:blur(24px) saturate(140%); min-width:0; }
+  .shell { max-width:1360px; margin:0 auto; padding:max(16px, env(safe-area-inset-top)) 16px 56px; }
+
+  .wordmark { font-weight:700; font-size:20px; letter-spacing:-.03em; display:flex; align-items:center; gap:10px; }
+  .wordmark b { color:var(--acc); font-weight:700; transition:color .6s ease; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--acc); flex:none; animation:pulse var(--beat) ease-in-out infinite; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius-pill); border:1px solid var(--line);
+    background:var(--glass); font-size:13px; color:var(--ink-2); white-space:nowrap; }
+
+  header.top { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:18px; }
+  header.top .grow { flex:1; }
+  nav.tabs { display:flex; gap:4px; padding:4px; border-radius:var(--radius-pill); background:var(--glass); border:1px solid var(--line); }
+  nav.tabs a { padding:8px 14px; border-radius:var(--radius-pill); text-decoration:none; font-size:13px; font-weight:500; color:var(--ink-2); min-height:36px; display:inline-flex; align-items:center; }
+  nav.tabs a[aria-current="page"] { background:color-mix(in srgb, var(--acc) 22%, transparent); color:var(--ink); }
+
+  .banners { max-width:1360px; margin:0 auto; padding:0 16px; }
+  .banner { padding:11px 14px; border-radius:var(--radius-inner); margin:12px 0 0; font-size:14px; }
+  .banner.bad { background:rgba(255,123,110,.12); color:var(--bad); border:1px solid rgba(255,123,110,.25); }
+  .banner.warn { background:rgba(242,184,75,.1); color:var(--warn); border:1px solid rgba(242,184,75,.25); }
+  #err:empty { display:none; }
+
+  .statusline { font-size:clamp(22px, 3vw, 34px); font-weight:500; letter-spacing:-.02em; color:var(--ink-2); margin:0 0 20px; min-height:1.3em; overflow-wrap:anywhere; }
+
+  /* Track art: generated gradient from a palette derived from the song name (no album art in the backend) */
+  .art { width:72px; aspect-ratio:1; border-radius:var(--radius-inner); flex:none; background:linear-gradient(135deg, #2a2f3a, #15171b);
+    box-shadow:0 10px 30px rgba(0,0,0,.35); transition:background .6s ease; }
+
+  /* Song art: the song's own image, full-bleed under the visual and a dark veil (the world is the hero, the art its memory). Two stacked layers crossfade during a mix;
+     each pans slowly in its own direction, and the whole layer pulses gently on the beat (no movement with reduced motion). */
+  .songart { position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; background:#07070a; }
+  .songart img { position:absolute; left:-6%; top:-6%; width:112%; height:112%; object-fit:cover; opacity:0; transition:opacity .9s linear; }
+  .songart::after { content:""; position:absolute; inset:0; z-index:2; background:rgba(5,6,9,.86); }
+  .songart.moving { animation:artbeat var(--beat) ease-out infinite; }
+  .songart.moving img:first-child { animation:kb1 28s ease-in-out infinite alternate; }
+  .songart.moving img:last-of-type { animation:kb2 28s ease-in-out infinite alternate; }
+  @keyframes kb1 { from { transform:scale(1) translate(0, 0); } to { transform:scale(1.1) translate(-3%, -2%); } }
+  @keyframes kb2 { from { transform:scale(1.1) translate(2%, -3%); } to { transform:scale(1) translate(-2%, 2%); } }
+  @keyframes artbeat { 0% { transform:scale(1.012); filter:brightness(1.14); } 55%, 100% { transform:none; filter:none; } }
+
+  /* Now playing */
+  .now { position:relative; overflow:hidden; padding:0; min-height:380px; display:flex; }
+  .now canvas, .stage canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .now .over, .stage .over { position:relative; z-index:1; display:flex; flex-direction:column; gap:6px; padding:22px; width:100%;
+    background:linear-gradient(180deg, rgba(9,9,11,.15) 0%, rgba(9,9,11,.35) 45%, rgba(9,9,11,.82) 100%); pointer-events:none; }
+  .over > * { pointer-events:auto; }
+  .over .spacer { flex:1; pointer-events:none; min-height:24px; }
+  .nowhead { display:flex; align-items:center; gap:14px; }
+  .title { font-weight:700; letter-spacing:-.035em; line-height:1.02; overflow-wrap:anywhere; text-wrap:balance; margin:0; }
+  #v-admin .title { font-size:clamp(44px, 5vw, 68px); }
+  .sub { font-size:18px; color:var(--ink-2); font-weight:500; }
+  .meta { color:var(--ink-2); font-size:14px; font-variant-numeric:tabular-nums; }
+  .track { height:4px; background:rgba(245,248,255,.14); border-radius:2px; overflow:hidden; margin-top:14px; }
+  .track > i { display:block; height:100%; background:var(--acc); transform-origin:left; transform:scaleX(0); transition:transform .9s linear, background-color .6s ease; }
+  .times { display:flex; justify-content:space-between; font-size:12px; color:var(--ink-3); font-variant-numeric:tabular-nums; margin-top:6px; }
+  html.loading .title, html.loading .meta { color:transparent; border-radius:10px; background:linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.1), rgba(255,255,255,.05));
+    background-size:200% 100%; animation:shimmer 1.6s linear infinite; }
+
+  .controls { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  .btn { padding:0 18px; border-radius:var(--radius-inner); border:1px solid var(--line); background:var(--glass); color:var(--ink); font-size:15px; font-weight:600;
+    transition:background-color .2s ease, border-color .2s ease, color .2s ease, transform .16s var(--ease); }
+  #transport { flex:1; min-width:140px; min-height:52px; display:flex; align-items:center; justify-content:center; gap:10px; border:0;
+    background:var(--acc); color:#09090B; font-size:17px; font-weight:700; }
+  #transport::before { content:""; width:12px; height:14px; background:currentColor; clip-path:polygon(0 0, 100% 50%, 0 100%); }
+  #transport.pause { background:rgba(245,248,255,.12); color:var(--ink); }
+  #transport.pause::before { clip-path:none; background:linear-gradient(90deg, currentColor 0 35%, transparent 35% 65%, currentColor 65%); }
+  #restart { color:var(--ink-2); }
+  /* AI MC switch: a small pill next to the transport buttons */
+  #mc, #kaleido { display:inline-flex; align-items:center; gap:8px; color:var(--ink-2); }
+  #mc::before, #kaleido::before { content:""; width:26px; height:14px; border-radius:7px; background:rgba(245,248,255,.18);
+    box-shadow:inset -12px 0 0 2px rgba(9,9,11,.55); transition:background-color .2s ease, box-shadow .2s ease; }
+  #mc[aria-checked="true"], #kaleido[aria-checked="true"] { color:var(--ink); border-color:color-mix(in srgb, var(--acc) 50%, transparent); }
+  #mc[aria-checked="true"]::before, #kaleido[aria-checked="true"]::before { background:var(--acc); box-shadow:inset 12px 0 0 2px rgba(9,9,11,.55); }
+  #restart.sure { border-color:var(--bad); color:var(--bad); }
+
+  /* Energy control: the largest control on the page. Level shown by name, colour AND bar height. */
+  .levels { display:grid; grid-template-columns:repeat(6, 1fr); gap:10px; }
+  @media (max-width:560px) { .levels { grid-template-columns:repeat(3, 1fr); } }
+  .lvl { --c:var(--medium); display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:12px; min-height:150px; padding:16px 4px 14px;
+    border:1px solid var(--line); border-radius:var(--radius-inner); background:rgba(255,255,255,.03); color:var(--ink-2); font-size:15px; font-weight:600; text-transform:capitalize;
+    transition:background-color .25s ease, border-color .25s ease, color .25s ease, transform .16s var(--ease); }
+  .lvl .bar { width:14px; height:70px; border-radius:7px; background:rgba(245,248,255,.08); display:flex; align-items:flex-end; overflow:hidden; }
+  .lvl .bar i { display:block; width:100%; height:var(--h); background:var(--c); opacity:.5; border-radius:7px; transition:opacity .25s ease; }
+  .lvl[data-l="low"] { --c:var(--low); --h:25%; } .lvl[data-l="medium"] { --c:var(--medium); --h:50%; }
+  .lvl[data-l="high"] { --c:var(--high); --h:75%; } .lvl[data-l="max"] { --c:var(--max); --h:100%; }
+  /* each vibe button wears its mood's colour (the bar height still shows the energy) */
+  .lvl[data-v="chill"] { --c:#5EEAD4; } .lvl[data-v="sad"] { --c:#9DB0E8; } .lvl[data-v="romantic"] { --c:#FF7AB6; }
+  .lvl[data-v="groove"] { --c:#B98CFF; } .lvl[data-v="party"] { --c:#FFB23E; } .lvl[data-v="peak"] { --c:#FF6B85; }
+  .lvl.on { color:var(--ink); border-color:var(--c); background:color-mix(in oklab, var(--c) 16%, transparent);
+    box-shadow:0 0 34px -8px var(--c); animation:glow calc(var(--beat) * 2) ease-in-out infinite; }
+  .lvl.on .bar i { opacity:1; }
+  @media (hover:hover) and (pointer:fine) { .lvl:not(.on):hover { color:var(--ink); border-color:rgba(245,248,255,.2); } }
+  #holding { margin-top:12px; font-size:13px; color:var(--ink-3); }
+  /* Visuals: which world the stage shows, and the art kaleidoscope (kept in this browser) */
+  .visrow { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:14px; }
+  #vis { min-height:44px; padding:0 12px; border-radius:var(--radius-inner); border:1px solid var(--line); background:rgba(0,0,0,.25); color:var(--ink); }
+
+  /* Blend bar: current song fading out, the mix node, next song rising in */
+  .blend { display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:center; }
+  .blend .side { min-width:0; }
+  .blend .side .n { font-weight:600; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .blend .side.to { text-align:right; }
+  .flow { height:6px; border-radius:3px; background:rgba(245,248,255,.08); overflow:hidden; margin-top:8px; }
+  .flow i { display:block; height:100%; border-radius:3px; transition:width .9s linear;
+    background:linear-gradient(90deg, color-mix(in srgb, var(--acc) 25%, transparent), var(--acc), color-mix(in srgb, var(--acc) 25%, transparent)); background-size:200% 100%;
+    animation:liquid calc(var(--beat) * 4) linear infinite; }
+  .side.to .flow { display:flex; justify-content:flex-end; }
+  .node { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 16px; border-radius:var(--radius-pill); border:1px solid color-mix(in srgb, var(--acc) 45%, transparent);
+    background:color-mix(in srgb, var(--acc) 12%, transparent); text-align:center; font-size:13px; font-weight:600; color:var(--acc); }
+  .node .num { color:var(--ink); font-size:15px; }
+  @media (max-width:640px) { .blend { grid-template-columns:1fr; } .blend .side.to { text-align:left; } .side.to .flow { justify-content:flex-start; } .node { flex-direction:row; justify-content:center; } }
+
+  /* Layout */
+  .row { display:grid; grid-template-columns:minmax(0,1fr); gap:20px; margin-top:20px; }
+  main > .row:first-child { margin-top:0; }
+  @media (min-width:960px) {
+    .row.r1 { grid-template-columns:minmax(0,2fr) minmax(0,1fr); }
+    .row.r2, .row.r3 { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  }
+  .col { display:flex; flex-direction:column; gap:20px; min-width:0; }
+
+  /* Inputs and lists */
+  input[type="text"], input[type="search"] { width:100%; min-height:48px; padding:12px 16px; border-radius:var(--radius-inner); border:1px solid var(--line);
+    background:rgba(0,0,0,.25); transition:border-color .2s ease; }
+  input::placeholder { color:var(--ink-3); }
+  input:focus { outline:none; border-color:var(--acc); }
+  .talk { display:flex; gap:8px; }
+  .talk input { flex:1; min-width:0; }
+  /* Mic for Talk to the DJ: red ring that pulses while listening (still red, no pulse, with reduced motion) */
+  #talkmic[aria-pressed="true"] { border-color:var(--bad); color:var(--bad); animation:mic 1.2s ease-in-out infinite; }
+  @keyframes mic { 50% { box-shadow:0 0 0 6px rgba(255,123,110,.25); } }
+  .reply { margin-top:10px; font-size:15px; color:var(--ink-2); min-height:1.3em; }
+  ul { list-style:none; margin:8px 0 0; padding:0; }
+  ul:empty { display:none; }
+  #results { max-height:300px; overflow:auto; }
+  #results li { margin-bottom:6px; }
+  #results li.hint { margin:10px 2px 6px; font-size:13px; color:var(--ink-3); }
+  #results button { all:unset; box-sizing:border-box; width:100%; min-height:48px; display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:10px 14px; border-radius:var(--radius-inner); background:rgba(255,255,255,.03); cursor:pointer; overflow-wrap:anywhere; transition:background-color .15s ease; }
+  #results button:focus-visible { outline:2px solid var(--acc); outline-offset:-2px; }
+  @media (hover:hover) and (pointer:fine) { #results button:hover { background:rgba(255,255,255,.08); } }
+  .tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { font-size:12px; padding:3px 10px; border-radius:var(--radius-pill); background:rgba(245,248,255,.08); color:var(--ink-2); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .tag.req { background:rgba(242,184,75,.16); color:var(--warn); }
+  .tag.ok { background:rgba(0,190,111,.14); color:var(--success); }
+  .tag.echo { color:#F0A98F; }
+  .empty { color:var(--ink-3); font-size:14px; }
+
+  /* Journey: next 3, joined by a moving path */
+  .journey { position:relative; display:grid; gap:14px; }
+  @media (min-width:760px) { .journey { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    .journey::before { content:""; position:absolute; left:6%; right:6%; top:52px; height:2px; z-index:0;
+      background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--acc) 60%, transparent) 0 10px, transparent 10px 22px); background-size:44px 2px;
+      animation:path calc(var(--beat) * 2) linear infinite; } }
+  .jcard { position:relative; z-index:1; display:flex; flex-direction:column; gap:8px; padding:18px; }
+  .jcard .art { width:64px; }
+  .jcard .jt { font-weight:650; font-size:19px; letter-spacing:-.02em; line-height:1.15; overflow-wrap:anywhere; }
+  .jcard .label { display:flex; justify-content:space-between; }
+  #later { margin-top:12px; font-size:14px; color:var(--ink-3); overflow-wrap:anywhere; }
+
+  /* Why this song */
+  details { border-top:1px solid var(--line); padding:10px 0; }
+  details:first-of-type { border-top:0; }
+  summary { cursor:pointer; display:flex; justify-content:space-between; gap:10px; font-weight:600; min-height:32px; align-items:center; list-style:none; }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:"+"; color:var(--ink-3); font-weight:400; }
+  details[open] > summary::after { content:"−"; }
+  summary .tag { margin-left:auto; }
+  .why { font-size:13px; color:var(--ink-2); display:grid; gap:5px; padding-top:8px; }
+  .why > div { display:grid; grid-template-columns:7.5em 1fr; gap:10px; }
+  .why b { color:var(--ink); font-weight:600; }
+  .terms { display:flex; flex-wrap:wrap; gap:4px; }
+  .term { padding:2px 8px; border-radius:6px; font-variant-numeric:tabular-nums;
+    background:linear-gradient(90deg, color-mix(in srgb, var(--acc) 30%, transparent) calc(var(--v, 0) * 100%), rgba(245,248,255,.06) 0); }
+  .rules { font-size:13px; color:var(--ink-2); line-height:1.55; display:grid; gap:6px; padding-top:8px; }
+  @media (max-width:440px) { .why > div { grid-template-columns:1fr; gap:0; } }
+
+  /* System log, played so far */
+  #log { max-height:300px; overflow:auto; font:12.5px/1.6 var(--mono); }
+  #log div { display:flex; gap:10px; color:var(--ink-2); overflow-wrap:anywhere; }
+  #log div::before { content:""; flex:none; width:6px; height:6px; margin-top:.6em; border-radius:50%; background:var(--success); }
+  #log div.error { color:var(--bad); } #log div.error::before { background:var(--bad); }
+  #log time { color:var(--ink-3); flex:none; }
+  #history { display:flex; flex-wrap:wrap; gap:6px; }
+  #history span { font-size:13px; padding:4px 10px; border-radius:var(--radius-pill); background:rgba(245,248,255,.06); color:var(--ink-2); max-width:100%; overflow-wrap:anywhere; }
+
+  .count { font-variant-numeric:tabular-nums; transition:opacity .4s ease; }
+  html.offline .count { opacity:.4; }
+
+  /* Guest */
+  #v-guest { max-width:1240px; }
+  .stage { position:relative; overflow:hidden; padding:0; min-height:440px; display:flex; }
+  #v-guest .title { font-size:clamp(44px, 7vw, 80px); }
+  .upnext { margin-top:14px; display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:var(--radius-inner);
+    background:rgba(9,9,11,.55); border:1px solid var(--line); }
+  .upnext .art { width:48px; border-radius:12px; }
+  .upnext .n { font-weight:600; overflow-wrap:anywhere; }
+  .upnext > div:not(.art) { min-width:0; flex:1; }
+  .upnext .count { font-size:20px; font-weight:600; color:var(--acc); }
+  #reqmsg { margin-top:10px; font-size:14px; color:var(--success); min-height:1.2em; }
+  /* Guest feedback: two big choices per question; the pressed one takes the level accent */
+  .fb { gap:12px; }
+  .fb h2 { margin:0; }
+  .fbrow { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  .fbrow .label { grid-column:1 / -1; }
+  .fbb { min-height:64px; padding:0 14px; border-radius:var(--radius-inner); border:1px solid var(--line); background:rgba(255,255,255,.03);
+    color:var(--ink-2); font-size:17px; font-weight:600; transition:background-color .2s ease, border-color .2s ease, color .2s ease, transform .16s var(--ease); }
+  .fbb[aria-pressed="true"] { color:var(--ink); border-color:var(--acc); background:color-mix(in srgb, var(--acc) 16%, transparent); }
+  @media (hover:hover) and (pointer:fine) { .fbb[aria-pressed="false"]:hover { color:var(--ink); border-color:rgba(245,248,255,.2); } }
+  .fbthanks { font-size:14px; color:var(--ink-3); min-height:1.2em; }
+  /* Admin: rate the join that just played and the song on air (thumbs up / down, with the room's counts) */
+  .rate { display:grid; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .raterow { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; }
+  .raterow .rq { flex:1; min-width:12em; display:flex; flex-direction:column; gap:2px; }
+  .raterow .rn { font-weight:600; overflow-wrap:anywhere; }
+  .thumbs { display:flex; gap:8px; }
+  .thumb { min-width:92px; padding:0 14px; border-radius:var(--radius-inner); border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--ink-2);
+    font-size:20px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:background-color .2s ease, border-color .2s ease, color .2s ease; }
+  .thumb[data-v="up"][aria-pressed="true"] { color:var(--ink); border-color:var(--success); background:rgba(0,190,111,.16); }
+  .thumb[data-v="down"][aria-pressed="true"] { color:var(--ink); border-color:var(--bad); background:rgba(255,123,110,.14); }
+  .thumb .num { color:var(--ink-3); font-size:13px; }
+  #ratewait { font-size:13px; color:var(--ink-3); }
+  /* Who asked for the song on air */
+  .by { display:inline-flex; align-self:flex-start; align-items:center; gap:8px; margin-top:6px; padding:6px 14px; border-radius:var(--radius-pill);
+    background:rgba(242,184,75,.16); color:var(--warn); font-weight:600; font-size:15px; }
+  #v-presenter .by { font-size:clamp(16px, 1.7vw, 38px); padding:.35em .9em; margin:0 0 1.4vh; }
+  /* Guest: live reactions and the request's place in the queue */
+  .reacts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .reacts button { flex:1; min-width:52px; min-height:52px; border-radius:var(--radius-inner); border:1px solid var(--line); background:rgba(9,9,11,.55); font-size:24px; line-height:1;
+    transition:transform .16s var(--ease), border-color .2s ease; }
+  @media (hover:hover) and (pointer:fine) { .reacts button:hover { border-color:color-mix(in srgb, var(--acc) 60%, transparent); } }
+  .bursts { position:fixed; inset:0; pointer-events:none; z-index:4; overflow:hidden; }
+  .burst { position:absolute; bottom:-60px; font-size:38px; animation:rise 2.6s cubic-bezier(.2,.7,.3,1) forwards; }
+  body.v-presenter .burst { font-size:clamp(48px, 5vw, 110px); }
+  @keyframes rise { 0% { transform:translateY(0) scale(.6); opacity:0; } 12% { opacity:1; transform:translateY(-8vh) scale(1.1); }
+    100% { transform:translateY(-70vh) translateX(var(--dx, 0)) scale(1); opacity:0; } }
+  #mine { margin-top:12px; display:grid; gap:8px; }
+  #mine:empty { display:none; }
+  .minerow { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-inner); background:color-mix(in srgb, var(--acc) 10%, transparent); border:1px solid color-mix(in srgb, var(--acc) 35%, transparent); }
+  .minerow .pos { font-size:22px; font-weight:700; color:var(--acc); font-variant-numeric:tabular-nums; flex:none; }
+  .minerow .n { font-weight:600; overflow-wrap:anywhere; }
+  .minerow.on { background:rgba(242,184,75,.16); border-color:rgba(242,184,75,.5); }
+  .minerow.on .pos { color:var(--warn); }
+  #who { margin-top:10px; }
+  #v-guest #reqmsg:empty { min-height:0; margin:0; }
+  .count.soon { animation:pulse var(--beat) ease-in-out infinite; }
+  /* Now-playing art tile breathes on the beat while music plays */
+  html.st-playing .nowhead .art { animation:artpop var(--beat) ease-out infinite; }
+  @keyframes artpop { 0% { transform:scale(1.07); box-shadow:0 0 34px -4px color-mix(in srgb, var(--acc) 70%, transparent); } 60%, 100% { transform:none; } }
+  @media (max-width:440px) { .talk { flex-wrap:wrap; } .talk input { flex-basis:100%; } .talk .btn { flex:1; } }
+
+  /* Presenter: fixed full screen */
+  body.v-presenter { overflow:hidden; }
+  body.v-presenter .banners { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:5; width:min(640px, 90vw); }
+  body.v-presenter.idle, body.v-presenter.idle * { cursor:none; }
+  #v-presenter { position:fixed; inset:0; }
+  #v-presenter canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .veil { position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg, rgba(9,9,11,.75) 0%, rgba(9,9,11,0) 28%, rgba(9,9,11,0) 50%, rgba(9,9,11,.85) 100%); }
+  .p-tl, .p-tr, .p-bl, .p-br { position:absolute; z-index:2; }
+  .p-tl { top:4vh; left:4vw; max-width:60vw; }
+  .p-tl .wordmark { font-size:clamp(20px, 2vw, 40px); }
+  .p-tl .statusline { font-size:clamp(18px, 1.8vw, 40px); margin:1.2vh 0 0; }
+  .p-tr { top:4vh; right:4vw; text-align:right; }
+  .meter { display:flex; gap:6px; align-items:flex-end; justify-content:flex-end; height:clamp(40px, 6vh, 110px); margin-top:8px; }
+  .meter i { width:clamp(12px, 1vw, 22px); border-radius:6px; background:rgba(245,248,255,.12); transition:background-color .6s ease; }
+  .meter i:nth-child(1) { height:25%; } .meter i:nth-child(2) { height:50%; } .meter i:nth-child(3) { height:75%; } .meter i:nth-child(4) { height:100%; }
+  .meter i.on { background:var(--acc); }
+  #meterlabel { font-size:clamp(14px, 1.3vw, 28px); font-weight:600; color:var(--acc); text-transform:capitalize; margin-top:8px; }
+  .p-bl { left:4vw; bottom:5vh; width:min(62vw, 1500px); }
+  #v-presenter .title { font-size:clamp(72px, min(9vw, 16vh), 172px); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  #v-presenter .sub { font-size:clamp(18px, 2vw, 44px); }
+  #v-presenter .meta { font-size:clamp(14px, 1.2vw, 26px); }
+  #v-presenter .track { height:clamp(4px, .6vh, 10px); margin-top:2vh; }
+  .p-br { right:4vw; bottom:5vh; width:min(28vw, 620px); min-width:240px; }
+  .p-br .glass { padding:clamp(14px, 1.4vw, 32px); }
+  .p-br .n { font-size:clamp(18px, 1.8vw, 40px); font-weight:650; letter-spacing:-.02em; line-height:1.15; overflow-wrap:anywhere; }
+  .p-br .count { font-size:clamp(28px, 3.2vw, 72px); font-weight:700; color:var(--acc); }
+  html.offline-long .p-br .count { visibility:hidden; }
+  .join { margin-top:3vh; }
+  .join .url { font-size:clamp(18px, 1.9vw, 44px); font-weight:700; color:var(--ink); letter-spacing:-.01em; margin-top:4px; }
+  html.st-idle .join .url { font-size:clamp(26px, 3vw, 64px); color:var(--acc); }
+  @media (max-width:700px) { .p-bl { width:auto; right:4vw; bottom:30vh; } .p-br { left:4vw; width:auto; } }
+
+  @keyframes pulse { 50% { opacity:.4; transform:scale(.8); } }
+  @keyframes glow { 50% { box-shadow:0 0 20px -10px var(--c); } }
+  @keyframes liquid { to { background-position:-200% 0; } }
+  @keyframes path { to { background-position:44px 0; } }
+  @keyframes shimmer { to { background-position:-200% 0; } }
+  /* Reduced motion: keep colour and opacity fades, drop movement and loops. */
+  @media (prefers-reduced-motion:reduce) {
+    *, *::before, *::after { animation:none !important; transition-property:color, background-color, border-color, opacity, --acc, --acc-2, --tint !important; }
+    button:active { transform:none; }
+  }
+</style>
+</head>
+<body>
+<div class="ambience" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="banners">
+  <div id="conn" class="banner bad" role="status" hidden></div>
+  <div id="stale" class="banner warn" hidden>The player was updated. Reload this page (Cmd+R) to use the new version.</div>
+  <div id="err" class="banner bad" role="alert"></div>
+</div>
+<div id="app"></div>
+<div class="bursts" id="bursts" aria-hidden="true"></div>
+<div id="sr-status" class="sr" aria-live="polite"></div>
+
+<template id="t-admin">
+<div id="v-admin" class="shell">
+  <header class="top">
+    <div class="wordmark"><span>algo<b>-</b>rhythm</span></div>
+    <nav class="tabs" aria-label="Views">
+      <a href="/" aria-current="page">Admin</a><a href="/guest" target="_blank" rel="noopener">Guest</a><a href="/presenter" target="_blank" rel="noopener">Presenter</a>
+    </nav>
+    <span class="grow"></span>
+    <span class="chip">Laptop speakers</span>
+    <span class="chip num" id="timer">Session not started</span>
+  </header>
+
+  <p class="statusline" id="statusline" aria-hidden="true"></p>
+
+  <main>
+    <div class="row r1">
+      <section class="glass now" aria-label="Now playing">
+        <div class="songart" aria-hidden="true" hidden><img alt=""><img alt=""></div>
+        <canvas id="garden" role="img" aria-label="Light garden: decorative visual that moves with the music. Tap to plant a flower."></canvas>
+        <div class="over">
+          <div class="nowhead"><div class="art" id="art"></div><span class="label">Now playing</span></div>
+          <div class="spacer"></div>
+          <h1 class="title" id="now">Loading</h1>
+          <div class="sub" id="nowsub"></div>
+          <div class="by" id="nowby" hidden></div>
+          <div class="meta" id="nowinfo">Loading</div>
+          <div class="track"><i id="prog"></i></div>
+          <div class="times"><span id="t0">0:00</span><span id="t1">0:00</span></div>
+          <div class="controls">
+            <button id="transport" type="button">Play</button>
+            <button id="skip" class="btn" type="button" hidden title="Jump to 10 seconds before the next transition">Skip to transition</button>
+            <button id="restart" class="btn" type="button" hidden>Start over</button>
+            <button id="mc" class="btn" type="button" role="switch" aria-checked="false" hidden>AI MC</button>
+          </div>
+        </div>
+      </section>
+      <div class="col">
+        <section class="glass" aria-labelledby="h-energy">
+          <h2 id="h-energy">Vibe</h2>
+          <div class="levels" id="levels" role="group" aria-label="Vibe: energy and mood"></div>
+          <div id="holding"></div>
+          <div class="visrow">
+            <label class="label" for="vis">Visuals</label>
+            <select id="vis">
+              <option value="auto">Auto (follows the song)</option><option value="koi">Koi</option><option value="lanterns">Lanterns</option>
+              <option value="flowers">Flowers</option><option value="holi">Holi</option>
+            </select>
+            <button id="kaleido" class="btn" type="button" role="switch" aria-checked="false" title="Mirror the song's art into a slowly turning mandala">Kaleidoscope</button>
+          </div>
+        </section>
+        <section class="glass" aria-labelledby="h-played">
+          <h2 id="h-played">Played so far</h2>
+          <div id="history"></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="glass row" aria-labelledby="h-blend">
+      <h2 id="h-blend" class="sr">Transition</h2>
+      <div class="blend" id="blend">
+        <div class="side"><div class="label">Fading out</div><div class="n" id="blendfrom">—</div><div class="flow"><i id="blendout" style="width:100%"></i></div></div>
+        <div class="node"><span id="blendlabel">No transition yet</span><span class="num count" id="blendnum"></span></div>
+        <div class="side to"><div class="label">Rising in</div><div class="n" id="blendto">—</div><div class="flow"><i id="blendin" style="width:0%"></i></div></div>
+      </div>
+      <div class="rate" id="fb" hidden>
+        <div class="raterow" id="fbmix" hidden>
+          <div class="rq"><span class="label">Rate the last join</span><span class="rn" id="ratemix"></span></div>
+          <div class="thumbs" role="group" aria-label="The last join">
+            <button type="button" class="thumb fbb" data-t="transition" data-v="up" aria-pressed="false" aria-label="Good join">👍 Good <span class="num" id="mixup"></span></button>
+            <button type="button" class="thumb fbb" data-t="transition" data-v="down" aria-pressed="false" aria-label="Rough join">👎 Rough <span class="num" id="mixdown"></span></button>
+          </div>
+        </div>
+        <div id="ratewait" hidden>You can rate the next join while it plays and for 30 seconds after.</div>
+        <div class="raterow">
+          <div class="rq"><span class="label">Rate this song</span><span class="rn" id="ratesong"></span></div>
+          <div class="thumbs" role="group" aria-label="This song">
+            <button type="button" class="thumb fbb" data-t="song" data-v="up" aria-pressed="false" aria-label="Song thumbs up">👍 <span class="num" id="songup"></span></button>
+            <button type="button" class="thumb fbb" data-t="song" data-v="down" aria-pressed="false" aria-label="Song thumbs down">👎 <span class="num" id="songdown"></span></button>
+          </div>
+        </div>
+        <div class="fbthanks" id="fbthanks" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <div class="row r2">
+      <section class="glass" aria-labelledby="h-talk">
+        <h2 id="h-talk">Ask your DJ</h2>
+        <form id="talkform" class="talk">
+          <label class="sr" for="talk">Tell the DJ what you want</label>
+          <input id="talk" type="text" maxlength="300" placeholder="e.g. build it up to a peak, or kuch romantic bajao" autocomplete="off">
+          <button id="talkmic" class="btn" type="button" aria-pressed="false" title="Speak instead of typing" hidden>Speak</button>
+          <button id="talksend" class="btn" type="submit">Send</button>
+        </form>
+        <div id="talkreply" class="reply" aria-live="polite"></div>
+      </section>
+      <section class="glass" aria-labelledby="h-req">
+        <h2 id="h-req">Request a song</h2>
+        <label class="sr" for="q">Search songs</label>
+        <input id="q" type="search" placeholder="Type a song name" autocomplete="off">
+        <ul id="results"></ul>
+        <div id="reqmsg" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <section class="row" aria-labelledby="h-journey">
+      <h2 id="h-journey">Coming up</h2>
+      <div class="journey" id="journey"></div>
+      <div id="later"></div>
+    </section>
+
+    <div class="row r3">
+      <section class="glass" aria-labelledby="h-why">
+        <h2 id="h-why">Why this song <small>the planner's own numbers</small></h2>
+        <div id="why"></div>
+      </section>
+      <section class="glass" aria-labelledby="h-log">
+        <h2 id="h-log">System log <small id="fbtally"></small></h2>
+        <div id="log"></div>
+      </section>
+    </div>
+  </main>
+</div>
+</template>
+
+<template id="t-guest">
+<div id="v-guest" class="shell">
+  <header class="top">
+    <div class="wordmark"><span>algo<b>-</b>rhythm</span></div>
+    <span class="grow"></span>
+    <span class="chip"><span class="dot" aria-hidden="true"></span>Live</span>
+  </header>
+  <main>
+    <section class="glass stage" aria-label="Now playing">
+      <div class="songart" aria-hidden="true" hidden><img alt=""><img alt=""></div>
+      <canvas id="garden" role="img" aria-label="Light garden: decorative visual that moves with the music. Tap to plant a flower."></canvas>
+      <div class="over">
+        <div class="nowhead"><div class="art" id="art"></div><span class="label">Now playing</span></div>
+        <div class="spacer"></div>
+        <h1 class="title" id="now">Loading</h1>
+        <div class="sub" id="nowsub"></div>
+        <div class="by" id="nowby" hidden></div>
+        <div class="meta" id="nowinfo">Loading</div>
+        <div class="track"><i id="prog"></i></div>
+        <div class="times"><span id="t0">0:00</span><span id="t1">0:00</span></div>
+        <div class="upnext" id="upnext" hidden>
+          <div class="art" id="upart"></div>
+          <div><div class="label">Up next <span id="upkind"></span></div><div class="n" id="upname"></div></div>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="reacts" id="reacts" role="group" aria-label="Send a reaction to the big screen"></div>
+      </div>
+    </section>
+    <section class="glass row" aria-labelledby="h-req">
+      <h2 id="h-req">Request a song</h2>
+      <label class="sr" for="q">Search songs</label>
+      <input id="q" type="search" placeholder="Type a song name" autocomplete="off">
+      <ul id="results"></ul>
+      <div id="reqmsg" aria-live="polite"></div>
+      <div id="mine" aria-live="polite"></div>
+      <div id="who"><label class="sr" for="byname">Your name</label>
+        <input id="byname" type="text" maxlength="24" placeholder="Your name for the big screen" autocomplete="nickname"></div>
+    </section>
+    <section class="glass row fb" id="fb" aria-labelledby="h-fb" hidden>
+      <h2 id="h-fb">How is this song?</h2>
+      <div class="fbrow" role="group" aria-label="This song">
+        <button type="button" class="fbb" data-t="song" data-v="up" aria-pressed="false">👍 Loving it</button>
+        <button type="button" class="fbb" data-t="song" data-v="down" aria-pressed="false">👎 Not for me</button>
+      </div>
+      <div class="fbthanks" id="fbthanks" aria-live="polite"></div>
+    </section>
+    <section class="glass row" aria-labelledby="h-talk">
+      <h2 id="h-talk">Ask the DJ</h2>
+      <form id="talkform" class="talk">
+        <label class="sr" for="talk">Tell the DJ what you want</label>
+        <input id="talk" type="text" maxlength="300" placeholder="e.g. kuch romantic bajao, or play Kesariya" autocomplete="off">
+        <button id="talkmic" class="btn" type="button" aria-pressed="false" title="Speak instead of typing" hidden>Speak</button>
+        <button id="talksend" class="btn" type="submit">Send</button>
+      </form>
+      <div id="talkreply" class="reply" aria-live="polite"></div>
+    </section>
+  </main>
+</div>
+</template>
+
+<template id="t-presenter">
+<div id="v-presenter">
+  <div class="songart" aria-hidden="true" hidden><img alt=""><img alt=""></div>
+  <canvas id="garden" role="img" aria-label="Light garden: decorative visual that moves with the music."></canvas>
+  <div class="veil"></div>
+  <div class="p-tl">
+    <div class="wordmark"><span class="dot" aria-hidden="true"></span><span>algo<b>-</b>rhythm</span></div>
+    <p class="statusline" id="statusline" aria-hidden="true"></p>
+  </div>
+  <div class="p-tr">
+    <div class="label">Energy</div>
+    <div class="meter" id="meter" role="img" aria-label="Energy level"><i></i><i></i><i></i><i></i></div>
+    <div id="meterlabel"></div>
+    <div class="join" id="join" hidden><div class="label">Request a song</div><div class="url" id="joinurl"></div></div>
+  </div>
+  <div class="p-bl">
+    <div class="by" id="nowby" hidden></div>
+    <div class="label">Now playing</div>
+    <h1 class="title" id="now">Loading</h1>
+    <div class="sub" id="nowsub"></div>
+    <div class="meta" id="nowinfo">Loading</div>
+    <div class="track"><i id="prog"></i></div>
+  </div>
+  <div class="p-br" id="upnext" hidden>
+    <div class="glass">
+      <div class="label">Up next <span id="upkind"></span></div>
+      <div class="n" id="upname"></div>
+      <div class="count" id="count"></div>
+    </div>
+  </div>
+</div>
+</template>
+
+<script src="/static/visuals.js"></script>
+<script>
+const API = 2;                                   // must match the server; if not, the page asks for a reload
+const LEVELS = ["low", "medium", "high", "max"]; // drawn even before the server has answered
+const VIEW = {"/guest": "guest", "/presenter": "presenter"}[location.pathname.replace(/\/+$/, "")] || "admin";
+document.getElementById("app").replaceChildren(document.getElementById("t-" + VIEW).content.cloneNode(true));
+document.body.className = "v-" + VIEW;
+const $ = id => document.getElementById(id);
+let vibe = null, vibes = {chill: "low", sad: "low", romantic: "medium", groove: "medium", party: "high", peak: "max"}, mood = "auto", songs = [], status = "idle", level = "medium", sure = false, last = null, shownNow = null, lastP = 0, offlineSince = 0;
+const calm = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;   // textContent only: song names are never parsed as HTML
+  return e;
+}
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const has = v => v !== undefined && v !== null && v !== "";
+// "Behti Hawa Sa Tha Woh - 3 Idiots" -> ["Behti Hawa Sa Tha Woh", "3 Idiots"]
+const split = name => { const i = name.indexOf(" - "); return i > 0 ? [name.slice(0, i), name.slice(i + 3)] : [name, ""]; };
+const short = name => split(name)[0];
+const kindWord = k => k === "echo" ? "echo-out" : k === "cut" ? "cut" : "blend";
+const kindLong = k => k === "echo" ? "echo-out" : k === "cut" ? "cut on the beat" : "blend";
+// "97 BPM · key 10B · energy low · mood": skips whatever an older server did not send
+const meta = e => [has(e.bpm) && `${e.bpm} BPM`, has(e.key) && `key ${e.key}`, has(e.energy) && `energy ${e.energy}`, has(e.mood) && `mood ${e.mood}`]
+  .filter(Boolean).join(" · ");
+const ifEl = (id, fn) => { const e = $(id); if (e) fn(e); };
+
+// ---- colour: the song's generated palette (no album art in the backend) and the level accent, as "r,g,b"
+function hsl(h, s, l) {
+  s /= 100; l /= 100;
+  const f = n => { const k = (n + h / 30) % 12; return Math.round(255 * (l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+  return `${f(0)},${f(8)},${f(4)}`;
+}
+const NEUTRAL = ["120,130,150", "90,100,125", "160,170,190"];
+function palette(name) {
+  if (!name) return NEUTRAL;
+  let h = 2166136261;
+  for (const ch of name) h = Math.imul(h ^ ch.codePointAt(0), 16777619);
+  const base = (h >>> 0) % 360;
+  return [hsl(base, 72, 58), hsl((base + 40) % 360, 66, 48), hsl((base + 200) % 360, 60, 42)];
+}
+const artBg = p => `linear-gradient(135deg, rgb(${p[0]}), rgb(${p[1]}) 55%, rgb(${p[2]}))`;
+
+// ---- the visual: four living worlds, beat-locked blooms and the art kaleidoscope (static/visuals.js)
+const G = garden($("garden"), VIEW === "presenter", VIEW !== "presenter");
+
+// ---- song art: "art": "/art/<id>.jpg" or null on now, next and mixing (from_art, to_art). An older server sends none.
+// Each image is loaded once and sampled once for a palette; a failed load counts as no art, so the page looks as before.
+const arts = new Map();                               // url -> {ok: null while loading, true, false; pal: [...] or null; im: the image}
+function artLoad(url) {
+  if (!url) return null;
+  let a = arts.get(url);
+  if (a) return a;
+  a = {ok: null, pal: null}; arts.set(url, a);
+  if (arts.size > 8) arts.delete(arts.keys().next().value);   // only the current and nearby songs matter
+  const im = new Image();
+  im.onload = () => { a.ok = true; a.im = im; a.pal = artPalette(im); if (last) show(last); };
+  im.onerror = () => { a.ok = false; };
+  im.src = url;
+  return a;
+}
+const artReady = url => { const a = artLoad(url); return a && a.ok ? url : null; };
+function artPalette(im) {                             // a 24x24 copy is plenty; null when the canvas is unavailable
+  try {
+    const c = document.createElement("canvas"); c.width = c.height = 24;
+    const x = c.getContext("2d"); x.drawImage(im, 0, 0, 24, 24);
+    return artColours(x.getImageData(0, 0, 24, 24).data);
+  } catch (e) { return null; }
+}
+// Colourful, bright pixels first (dark and grey ones skipped); keep up to 5 that clearly differ, lifted so they glow on the garden. Under 3: null (use the name palette).
+function artColours(d) {
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) {
+    const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+    if (mx > 60 && mx - mn > 40) px.push([d[i], d[i + 1], d[i + 2], mx - mn + mx * .25]);
+  }
+  px.sort((a, b) => b[3] - a[3]);
+  const out = [];
+  for (const p of px) {
+    if (out.length === 5) break;
+    if (out.some(q => (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 + (q[2] - p[2]) ** 2 < 4900)) continue;
+    out.push(p);
+  }
+  if (out.length < 3) return null;
+  return out.map(p => { const k = Math.max(1, 230 / Math.max(p[0], p[1], p[2])); return p.slice(0, 3).map(v => Math.min(255, Math.round(v * k))).join(","); });
+}
+// Crossfade: the incoming layer's opacity is smoothstep(progress), so .25 -> .156, .5 -> .5, .75 -> .844; the outgoing layer
+// stays at full strength underneath (no dark dip), unless the incoming song has no art, then it fades out over the plain ground.
+const smooth = p => { p = Math.max(0, Math.min(1, p || 0)); return p * p * (3 - 2 * p); };
+let artBase = 0;                                      // which of the two layers holds the song playing now
+function drawArt(s) {
+  const box = document.querySelector(".songart");
+  if (!box) return;
+  if (s.next[0]) artLoad(s.next[0].art);             // preload, so the crossfade never shows a blank frame
+  const m = s.mixing, from = artReady(m ? m.from_art : s.now && s.now.art), to = m ? artReady(m.to_art) : null;
+  const L = box.querySelectorAll("img");
+  if (from && L[artBase].getAttribute("src") !== from && L[1 - artBase].getAttribute("src") === from) artBase = 1 - artBase;   // after a mix the incoming layer is the base
+  const base = L[artBase], top = L[1 - artBase], e = m ? smooth(m.progress) : 0;
+  if (from && base.getAttribute("src") !== from) base.src = from;
+  if (to && top.getAttribute("src") !== to) top.src = to;
+  if (m) { base.style.zIndex = 0; top.style.zIndex = 1; }   // only while mixing, so the old image fades out beneath the new one afterwards
+  base.style.opacity = from ? (to || !m ? 1 : 1 - e) : 0;
+  top.style.opacity = to ? e.toFixed(3) : 0;
+  const on = !!(from || to);
+  box.hidden = !on;
+  box.classList.toggle("moving", on && !calm());
+  G.set({clear: on});
+}
+
+// ---- visuals: which world to show (Auto: the playing song's energy, else the level), its colours and art, the mix, the pulse
+const energyOf = new Map();                           // song name -> energy word, so a mix knows the incoming song's world
+let vis = {world: "auto", kaleido: false};          // read in the start-up block below, once store() exists
+let visPaint = () => {};                              // admin: redraws the Visuals menu (set in visSetup)
+function visPrefs() {                                 // until the server answers (it holds the admin's pick, s.visuals): presenter ?world= and ?kaleido=1, then this browser's choice
+  if (VIEW === "guest") return {world: "auto", kaleido: false};
+  const st = store("algo-visuals") || {}, q = new URLSearchParams(location.search), url = VIEW === "presenter";
+  const world = (url && q.get("world")) || st.world || "auto";
+  return {world: world in WORLD_LEVEL ? world : "auto", kaleido: url && q.has("kaleido") ? q.get("kaleido") === "1" : !!st.kaleido};
+}
+function drawVisual(s) {
+  for (const e of [s.now, ...s.next]) if (e && LEVELS.includes(e.energy)) { energyOf.delete(e.name); energyOf.set(e.name, e.energy); }
+  while (energyOf.size > 100) energyOf.delete(energyOf.keys().next().value);
+  const lvl = LEVELS.includes(s.level) ? s.level : "medium";
+  const world = name => vis.world !== "auto" ? vis.world : LEVEL_WORLD[energyOf.get(name) || lvl];
+  const art = url => { const a = url && arts.get(url); return a && a.ok ? a : null; };
+  const song = (name, url) => ({world: world(name), pal: (art(url) && art(url).pal) || palette(name), img: art(url) ? art(url).im : null});
+  const m = s.mixing, n = s.now;
+  G.set({playing: s.status === "playing", pulse: s.pulse || null, kaleido: vis.kaleido,
+    scene: m ? song(m.from, m.from_art) : song(n && n.name, n && n.art),
+    mix: m ? {kind: m.kind, p: m.progress, ...song(m.to, m.to_art)} : null});
+}
+function visSetup() {                                 // admin: the Visuals menu and the Kaleidoscope switch; the Presenter link carries them
+  const sel = $("vis"), k = $("kaleido");
+  const paint = () => {
+    sel.value = vis.world; k.setAttribute("aria-checked", vis.kaleido ? "true" : "false");
+    const a = document.querySelector('nav.tabs a[href^="/presenter"]');
+    if (a) a.href = "/presenter" + (vis.world !== "auto" || vis.kaleido ? `?world=${vis.world}${vis.kaleido ? "&kaleido=1" : ""}` : "");
+  };
+  // the server keeps the pick so every guest and presenter screen shows the same world; this browser remembers it too
+  const save = () => { store("algo-visuals", {world: vis.world, kaleido: vis.kaleido}); paint(); if (last) drawVisual(last); post("/visuals", vis); };
+  visPaint = paint;
+  sel.onchange = () => { vis.world = sel.value; save(); };
+  k.onclick = () => { vis.kaleido = !vis.kaleido; save(); };
+  paint();
+}
+
+// ---- talking to the server
+async function post(path, body) {
+  try {
+    const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+    const data = await r.json();
+    if (!r.ok) { $("err").textContent = data.error || "That did not work."; return false; }
+    $("err").textContent = "";
+    show(data);
+    return true;
+  } catch (e) { $("err").textContent = "Could not reach the player."; return false; }
+}
+
+// Each part of the page draws on its own: a problem in one never blanks the others.
+function safe(name, fn) { try { fn(); } catch (e) { console.error(name, e); $("err").textContent = `Display problem in "${name}".`; } }
+
+// ---- status line (blur-in on change; screen readers hear it at most once every 5 s)
+let said = "", sayTimer = 0;
+function statusText(s) {
+  if (s.engine_error) return "The player stopped with an error. See the log.";
+  const m = s.mixing;
+  if (m) return m.kind === "echo" ? `Echoing out of ${short(m.from)} into ${short(m.to)}`
+    : m.kind === "cut" ? `Cutting from ${short(m.from)} to ${short(m.to)} on the beat` : `Blending ${short(m.from)} into ${short(m.to)}`;
+  if (s.status === "idle" || !s.now) return VIEW === "admin" ? "Pick a vibe, then press Play." : "The DJ is getting ready.";
+  if (s.status === "paused") return "Paused.";
+  const n = s.next[0];
+  return n ? `Up next: ${short(n.name)}, as ${n.kind === "echo" ? "an echo-out" : n.kind === "cut" ? "a cut on the beat" : "a blend"}.` : "Picking the next song…";
+}
+function drawStatus(s) {
+  const text = statusText(s);
+  ifEl("statusline", line => {
+    if (line.textContent === text) return;
+    line.textContent = text;
+    if (line.animate && !calm()) line.animate([{opacity: 0, filter: "blur(8px)"}, {opacity: 1, filter: "blur(0)"}], {duration: 600, easing: "cubic-bezier(.23,1,.32,1)"});
+  });
+  if (text === said) return;
+  said = text;
+  if (!sayTimer) sayTimer = setTimeout(() => { sayTimer = 0; $("sr-status").textContent = said; }, $("sr-status").textContent ? 5000 : 0);
+}
+
+// ---- energy
+// ---- mood theme: the picked vibe, else the picked mood, else the playing song's own mood; party splits by level (groove, party, peak).
+// Unknown or missing: from the energy level. One m-* class on <html> sets the colours (they cross-fade) and the ambience motion.
+const MOOD_THEMES = ["chill", "sad", "romantic", "groove", "party", "peak", "devotional"];
+const BY_LEVEL = {low: "chill", medium: "groove", high: "party", max: "peak"};
+function moodOf(s) {
+  if (MOOD_THEMES.includes(s.vibe)) return s.vibe;
+  const m = s.mood && s.mood !== "auto" ? s.mood : s.now && s.now.mood, lvl = BY_LEVEL[s.level] ? s.level : "medium";
+  if (m === "party") return lvl === "low" ? "groove" : BY_LEVEL[lvl];
+  return MOOD_THEMES.includes(m) ? m : BY_LEVEL[lvl];
+}
+function drawMood(s) {
+  const m = moodOf(s), h = document.documentElement;
+  if (h.classList.contains("m-" + m)) return;
+  h.classList.remove(...MOOD_THEMES.map(x => "m-" + x));
+  h.classList.add("m-" + m);
+  G.set({mood: m});
+}
+
+function drawLevels() {
+  const L = LEVELS.includes(level) ? level : "medium";
+  document.documentElement.classList.remove(...LEVELS.map(l => "e-" + l));
+  document.documentElement.classList.add("e-" + L);
+  G.set({energy: L});
+  ifEl("meter", m => { [...m.children].forEach((b, i) => b.className = i <= LEVELS.indexOf(L) ? "on" : ""); m.setAttribute("aria-label", `Energy level: ${L}`); });
+  ifEl("meterlabel", e => e.textContent = L);
+  const box = $("levels");
+  if (!box) return;
+  const names = Object.keys(vibes);
+  if (box.children.length !== names.length) {     // built once, so a tap is never lost to a redraw mid-press
+    box.replaceChildren();
+    for (const name of names) {                    // a vibe = an energy level (its colour and bar) + a mood
+      const b = el("button", "lvl"), bar = el("span", "bar");
+      b.type = "button"; b.dataset.l = LEVELS.includes(vibes[name]) ? vibes[name] : "medium"; b.dataset.v = name;
+      bar.append(el("i")); bar.setAttribute("aria-hidden", "true");
+      b.append(bar, el("span", "", name));
+      b.title = `${vibes[name]} energy`;
+      b.onclick = () => post("/vibe", {vibe: name});
+      box.append(b);
+    }
+  }
+  for (const b of box.children) { const on = b.dataset.v === vibe; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); b.tabIndex = on ? 0 : -1; }
+  if (!box.querySelector(".on")) box.children[0].tabIndex = 0;
+  // Ask the DJ can set a pair no button has (e.g. max + romantic): say what is held instead of lighting a button
+  $("holding").textContent = vibe ? `Holding ${vibe} (${level} energy) until you change it.`
+    : `Holding ${level} energy${mood === "auto" ? "" : `, ${mood} mood`} until you change it.`;
+}
+
+
+// AI MC switch: shown only when the server has an MC (an older server sends no "mc" key)
+function drawMC(s) {
+  const b = $("mc");
+  if (!b) return;
+  b.hidden = !s.mc;
+  if (!s.mc) return;
+  b.setAttribute("aria-checked", s.mc.enabled ? "true" : "false");
+  b.title = s.mc.enabled ? (s.mc.last_line ? `Last line: "${s.mc.last_line}". ` : "") + "Hype lines now and then, between sung lines. Tap to turn off."
+    : "The AI MC is off. Tap to turn it on.";
+}
+
+function drawTransport(s) {
+  const t = $("transport");
+  if (!t) return;
+  t.textContent = s.status === "playing" ? "Pause" : s.status === "paused" ? "Resume" : "Play";
+  t.className = s.status === "playing" ? "pause" : "";
+  $("skip").hidden = s.status !== "playing";
+  const r = $("restart");
+  r.hidden = s.status === "idle";
+  if (r.hidden) sure = false;
+  r.textContent = sure ? "Tap again to stop and start over" : "Start over";
+  r.className = "btn" + (sure ? " sure" : "");
+}
+
+// ---- now playing, up next, countdown
+function drawNow(s) {
+  const n = s.now, [title, film] = n ? split(n.name) : ["Warming up…", ""], t = $("now");
+  t.textContent = title;
+  if (title !== shownNow && shownNow !== null && t.animate && !calm())   // a soft swap when the song changes
+    t.animate([{opacity: 0, filter: "blur(6px)", transform: "translateY(6px)"}, {opacity: 1, filter: "blur(0)", transform: "none"}],
+      {duration: 520, easing: "cubic-bezier(.23,1,.32,1)"});
+  shownNow = title;
+  $("nowsub").textContent = film;
+  $("nowinfo").textContent = n ? meta(n) : VIEW === "guest" ? "Request a song below while the DJ gets ready." : VIEW === "presenter" ? "The music starts soon." : "";
+  ifEl("nowby", b => {                                // "Requested by Priya": pops in when a requested song takes over
+    const by = n && n.by ? `Requested by ${n.by}` : "";
+    if (b.textContent !== by && by && b.animate && !calm()) b.animate([{transform: "scale(.6)", opacity: 0}, {transform: "scale(1.08)", opacity: 1, offset: .6}, {transform: "none"}], {duration: 700, easing: "cubic-bezier(.23,1,.32,1)"});
+    b.textContent = by; b.hidden = !by;
+  });
+  const a = n && arts.get(n.art), pal = (a && a.ok && a.pal) || palette(n && n.name);   // the art's own colours when it has them
+  ifEl("art", a => a.style.background = artBg(pal));
+  document.querySelectorAll(".ambience i").forEach((b, i) => b.style.backgroundColor = `rgb(${pal[i]})`);
+  G.set({bpm: n && n.bpm > 0 ? n.bpm : 0});
+  if (n && n.bpm > 0) document.documentElement.style.setProperty("--beat", `${Math.max(.34, 60 / n.bpm).toFixed(3)}s`);   // at most 3 beat flashes a second
+  else document.documentElement.style.removeProperty("--beat");
+  const len = s.length_s || 0, pos = Math.min(s.position_s || 0, len), p = len ? pos / len : 0, bar = $("prog");
+  bar.style.transition = p < lastP ? "none" : "";  // a new song snaps back instead of sweeping backwards
+  bar.style.transform = `scaleX(${p})`; lastP = p;
+  ifEl("t0", e => e.textContent = mmss(pos));
+  ifEl("t1", e => e.textContent = mmss(len));
+}
+// time until the next song takes over: the end of this song's planned part (it switches in the middle of the mix)
+const left = s => Math.max(0, (s.length_s || 0) - (s.position_s || 0));
+
+function drawUpNext(s) {
+  const box = $("upnext");
+  if (!box) return;
+  const n = s.next[0];
+  box.hidden = !n || s.status === "idle";
+  if (box.hidden) return;
+  $("upname").textContent = short(n.name) + (n.by ? ` (for ${n.by})` : "");
+  ifEl("upkind", k => k.textContent = n.kind ? `· ${kindLong(n.kind)}` : "");
+  ifEl("upart", a => a.style.background = artBg(palette(n.name)));
+  $("count").textContent = s.mixing ? "Mixing now" : s.status === "paused" ? "Paused" : `in ${mmss(left(s))}`;
+  $("count").classList.toggle("soon", !s.mixing && s.status === "playing" && left(s) <= 15);
+}
+
+function drawBlend(s) {
+  if (!$("blend")) return;
+  const m = s.mixing, n = s.next[0];
+  let from = "—", to = "—", label = "No transition yet", num = "", pr = 0;
+  if (m) {
+    from = short(m.from); to = short(m.to); pr = Math.max(0, Math.min(1, m.progress || 0));
+    label = m.kind === "echo" ? "Echo-out now" : m.kind === "cut" ? "Cut now" : "Blending now"; num = `${Math.round(100 * pr)}%`;
+  } else if (s.now && n) {
+    from = short(s.now.name); to = short(n.name);
+    label = n.kind === "echo" ? "Echo-out in" : n.kind === "cut" ? "Cut in" : "Blend in"; num = s.status === "paused" ? "paused" : mmss(left(s));
+  } else if (s.now) { from = short(s.now.name); label = "Picking the next song"; }
+  $("blendfrom").textContent = from; $("blendto").textContent = to;
+  $("blendlabel").textContent = label; $("blendnum").textContent = num;
+  $("blendout").style.width = `${100 * (1 - pr)}%`; $("blendin").style.width = `${100 * pr}%`;
+}
+
+function drawJourney(s) {
+  const box = $("journey");
+  if (!box) return;
+  box.replaceChildren();
+  if (!s.next.length) { box.append(el("p", "empty", s.status === "idle" ? "The queue appears after you press Play." : "Planning…")); $("later").textContent = ""; return; }
+  s.next.slice(0, 3).forEach((e, i) => {
+    const c = el("article", "glass jcard"), [title, film] = split(e.name), art = el("div", "art"), tags = el("div", "tags");
+    art.style.background = artBg(palette(e.name));
+    const head = el("div", "label");
+    head.append(el("span", "", i === 0 ? "Next" : `Then #${i + 1}`), el("span", "", e.status === "locked" ? "ready" : "planned"));
+    if (e.request) tags.append(el("span", "tag req", e.by ? `request by ${e.by}` : "request"));
+    if (e.kind) tags.append(el("span", "tag" + (e.kind === "echo" || e.kind === "cut" ? " echo" : ""), kindWord(e.kind)));
+    if (typeof e.match === "number") tags.append(el("span", "tag", `match ${e.match.toFixed(2)}`));
+    c.append(head, art, el("div", "jt", title));
+    if (film) c.append(el("div", "sub", film));
+    c.append(el("div", "meta", meta(e)), tags);
+    box.append(c);
+  });
+  const rest = s.next.slice(3).map(e => short(e.name));
+  $("later").textContent = rest.length ? `Then: ${rest.join(" · ")}` : "";
+}
+
+// ---- why this song: the planner's own numbers, one expandable block per song. Each line is optional.
+function whyBlock(x) {
+  const d = el("div", "why");
+  const line = (label, make) => {
+    let v; try { v = make(); } catch (e) { return; }  // an older server may leave a field out: skip that line only
+    if (!has(v)) return;
+    const r = el("div"), val = typeof v === "string" ? el("span", "", v) : v;
+    r.append(el("b", "", label + " "), val); d.append(r);
+  };
+  line("Why:", () => x.why);
+  line("Energy:", () => `${x.energy} on a 0 to 1 scale, level target ${x.target}; plan score ${x.score}`);
+  if (x.gemini) line("Gemini:", () => `energy ${x.gemini.energy} of 4 (sure ${x.gemini.confidence}), ${(x.gemini.occasion || []).join(", ") || "no occasion"}, known ${x.gemini.familiarity} of 5`);
+  line("Plays:", () => { const w = x.window;
+    return `${mmss(w.from_s)} to ${mmss(w.to_s)} (${w.to_s - w.from_s} s), ${w.from_start ? "from its own start" : "from the middle of the song"}${w.vocal_swap ? ", voices swap so two never overlap" : ""}`; });
+  line("Heard before:", () => x.plays ? `${x.plays} time(s), score reduced by ${x.penalty}` : "never, so no penalty");
+  line("Scores:", () => {
+    const entries = Object.entries(x.terms || {});
+    if (!entries.length) return "";
+    const box = el("span", "terms");
+    for (const [k, v] of entries) {
+      const t = el("span", "term", `${k} ${v}`);
+      if (typeof v === "number") t.style.setProperty("--v", Math.max(0, Math.min(1, v)));
+      box.append(t, " ");
+    }
+    return box;
+  });
+  line("Next best:", () => (x.alts || []).map(a => `${a.name} (${a.behind} behind)`).join("; "));
+  return d;
+}
+const RULES = t => [
+  `Level now: only songs with energy near ${t} are picked (0 is the calmest song in the library, 1 the most intense).`,
+  "If the level just changed, each step must move toward it by at least about 0.18, so it reaches the new level in 2 to 3 songs.",
+  "Every candidate is scored on tempo, key, sound, vibe, how easy the edges are to mix, and how well its part of the song joins the last one.",
+  "Songs heard before lose points, so the mix stays fresh. A request is placed 1 to 3 songs ahead, wherever it joins best.",
+  "Blend is a beat-matched overlap (tempo gap up to 10%). A cut stops one song on a bar line and lands the next on the same beat (tempo gap up to 12%, the next song eases to its own tempo). Echo-out is for songs without a steady beat or a bigger tempo gap."];
+let whySig = "", whyOpen = null;
+function drawWhy(s) {
+  const box = $("why");
+  if (!box) return;
+  const items = [...(s.now ? [["Now", s.now]] : []), ...s.next.map((e, i) => [`${i + 1}.`, e])].filter(([, e]) => e.explain);
+  const sig = JSON.stringify([s.level, items.map(([k, e]) => [k, e.name, e.explain])]);
+  if (sig === whySig) return;                         // redraw only when the plan changed, so open blocks stay open
+  whySig = sig;
+  if (whyOpen === null && items.length) whyOpen = new Set([(items.find(([k]) => k === "1.") || items[0])[1].name]);
+  box.replaceChildren();
+  for (const [k, e] of items) {
+    const d = el("details"), sm = el("summary");
+    sm.append(el("span", "", `${k} ${short(e.name)}`), el("span", "tag", typeof e.match === "number" ? `match ${e.match.toFixed(2)}` : `score ${e.explain.score}`));
+    d.open = !!(whyOpen && whyOpen.has(e.name));
+    d.addEventListener("toggle", () => { whyOpen = whyOpen || new Set(); d.open ? whyOpen.add(e.name) : whyOpen.delete(e.name); });
+    d.append(sm, whyBlock(e.explain)); box.append(d);
+  }
+  const rules = el("details"), rs = el("summary"), rb = el("div", "rules");
+  rs.append(el("span", "", "How the DJ picks"));
+  for (const m of RULES({low: 0.125, medium: 0.375, high: 0.625, max: 0.875}[s.level])) rb.append(el("div", "", m));
+  rules.append(rs, rb); box.append(rules);
+  if (!items.length) box.prepend(el("p", "empty", s.status === "idle" ? "Reasons appear once songs are planned." : "Planning…"));
+}
+
+function drawLists(s) {
+  const hs = $("history");
+  if (!hs) return;
+  hs.replaceChildren();
+  for (const h of s.history) hs.append(el("span", "", h), " ");
+  if (!s.history.length) hs.append(el("div", "empty", "Nothing yet."));
+  const lg = $("log"); lg.replaceChildren();
+  for (const m of s.log) {
+    const row = el("div", /ERROR/.test(m) ? "error" : ""), hit = /^(\d\d:\d\d:\d\d)\s+(.*)$/.exec(m);
+    if (hit) row.append(el("time", "", hit[1]), el("span", "", hit[2])); else row.textContent = m;
+    lg.append(row);
+  }
+  if (!s.log.length) lg.append(el("div", "", "Nothing yet."));
+}
+
+// ---- guest feedback: a random id kept in this browser (no sign-in); votes remembered per play so they show as pressed
+const store = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } };
+const guestId = () => {
+  let g = store("algo-guest");
+  if (!g) { g = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)); store("algo-guest", g); }
+  return g;
+};
+let votes = store("algo-votes") || {}, fbNow = {};
+function drawFeedback(s) {
+  const f = s.feedback;                               // an older server sends no "feedback": hide the controls
+  ifEl("fbtally", t => {
+    const part = (x, a, b) => x ? `${x.up} ${a} · ${x.down} ${b}` : "";
+    t.textContent = f ? [f.song && "song: " + part(f.song, "up", "down"), f.mix && "last mix: " + part(f.mix, "smooth", "rough")].filter(Boolean).join(" | ") : "";
+  });
+  const box = $("fb");
+  if (!box) return;
+  // the guest page rates songs only; the host (admin) also rates the join that just played
+  fbNow = {song: f && f.song && f.song.position, transition: VIEW === "admin" && f && f.mix && f.mix.open && f.mix.position};
+  box.hidden = !fbNow.song && !fbNow.transition;
+  ifEl("fbmix", m => m.hidden = !fbNow.transition);
+  ifEl("ratewait", w => w.hidden = !!fbNow.transition);
+  ifEl("ratemix", e => e.textContent = fbNow.transition ? `${short(f.mix.from || "")} → ${short(f.mix.to || "")}${f.mix.kind ? ` (${f.mix.kind === "echo" ? "echo-out" : f.mix.kind})` : ""}` : "");
+  ifEl("ratesong", e => e.textContent = f && f.song && f.song.name ? short(f.song.name) : s.now ? short(s.now.name) : "");
+  const n = (id, v) => ifEl(id, e => e.textContent = v ? String(v) : "");
+  n("songup", f && f.song && f.song.up); n("songdown", f && f.song && f.song.down);
+  n("mixup", f && f.mix && f.mix.up); n("mixdown", f && f.mix && f.mix.down);
+  for (const b of box.querySelectorAll(".fbb")) b.setAttribute("aria-pressed", votes[`${b.dataset.t}:${fbNow[b.dataset.t]}`] === b.dataset.v);
+}
+async function vote(b) {
+  const t = b.dataset.t, v = b.dataset.v, pos = fbNow[t];
+  if (!pos) return;
+  if (await post("/feedback", VIEW === "admin" ? {guest: guestId(), target: t, value: v, host: true} : {guest: guestId(), target: t, value: v})) {
+    votes[`${t}:${pos}`] = v;
+    const keep = Object.keys(votes).slice(-40);         // only recent plays matter
+    votes = Object.fromEntries(keep.map(k => [k, votes[k]])); store("algo-votes", votes);
+    if (last) drawFeedback(last);
+    $("fbthanks").textContent = VIEW === "admin" ? "Saved. Thanks" : "Thanks";
+    clearTimeout(vote.timer); vote.timer = setTimeout(() => { $("fbthanks").textContent = ""; }, 3000);
+  }
+}
+
+// ---- live reactions: guests tap an emoji; every guest and presenter screen shows it rising (the server rate-limits them)
+const REACTIONS = ["🔥", "❤️", "🙌", "💃", "🎉"];
+let seenReact = null;
+function burst(emoji) {
+  const box = $("bursts");
+  if (!box || box.children.length > 30) return;
+  const b = el("span", "burst", emoji);
+  b.style.left = `${8 + Math.random() * 84}%`; b.style.setProperty("--dx", `${Math.round(Math.random() * 120 - 60)}px`);
+  box.append(b); setTimeout(() => b.remove(), 2700);
+}
+function drawReactions(s) {
+  if (VIEW === "admin" || !Array.isArray(s.reactions)) return;
+  const top = s.reactions.reduce((m, r) => Math.max(m, r.id), seenReact || 0);
+  if (seenReact !== null) s.reactions.filter(r => r.id > seenReact).slice(-12).forEach((r, i) => setTimeout(() => burst(r.emoji), i * 120));
+  seenReact = top;                                    // the first reading only sets the mark: no flood of old ones on load
+}
+function reactSetup() {
+  const box = $("reacts");
+  for (const e of REACTIONS) {
+    const b = el("button", "", e); b.type = "button"; b.setAttribute("aria-label", `Send ${e}`);
+    b.onclick = () => post("/react", {guest: guestId(), emoji: e});
+    box.append(b);
+  }
+}
+
+// ---- guest: where my requests are. "You're #2 in the queue" while it waits, a cheer when it plays.
+let mine = store("algo-mine") || [];
+function drawMine(s) {
+  const box = $("mine");
+  if (!box || VIEW !== "guest") return;
+  box.replaceChildren();
+  mine = mine.filter(m => Date.now() - m.at < 2 * 3600e3);
+  for (const m of mine) {
+    const i = s.next.findIndex(e => e.name === m.name), on = s.now && s.now.name === m.name;
+    if (on && !m.cheered) { m.cheered = true; for (let k = 0; k < 10; k++) setTimeout(() => burst(k % 2 ? "🎉" : "💃"), k * 140); }
+    if (!on && m.cheered) { m.done = true; continue; }
+    if (!on && i < 0 && !(s.requests || []).includes(m.name) && Date.now() - m.at > 20000) { m.done = true; continue; }   // dropped or already over
+    const row = el("div", "minerow" + (on ? " on" : "")), txt = el("div");
+    row.append(el("span", "pos", on ? "Now" : i >= 0 ? `#${i + 1}` : "…"));
+    txt.append(el("div", "n", short(m.name)), el("div", "meta", on ? "Your song is playing. Enjoy!" : i === 0 ? "Plays next!" : i > 0 ? `You're #${i + 1} in the queue` : "The DJ is finding the best spot for it"));
+    row.append(txt); box.append(row);
+  }
+  mine = mine.filter(m => !m.done); store("algo-mine", mine);
+}
+
+function show(s) {
+  if (s.api !== API) { $("stale").hidden = false; return; }   // old page or old server: do not guess at the shape
+  $("stale").hidden = true;
+  document.documentElement.classList.remove("loading", "st-idle", "st-playing", "st-paused");
+  document.documentElement.classList.add("st-" + (["idle", "playing", "paused"].includes(s.status) ? s.status : "idle"));
+  status = s.status; level = s.level; mood = s.mood || "auto"; vibe = s.vibe || null;
+  if (s.vibes && typeof s.vibes === "object") vibes = s.vibes;   // an older server sends none: the built-in list stays
+  safe("transport", () => drawTransport(s));
+  safe("MC", () => drawMC(s));
+  safe("now playing", () => drawNow(s));
+  safe("song art", () => drawArt(s));
+  if (s.visuals && (s.visuals.world === "auto" || s.visuals.world in WORLD_LEVEL) && (s.visuals.world !== vis.world || !!s.visuals.kaleido !== vis.kaleido)) {
+    vis = {world: s.visuals.world, kaleido: !!s.visuals.kaleido}; safe("visuals menu", visPaint);   // the admin's pick, on every screen
+  }
+  safe("mood", () => drawMood(s));                     // before the visual, so its first world already has the mood colours
+  safe("visuals", () => drawVisual(s));
+  safe("levels", drawLevels);
+  last = s;
+  safe("status line", () => drawStatus(s));
+  safe("up next", () => drawUpNext(s));
+  safe("transition", () => drawBlend(s));
+  safe("coming up", () => drawJourney(s));
+  safe("why this song", () => drawWhy(s));
+  safe("history", () => drawLists(s));
+  safe("feedback", () => drawFeedback(s));
+  safe("reactions", () => drawReactions(s));
+  safe("my requests", () => drawMine(s));
+  safe("join link", () => ifEl("join", j => {         // presenter: where guests request songs (no QR library, so the address, big)
+    const local = /^(127\.|localhost$|\[::1\]$)/.test(location.hostname);
+    const url = s.guest_url || (local ? null : location.origin + "/guest");
+    j.hidden = !url; if (url) $("joinurl").textContent = url.replace(/^https?:\/\//, "");
+  }));
+  if (s.engine_error) $("err").textContent = "Player error: " + s.engine_error;
+}
+
+// 3+ characters ask the server (names first, then songs close in meaning), 250 ms after the last key;
+// shorter text, or a failed /search, filters the song list here by name
+let searchTimer = 0;
+const typedQ = () => $("q").value.trim().replace(/\s+/g, " ");
+const localMatches = q => songs.filter(s => s.name.toLowerCase().includes(q)).slice(0, 12);
+function search() {
+  const typed = typedQ(), q = typed.toLowerCase();
+  clearTimeout(searchTimer);
+  if (q.length < 3) return showResults(q ? localMatches(q) : []);
+  searchTimer = setTimeout(async () => {
+    let found;
+    try {
+      const r = await fetch("/search?q=" + encodeURIComponent(typed));
+      if (!r.ok) throw new Error(r.status);
+      found = await r.json();
+      if (!Array.isArray(found)) throw new Error("bad answer");
+    } catch (e) { found = localMatches(q); }
+    if (typedQ() === typed) showResults(found, typed);       // a slow answer for older text is dropped
+  }, 250);
+}
+function showResults(list, typed) {
+  const ul = $("results");
+  ul.replaceChildren();
+  // the server marks songs that only sound like the request ("named": false): say so, so they are not taken for a match
+  const named = list.filter(s => s.named !== false).length;
+  if (typed && !list.length) ul.append(el("li", "hint", `No song called "${typed}" in the library.`));
+  list.forEach((s, k) => {
+    if (s.named === false && (k === 0 || list[k - 1].named !== false))
+      ul.append(el("li", "hint", named ? "Similar songs" : `No song called "${typed}" in the library. Similar songs:`));
+    const li = el("li"), b = el("button");
+    b.type = "button"; b.append(el("span", "", s.name), el("span", "tag", s.mood));
+    b.onclick = async () => {
+      $("q").value = ""; ul.replaceChildren(); $("reqmsg").textContent = "";
+      const by = VIEW === "guest" ? $("byname").value.trim() : "";
+      if (VIEW === "guest") store("algo-name", by);
+      if (await post("/request", by ? {file: s.file, name: by} : {file: s.file})) {
+        $("reqmsg").textContent = `Requested ${short(s.name)}. The DJ fits it in 1 to 3 songs from now.`;
+        if (VIEW === "guest") { mine = [...mine.filter(m => m.name !== s.name), {name: s.name, at: Date.now()}].slice(-3); store("algo-mine", mine); if (last) drawMine(last); }
+      }
+    };
+    li.append(b); ul.append(li);
+  });
+}
+
+async function tick() {
+  let s;
+  try {
+    const r = await fetch("/state");
+    if (!r.ok) throw new Error(r.status);
+    s = await r.json();
+    $("conn").hidden = true; offlineSince = 0;
+    document.documentElement.classList.remove("offline", "offline-long");
+  } catch (e) {                                       // only a real network failure says "cannot reach"
+    offlineSince = offlineSince || Date.now();
+    document.documentElement.classList.add("offline");
+    document.documentElement.classList.toggle("offline-long", Date.now() - offlineSince > 10000);
+    $("conn").hidden = false; $("conn").textContent = "Cannot reach the player. Reconnecting…";
+    return;
+  }
+  show(s);
+}
+
+// session timer: counts from when this tab first saw the music running; Start over resets it
+function drawTimer() {
+  const t = $("timer");
+  if (!t) return;
+  let start = null;
+  try {
+    if (status === "idle") sessionStorage.removeItem("algo-start");
+    else if (!sessionStorage.getItem("algo-start")) sessionStorage.setItem("algo-start", Date.now());
+    start = Number(sessionStorage.getItem("algo-start")) || null;
+  } catch (e) { start = null; }
+  if (!start) { t.textContent = status === "idle" ? "Session not started" : "Session live"; return; }
+  const sec = Math.floor((Date.now() - start) / 1000);
+  t.textContent = `Session ${sec >= 3600 ? Math.floor(sec / 3600) + ":" + String(Math.floor(sec / 60) % 60).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0") : mmss(sec)}`;
+}
+
+// ---- Ask the DJ: admin and guest (the server keeps a guest to requests and mood)
+function talkSetup() {
+  $("talkform").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const text = $("talk").value.trim();
+    if (!text) return;
+    $("talksend").disabled = true; $("talkreply").textContent = "Thinking…";
+    try {
+      const r = await fetch("/talk", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(VIEW === "guest" ? {text, guest: true} : {text})});
+      const data = await r.json();
+      if (!r.ok) { $("talkreply").textContent = data.error || "The DJ did not understand that."; return; }
+      $("talk").value = "";
+      $("talkreply").textContent = data.talk.reply + (data.talk.done.length ? "" : " (nothing changed)");
+      show(data);
+    } catch (e) { $("talkreply").textContent = "Could not reach the player."; }
+    finally { $("talksend").disabled = false; }
+  });
+  micSetup();
+}
+
+// Mic for Talk to the DJ: the browser's own speech recognition (Chrome, Edge, Safari). Hidden where it is missing.
+const MIC_ERRORS = {"not-allowed": "Microphone permission was denied. Allow the microphone for this page in the browser's settings, then try again.",
+  "service-not-allowed": "Microphone permission was denied. Allow the microphone for this page in the browser's settings, then try again.",
+  "no-speech": "I did not hear anything. Tap Speak and try again.", "audio-capture": "No microphone was found.",
+  "network": "Voice input needs an internet connection. You can still type."};
+function micSetup() {
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition, b = $("talkmic");
+  if (!Rec || !b) return;
+  b.hidden = false;
+  let rec = null;
+  const state = on => { b.setAttribute("aria-pressed", on ? "true" : "false"); b.textContent = on ? "Stop" : "Speak"; };
+  b.onclick = () => {
+    if (rec) { rec.stop(); return; }
+    try { rec = new Rec(); } catch (e) { $("talkreply").textContent = "Voice input is not supported in this browser. You can still type."; return; }
+    rec.lang = "en-IN"; rec.interimResults = true; rec.maxAlternatives = 1;
+    let sent = false;
+    rec.onresult = ev => {
+      let text = "", final = false;
+      for (const r of ev.results) { text += r[0].transcript; final = final || r.isFinal; }
+      $("talk").value = text.trim();
+      if (final && !sent && text.trim()) {
+        sent = true; rec.stop();
+        const f = $("talkform");
+        f.requestSubmit ? f.requestSubmit() : f.dispatchEvent(new Event("submit", {cancelable: true}));
+      }
+    };
+    rec.onerror = ev => { if (ev.error !== "aborted") $("talkreply").textContent = MIC_ERRORS[ev.error] || `The microphone did not work (${ev.error}). You can still type.`; };
+    rec.onend = () => { rec = null; state(false); if ($("talkreply").textContent === "Listening…") $("talkreply").textContent = ""; };
+    try { rec.start(); state(true); $("talkreply").textContent = "Listening…"; }
+    catch (e) { rec = null; state(false); $("talkreply").textContent = "The microphone could not start. You can still type."; }
+  };
+}
+
+function presenterChrome() {                          // full screen on first click, hide the cursor when idle, keep the screen awake
+  document.addEventListener("click", () => { const d = document.documentElement; if (d.requestFullscreen && !document.fullscreenElement) d.requestFullscreen().catch(() => {}); }, {once: true});
+  let idle = 0;
+  const wake = () => { document.body.classList.remove("idle"); clearTimeout(idle); idle = setTimeout(() => document.body.classList.add("idle"), 3000); };
+  addEventListener("mousemove", wake); wake();
+  const lock = () => { if (navigator.wakeLock && !document.hidden) navigator.wakeLock.request("screen").catch(() => {}); };
+  document.addEventListener("visibilitychange", lock); lock();
+}
+
+drawLevels();                                         // buttons exist from the first moment
+vis = visPrefs();
+(async () => {
+  if (VIEW === "admin") {
+    $("restart").onclick = () => {
+      if (!sure) { sure = true; if (last) drawTransport(last); setTimeout(() => { sure = false; if (last) drawTransport(last); }, 4000); return; }
+      sure = false; post("/transport", {action: "restart"});
+    };
+    $("transport").onclick = () => post("/transport", {action: status === "playing" ? "pause" : "play"});
+    $("skip").onclick = () => post("/transport", {action: "skip"});
+    $("levels").addEventListener("keydown", ev => {     // arrow keys move between levels; Enter or Space picks one
+      const d = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[ev.key];
+      const bs = [...$("levels").children], i = bs.indexOf(document.activeElement);
+      if (!d || i < 0) return;
+      ev.preventDefault();
+      const j = (i + d + bs.length) % bs.length;
+      bs.forEach((b, k) => b.tabIndex = k === j ? 0 : -1); bs[j].focus();
+    });
+    // closing the admin tab stops the server (a reload comes straight back and cancels it). Guest and presenter never send this.
+    addEventListener("pagehide", () => navigator.sendBeacon("/transport", new Blob([JSON.stringify({action: "bye"})], {type: "application/json"})));
+    $("mc").onclick = () => post("/transport", {action: $("mc").getAttribute("aria-checked") === "true" ? "mc_off" : "mc_on"});
+    talkSetup();
+    visSetup();
+    drawTimer(); setInterval(drawTimer, 1000);
+  }
+  if (VIEW === "presenter") presenterChrome();
+  if (VIEW !== "guest") addEventListener("storage", e => { if (e.key === "algo-visuals") { vis = visPrefs(); if (last) drawVisual(last); } });   // another tab changed the visuals
+  for (const b of document.querySelectorAll(".fbb")) b.onclick = () => vote(b);
+  if (VIEW === "guest") { talkSetup(); reactSetup(); $("byname").value = store("algo-name") || ""; }
+  if ($("q")) {
+    $("q").addEventListener("input", search);
+    try { songs = await (await fetch("/songs")).json(); } catch (e) { songs = []; }
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

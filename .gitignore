@@ -1,0 +1,20 @@
+# music library and everything derived from it (large, rebuildable)
+library_100/
+library/
+test_library/
+test_4/
+*.wav
+*.mp3
+*.flac
+*.zip
+# environments, caches, local tool installs
+.venv/
+.venv-stems/
+__pycache__/
+node_modules/
+.DS_Store
+.claude/
+.agents/
+.codex/
+algo_rhythm.egg-info/
+.env

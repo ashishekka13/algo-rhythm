@@ -1,0 +1,11 @@
+librosa
+pyloudnorm
+soundfile
+numpy
+pyrubberband
+mutagen
+jsonschema
+sounddevice
+truststore
+requests
+scipy

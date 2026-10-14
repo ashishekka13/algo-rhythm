@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "algo-rhythm"
+version = "0.2.0"
+description = "algo-rhythm: a live Bollywood DJ that plans the set and mixes songs in real time"
+requires-python = ">=3.11"
+dependencies = [
+  "librosa", "pyloudnorm", "soundfile", "numpy", "scipy", "pyrubberband", "mutagen", "jsonschema",
+  "sounddevice", "requests", "truststore",
+  "fastapi>=0.115", "pillow>=10", "uvicorn>=0.30", "sqlalchemy>=2.0", "psycopg[binary]>=3.2", "google-cloud-storage>=2.18", "google-cloud-bigquery>=3.20",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27"]
+
+[tool.setuptools]
+packages = ["algo_rhythm"]
+
+[tool.setuptools.package-data]
+algo_rhythm = ["static/*.html", "tag_schema.json"]

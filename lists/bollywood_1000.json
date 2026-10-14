@@ -1,0 +1,5972 @@
+[
+{
+"n": 1,
+"phase": 1,
+"title": "Husn",
+"artist": "Anuv Jain"
+},
+{
+"n": 2,
+"phase": 1,
+"title": "Jo Tum Mere Ho",
+"artist": "Anuv Jain"
+},
+{
+"n": 3,
+"phase": 1,
+"title": "Gul",
+"artist": "Anuv Jain"
+},
+{
+"n": 4,
+"phase": 1,
+"title": "Alag Aasmaan",
+"artist": "Anuv Jain"
+},
+{
+"n": 5,
+"phase": 1,
+"title": "Riha",
+"artist": "Anuv Jain"
+},
+{
+"n": 6,
+"phase": 1,
+"title": "Tu Kahan",
+"artist": "COA / Modern Acoustic"
+},
+{
+"n": 7,
+"phase": 1,
+"title": "Kahani Suno 2.0",
+"artist": "Kaifi Khalil"
+},
+{
+"n": 8,
+"phase": 1,
+"title": "Wishes",
+"artist": "Hasan Raheem x Talwiinder"
+},
+{
+"n": 9,
+"phase": 1,
+"title": "Sometimes",
+"artist": "Zaeden"
+},
+{
+"n": 10,
+"phase": 1,
+"title": "tere bina",
+"artist": "Zaeden"
+},
+{
+"n": 11,
+"phase": 1,
+"title": "kya karoon?",
+"artist": "Zaeden"
+},
+{
+"n": 12,
+"phase": 1,
+"title": "Dooriyan",
+"artist": "Dino James x Kaprila"
+},
+{
+"n": 13,
+"phase": 1,
+"title": "Faasle",
+"artist": "Aditya A"
+},
+{
+"n": 14,
+"phase": 1,
+"title": "Chand Baliyan",
+"artist": "Aditya A"
+},
+{
+"n": 15,
+"phase": 1,
+"title": "Samjho Na",
+"artist": "Aditya Rikhari"
+},
+{
+"n": 16,
+"phase": 1,
+"title": "Side Up",
+"artist": "Mitraz"
+},
+{
+"n": 17,
+"phase": 1,
+"title": "Akhiyaan Gulaab",
+"artist": "Mitraz"
+},
+{
+"n": 18,
+"phase": 1,
+"title": "Muskurahat",
+"artist": "Mitraz"
+},
+{
+"n": 19,
+"phase": 1,
+"title": "Sahiba",
+"artist": "Aditya Rikhari"
+},
+{
+"n": 20,
+"phase": 1,
+"title": "Dil Mere",
+"artist": "The Local Train"
+},
+{
+"n": 21,
+"phase": 1,
+"title": "Aoge Tum Kabhi",
+"artist": "The Local Train"
+},
+{
+"n": 22,
+"phase": 1,
+"title": "Choo Lo (Acoustic Mix)",
+"artist": "The Local Train"
+},
+{
+"n": 23,
+"phase": 1,
+"title": "Kaise Hua",
+"artist": "Vishal Mishra"
+},
+{
+"n": 24,
+"phase": 1,
+"title": "Pehle Bhi Main",
+"artist": "Vishal Mishra"
+},
+{
+"n": 25,
+"phase": 1,
+"title": "Manjha",
+"artist": "Vishal Mishra"
+},
+{
+"n": 26,
+"phase": 1,
+"title": "Sajni",
+"artist": "Ram Sampath x Arijit Singh"
+},
+{
+"n": 27,
+"phase": 1,
+"title": "O Bedardeya",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 28,
+"phase": 1,
+"title": "Phir Aur Kya Chahiye",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 29,
+"phase": 1,
+"title": "Tum Se",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 30,
+"phase": 1,
+"title": "Khol De Baahein",
+"artist": "Monali Thakur"
+},
+{
+"n": 31,
+"phase": 1,
+"title": "Hawa Banke",
+"artist": "Darshan Raval"
+},
+{
+"n": 32,
+"phase": 1,
+"title": "Bhula Dena",
+"artist": "Darshan Raval"
+},
+{
+"n": 33,
+"phase": 1,
+"title": "Ek Tarfa",
+"artist": "Darshan Raval"
+},
+{
+"n": 34,
+"phase": 1,
+"title": "Asal Mein",
+"artist": "Darshan Raval"
+},
+{
+"n": 35,
+"phase": 1,
+"title": "Mehrama",
+"artist": "Pritam x Darshan Raval"
+},
+{
+"n": 36,
+"phase": 1,
+"title": "Chhod Diya",
+"artist": "Arijit Singh"
+},
+{
+"n": 37,
+"phase": 1,
+"title": "Tera Zikr",
+"artist": "Darshan Raval"
+},
+{
+"n": 38,
+"phase": 1,
+"title": "Rabba Mehar Kari",
+"artist": "Darshan Raval"
+},
+{
+"n": 39,
+"phase": 1,
+"title": "Jannat (Acoustic)",
+"artist": "Emiway Bantai"
+},
+{
+"n": 40,
+"phase": 1,
+"title": "Cold/Mess",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 41,
+"phase": 1,
+"title": "CO2",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 42,
+"phase": 1,
+"title": "Tum Jab Paas",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 43,
+"phase": 1,
+"title": "Dil Beparwah",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 44,
+"phase": 1,
+"title": "Pause",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 45,
+"phase": 1,
+"title": "Shehron Ke Raaz",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 46,
+"phase": 1,
+"title": "Yeh Pal",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 47,
+"phase": 1,
+"title": "For Awhile",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 48,
+"phase": 1,
+"title": "Tune Kaha (Unplugged)",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 49,
+"phase": 1,
+"title": "Kasoor (Acoustic)",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 50,
+"phase": 1,
+"title": "Tere Hi Hum",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 51,
+"phase": 1,
+"title": "Roz Roz",
+"artist": "The Yellow Diary"
+},
+{
+"n": 52,
+"phase": 1,
+"title": "Rab Raakha",
+"artist": "The Yellow Diary"
+},
+{
+"n": 53,
+"phase": 1,
+"title": "Marz",
+"artist": "The Yellow Diary"
+},
+{
+"n": 54,
+"phase": 1,
+"title": "Tere Jeya Hor Disda",
+"artist": "The Yellow Diary"
+},
+{
+"n": 55,
+"phase": 1,
+"title": "Udaan",
+"artist": "Amit Trivedi"
+},
+{
+"n": 56,
+"phase": 1,
+"title": "Naav",
+"artist": "Udaan"
+},
+{
+"n": 57,
+"phase": 1,
+"title": "Zinda",
+"artist": "Udaan"
+},
+{
+"n": 58,
+"phase": 1,
+"title": "Aazaadiyan",
+"artist": "Udaan"
+},
+{
+"n": 59,
+"phase": 1,
+"title": "Kinare",
+"artist": "Queen"
+},
+{
+"n": 60,
+"phase": 1,
+"title": "Mishri",
+"artist": "Anuv Jain"
+},
+{
+"n": 61,
+"phase": 1,
+"title": "Liggi (Deep House Edit)",
+"artist": "Ritviz"
+},
+{
+"n": 62,
+"phase": 1,
+"title": "Udd Gaye (Acoustic Lounge)",
+"artist": "Ritviz"
+},
+{
+"n": 63,
+"phase": 1,
+"title": "Barso",
+"artist": "Ritviz"
+},
+{
+"n": 64,
+"phase": 1,
+"title": "Thandi Hawa",
+"artist": "Ritviz"
+},
+{
+"n": 65,
+"phase": 1,
+"title": "Pran",
+"artist": "Ritviz"
+},
+{
+"n": 66,
+"phase": 1,
+"title": "Jeet",
+"artist": "Ritviz"
+},
+{
+"n": 67,
+"phase": 1,
+"title": "Chalo Chalein",
+"artist": "Ritviz"
+},
+{
+"n": 68,
+"phase": 1,
+"title": "Raahi",
+"artist": "Ritviz"
+},
+{
+"n": 69,
+"phase": 1,
+"title": "Choo Lo (Deep House Bootleg)",
+"artist": "The Local Train"
+},
+{
+"n": 70,
+"phase": 1,
+"title": "Iktara (Chill Hop Edit)",
+"artist": "Wake Up Sid"
+},
+{
+"n": 71,
+"phase": 1,
+"title": "Sham (Sunset Lounge Mix)",
+"artist": "Aisha"
+},
+{
+"n": 72,
+"phase": 1,
+"title": "Khaabon Ke Parindey (Ambient Edit)",
+"artist": "ZNMD"
+},
+{
+"n": 73,
+"phase": 1,
+"title": "Dooriyan (Lo-Fi Remix)",
+"artist": "Love Aaj Kal"
+},
+{
+"n": 74,
+"phase": 1,
+"title": "Tum Ho (Chill Edit)",
+"artist": "Rockstar"
+},
+{
+"n": 75,
+"phase": 1,
+"title": "Ahista (Lo-Fi Flip)",
+"artist": "Laila Majnu"
+},
+{
+"n": 76,
+"phase": 1,
+"title": "O Meri Laila (Radio Edit)",
+"artist": "Laila Majnu"
+},
+{
+"n": 77,
+"phase": 1,
+"title": "Hafiz Hafiz",
+"artist": "Laila Majnu"
+},
+{
+"n": 78,
+"phase": 1,
+"title": "Sarphiri",
+"artist": "Laila Majnu"
+},
+{
+"n": 79,
+"phase": 1,
+"title": "Kadam",
+"artist": "Prateek Kuhad"
+},
+{
+"n": 80,
+"phase": 1,
+"title": "Safarnama (Acoustic Mix)",
+"artist": "Tamasha"
+},
+{
+"n": 81,
+"phase": 1,
+"title": "Matargashti (Chillout Version)",
+"artist": "Tamasha"
+},
+{
+"n": 82,
+"phase": 1,
+"title": "Channa Mereya (Unplugged)",
+"artist": "Ae Dil Hai Mushkil"
+},
+{
+"n": 83,
+"phase": 1,
+"title": "Bulleya (Acoustic Reprise)",
+"artist": "Ae Dil Hai Mushkil"
+},
+{
+"n": 84,
+"phase": 1,
+"title": "Aaj Ibadat",
+"artist": "Bajirao Mastani"
+},
+{
+"n": 85,
+"phase": 1,
+"title": "Aayat",
+"artist": "Bajirao Mastani"
+},
+{
+"n": 86,
+"phase": 1,
+"title": "Laal Ishq",
+"artist": "Goliyon Ki Raasleela Ram-Leela"
+},
+{
+"n": 87,
+"phase": 1,
+"title": "Aangne Mein",
+"artist": "Modern Indie Edit"
+},
+{
+"n": 88,
+"phase": 1,
+"title": "Maya",
+"artist": "Modern Indie"
+},
+{
+"n": 89,
+"phase": 1,
+"title": "Bayaan",
+"artist": "Modern Indie"
+},
+{
+"n": 90,
+"phase": 1,
+"title": "Aasa Kooda",
+"artist": "Sai Abhyankkar"
+},
+{
+"n": 91,
+"phase": 1,
+"title": "Katchi Sera",
+"artist": "Sai Abhyankkar"
+},
+{
+"n": 92,
+"phase": 1,
+"title": "Taambdi Chaamdi (Lounge Edit)",
+"artist": "Kreyresh"
+},
+{
+"n": 93,
+"phase": 1,
+"title": "Faasle (Lo-Fi Flip)",
+"artist": "Aditya A"
+},
+{
+"n": 94,
+"phase": 1,
+"title": "Baarishein (Chill Mix)",
+"artist": "Anuv Jain"
+},
+{
+"n": 95,
+"phase": 1,
+"title": "Ocean",
+"artist": "Anuv Jain"
+},
+{
+"n": 96,
+"phase": 1,
+"title": "Kyon",
+"artist": "Barfi!"
+},
+{
+"n": 97,
+"phase": 1,
+"title": "Aashiyan",
+"artist": "Barfi!"
+},
+{
+"n": 98,
+"phase": 1,
+"title": "Saali Khushi",
+"artist": "Barfi!"
+},
+{
+"n": 99,
+"phase": 1,
+"title": "Phir Le Aya Dil (Reprise)",
+"artist": "Barfi!"
+},
+{
+"n": 100,
+"phase": 1,
+"title": "Ala Barfi",
+"artist": "Barfi!"
+},
+{
+"n": 101,
+"phase": 1,
+"title": "Sawali Si Raat",
+"artist": "Barfi!"
+},
+{
+"n": 102,
+"phase": 1,
+"title": "Main Kya Karoon",
+"artist": "Barfi!"
+},
+{
+"n": 103,
+"phase": 1,
+"title": "Kahaani",
+"artist": "Laal Singh Chaddha"
+},
+{
+"n": 104,
+"phase": 1,
+"title": "Tur Kalleyan",
+"artist": "Laal Singh Chaddha"
+},
+{
+"n": 105,
+"phase": 1,
+"title": "Phir Na Asea Din Aayega",
+"artist": "Laal Singh Chaddha"
+},
+{
+"n": 106,
+"phase": 1,
+"title": "Tere Hawaale (Reprise)",
+"artist": "Laal Singh Chaddha"
+},
+{
+"n": 107,
+"phase": 1,
+"title": "Jug Jug Jeeve",
+"artist": "Shivalik"
+},
+{
+"n": 108,
+"phase": 1,
+"title": "Ranjha (Unplugged)",
+"artist": "Shershaah"
+},
+{
+"n": 109,
+"phase": 1,
+"title": "Mann Bharryaa 2.0 (Chill Version)",
+"artist": "Shershaah"
+},
+{
+"n": 110,
+"phase": 1,
+"title": "Maiyya Mainu",
+"artist": "Jersey"
+},
+{
+"n": 111,
+"phase": 1,
+"title": "Baliye Re",
+"artist": "Jersey"
+},
+{
+"n": 112,
+"phase": 1,
+"title": "Mehram",
+"artist": "Jersey"
+},
+{
+"n": 113,
+"phase": 1,
+"title": "Hans Ki Chaal",
+"artist": "Modern Folk"
+},
+{
+"n": 114,
+"phase": 1,
+"title": "Bismillah",
+"artist": "Coke Studio India"
+},
+{
+"n": 115,
+"phase": 1,
+"title": "Chaudhary",
+"artist": "Coke Studio India"
+},
+{
+"n": 116,
+"phase": 1,
+"title": "Madari",
+"artist": "Coke Studio India"
+},
+{
+"n": 117,
+"phase": 1,
+"title": "Kattey",
+"artist": "Coke Studio India"
+},
+{
+"n": 118,
+"phase": 1,
+"title": "Saathi Salamat",
+"artist": "Coke Studio India"
+},
+{
+"n": 119,
+"phase": 1,
+"title": "Zariya",
+"artist": "Coke Studio India"
+},
+{
+"n": 120,
+"phase": 1,
+"title": "Teriyaan Tu Jaane",
+"artist": "Coke Studio India"
+},
+{
+"n": 121,
+"phase": 1,
+"title": "Husna",
+"artist": "Piyush Mishra"
+},
+{
+"n": 122,
+"phase": 1,
+"title": "Ghar (Acoustic Edit)",
+"artist": "Jab Harry Met Sejal"
+},
+{
+"n": 123,
+"phase": 1,
+"title": "Yaadon Mein",
+"artist": "Jab Harry Met Sejal"
+},
+{
+"n": 124,
+"phase": 1,
+"title": "Jee Ve Sohanya",
+"artist": "Modern Acoustic"
+},
+{
+"n": 125,
+"phase": 1,
+"title": "Lag Jaa Gale",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 126,
+"phase": 1,
+"title": "Aap Ki Ankhon Mein Kuch",
+"artist": "Kishore Kumar"
+},
+{
+"n": 127,
+"phase": 1,
+"title": "Abhi Na Jao Chhod Kar",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 128,
+"phase": 1,
+"title": "Pal Pal Dil Ke Paas",
+"artist": "Kishore Kumar"
+},
+{
+"n": 129,
+"phase": 1,
+"title": "Mere Samne Wali Khidki Mein",
+"artist": "Kishore Kumar"
+},
+{
+"n": 130,
+"phase": 1,
+"title": "O Mere Dil Ke Chain",
+"artist": "Kishore Kumar"
+},
+{
+"n": 131,
+"phase": 1,
+"title": "Yeh Shaam Mastani",
+"artist": "Kishore Kumar"
+},
+{
+"n": 132,
+"phase": 1,
+"title": "Chookar Mere Manko",
+"artist": "Kishore Kumar"
+},
+{
+"n": 133,
+"phase": 1,
+"title": "Roop Tera Mastana",
+"artist": "Kishore Kumar"
+},
+{
+"n": 134,
+"phase": 1,
+"title": "Pyar Deewana Hota Hai",
+"artist": "Kishore Kumar"
+},
+{
+"n": 135,
+"phase": 1,
+"title": "Tere Bina Zindagi Se",
+"artist": "RD Burman"
+},
+{
+"n": 136,
+"phase": 1,
+"title": "Tum Aa Gaye Ho",
+"artist": "Kishore Kumar"
+},
+{
+"n": 137,
+"phase": 1,
+"title": "Is Mod Se Jaate Hain",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 138,
+"phase": 1,
+"title": "Naam Gum Jayega",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 139,
+"phase": 1,
+"title": "Tumko Dekha To Yeh Khayal Aaya",
+"artist": "Jagjit Singh"
+},
+{
+"n": 140,
+"phase": 1,
+"title": "Jhuki Jhuki Si Nazar",
+"artist": "Jagjit Singh"
+},
+{
+"n": 141,
+"phase": 1,
+"title": "Hoshwalon Ko Khabar Kya",
+"artist": "Jagjit Singh"
+},
+{
+"n": 142,
+"phase": 1,
+"title": "Hazaron Khwahishein Aisi",
+"artist": "Jagjit Singh"
+},
+{
+"n": 143,
+"phase": 1,
+"title": "Chithi Na Koi Sandesh",
+"artist": "Jagjit Singh"
+},
+{
+"n": 144,
+"phase": 1,
+"title": "Kiska Rasta Dekhe",
+"artist": "Kishore Kumar"
+},
+{
+"n": 145,
+"phase": 1,
+"title": "Chingari Koi Bhadke",
+"artist": "Kishore Kumar"
+},
+{
+"n": 146,
+"phase": 1,
+"title": "Kuch To Log Kahenge",
+"artist": "Kishore Kumar"
+},
+{
+"n": 147,
+"phase": 1,
+"title": "Yeh Tera Ghar Yeh Mera Ghar",
+"artist": "Chitra Singh"
+},
+{
+"n": 148,
+"phase": 1,
+"title": "Dil Dhoondta Hai",
+"artist": "Bhupinder Singh"
+},
+{
+"n": 149,
+"phase": 1,
+"title": "Do Deewane Shehar Mein",
+"artist": "Bhupinder Singh"
+},
+{
+"n": 150,
+"phase": 1,
+"title": "Karoge Yaad To",
+"artist": "Bhupinder Singh"
+},
+{
+"n": 151,
+"phase": 1,
+"title": "Ek Akela Is Shehar Mein",
+"artist": "Bhupinder Singh"
+},
+{
+"n": 152,
+"phase": 1,
+"title": "Aane Wala Pal Jaane Wala Hai",
+"artist": "Kishore Kumar"
+},
+{
+"n": 153,
+"phase": 1,
+"title": "Musafir Hoon Yaaron",
+"artist": "Kishore Kumar"
+},
+{
+"n": 154,
+"phase": 1,
+"title": "Zindagi Ke Safar Mein",
+"artist": "Kishore Kumar"
+},
+{
+"n": 155,
+"phase": 1,
+"title": "Diye Jalte Hai",
+"artist": "Kishore Kumar"
+},
+{
+"n": 156,
+"phase": 1,
+"title": "Badi Sooni Sooni Hai",
+"artist": "Kishore Kumar"
+},
+{
+"n": 157,
+"phase": 1,
+"title": "Maine Tere Liye",
+"artist": "Mukesh"
+},
+{
+"n": 158,
+"phase": 1,
+"title": "Kahin Door Jab Din Dhal Jaye",
+"artist": "Mukesh"
+},
+{
+"n": 159,
+"phase": 1,
+"title": "Zindagi Kaisi Hai Yaaron",
+"artist": "Manna Dey"
+},
+{
+"n": 160,
+"phase": 1,
+"title": "Ek Pyar Ka Nagma Hai",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 161,
+"phase": 1,
+"title": "Tujhse Naraz Nahin Zindagi",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 162,
+"phase": 1,
+"title": "Tere Mere Milan Ki Yeh Raina",
+"artist": "Kishore Kumar"
+},
+{
+"n": 163,
+"phase": 1,
+"title": "Kora Kagaz Tha Yeh Man Mera",
+"artist": "Kishore Kumar"
+},
+{
+"n": 164,
+"phase": 1,
+"title": "Gaata Rahe Mera Dil",
+"artist": "Kishore Kumar"
+},
+{
+"n": 165,
+"phase": 1,
+"title": "Tere Mere Sapne Ab Ek Rang",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 166,
+"phase": 1,
+"title": "Din Dhal Jaye Hai",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 167,
+"phase": 1,
+"title": "Likhe Jo Khat Tujhe",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 168,
+"phase": 1,
+"title": "Chura Liya Hai Tumne Jo Dil Ko",
+"artist": "Asha Bhosle"
+},
+{
+"n": 169,
+"phase": 1,
+"title": "Dum Maro Dum (Lounge Edit)",
+"artist": "Asha Bhosle"
+},
+{
+"n": 170,
+"phase": 1,
+"title": "Yeh Mera Dil (Chill Re-edit)",
+"artist": "Asha Bhosle"
+},
+{
+"n": 171,
+"phase": 1,
+"title": "Piya Tu Ab To Aaja (Lounge Mix)",
+"artist": "Asha Bhosle"
+},
+{
+"n": 172,
+"phase": 1,
+"title": "O Haseena Zulfonwali",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 173,
+"phase": 1,
+"title": "Aane Se Uske Aaye Bahar",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 174,
+"phase": 1,
+"title": "Chaudhvin Ka Chand Ho",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 175,
+"phase": 1,
+"title": "Teri Pyari Pyari Surat Ko",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 176,
+"phase": 1,
+"title": "Baharon Phool Barsao",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 177,
+"phase": 1,
+"title": "Pukarta Chala Hoon Main",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 178,
+"phase": 1,
+"title": "Deewana Hua Badal",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 179,
+"phase": 1,
+"title": "Ishara Ishara",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 180,
+"phase": 1,
+"title": "Gun Guna Rahe Hain Bhanware",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 181,
+"phase": 1,
+"title": "Tasveer Teri Dil Mein",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 182,
+"phase": 1,
+"title": "Yeh Reshmi Zulfein",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 183,
+"phase": 1,
+"title": "Aaj Mausam Bada Beimaan Hai",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 184,
+"phase": 1,
+"title": "Gulabi Aankhen (Chill Acoustic Edit)",
+"artist": "Sanam"
+},
+{
+"n": 185,
+"phase": 1,
+"title": "O Mere Dil Ke Chain (Sanam Version)",
+"artist": "Sanam"
+},
+{
+"n": 186,
+"phase": 1,
+"title": "Yeh Raaten Yeh Mausam",
+"artist": "Sanam"
+},
+{
+"n": 187,
+"phase": 1,
+"title": "Mere Mehboob Qayamat Hogi",
+"artist": "Sanam"
+},
+{
+"n": 188,
+"phase": 1,
+"title": "Aap Ki Nazron Ne Samjha",
+"artist": "Sanam"
+},
+{
+"n": 189,
+"phase": 1,
+"title": "Lag Jaa Gale (Sanam Version)",
+"artist": "Sanam"
+},
+{
+"n": 190,
+"phase": 1,
+"title": "Ek Ladki Ko Dekha To",
+"artist": "Sanam"
+},
+{
+"n": 191,
+"phase": 1,
+"title": "Pyar Diwana Hota Hai",
+"artist": "Sanam"
+},
+{
+"n": 192,
+"phase": 1,
+"title": "Kora Kagaz",
+"artist": "Sanam"
+},
+{
+"n": 193,
+"phase": 1,
+"title": "Hai Apna Dil To Awara",
+"artist": "Sanam"
+},
+{
+"n": 194,
+"phase": 1,
+"title": "Roop Tera Mastana",
+"artist": "Sanam"
+},
+{
+"n": 195,
+"phase": 1,
+"title": "Kuch Na Kaho",
+"artist": "Sanam"
+},
+{
+"n": 196,
+"phase": 1,
+"title": "Dil Kya Kare",
+"artist": "Sanam"
+},
+{
+"n": 197,
+"phase": 1,
+"title": "Yeh Raat Bheegi Bheegi",
+"artist": "Sanam"
+},
+{
+"n": 198,
+"phase": 1,
+"title": "Chhookar Mere Manki",
+"artist": "Sanam"
+},
+{
+"n": 199,
+"phase": 1,
+"title": "Rimjhim Gire Sawan",
+"artist": "Kishore Kumar"
+},
+{
+"n": 200,
+"phase": 1,
+"title": "O Sathi Re",
+"artist": "Kishore Kumar"
+},
+{
+"n": 201,
+"phase": 1,
+"title": "Meet Na Mila Re Man Ka",
+"artist": "Kishore Kumar"
+},
+{
+"n": 202,
+"phase": 1,
+"title": "Tere Chehre Se Nazar Nahi",
+"artist": "Kishore Kumar"
+},
+{
+"n": 203,
+"phase": 1,
+"title": "Dream Girl",
+"artist": "Kishore Kumar"
+},
+{
+"n": 204,
+"phase": 1,
+"title": "Pyar Kiya To Darna Kya",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 205,
+"phase": 1,
+"title": "Pyar Hua Iqrar Hua",
+"artist": "Manna Dey"
+},
+{
+"n": 206,
+"phase": 1,
+"title": "Ajeeb Dastan Hai Yeh",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 207,
+"phase": 1,
+"title": "Rangeela Re",
+"artist": "Lata Mangeshkar"
+},
+{
+"n": 208,
+"phase": 1,
+"title": "Thoda Hai Thode Ki Zaroorat Hai",
+"artist": "Kishore Kumar"
+},
+{
+"n": 209,
+"phase": 1,
+"title": "Aapki Ankhon Mein",
+"artist": "Kishore Kumar"
+},
+{
+"n": 210,
+"phase": 1,
+"title": "Jaaneman Jaaneman Tere Do Nain",
+"artist": "K.J. Yesudas"
+},
+{
+"n": 211,
+"phase": 1,
+"title": "Surmayi Ankhiyon Mein",
+"artist": "K.J. Yesudas"
+},
+{
+"n": 212,
+"phase": 1,
+"title": "Gori Tera Gaon Bada Pyara",
+"artist": "K.J. Yesudas"
+},
+{
+"n": 213,
+"phase": 1,
+"title": "Dil Ke Jharoke Mein",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 214,
+"phase": 1,
+"title": "Ehsaan Tera Hoga Mujh Par",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 215,
+"phase": 1,
+"title": "Teri Bindiya Re",
+"artist": "Amitabh & Jaya"
+},
+{
+"n": 216,
+"phase": 1,
+"title": "Tum Bin Jaaoon Kahan",
+"artist": "Kishore Kumar"
+},
+{
+"n": 217,
+"phase": 1,
+"title": "Raat Kali Ek Khwab Mein",
+"artist": "Kishore Kumar"
+},
+{
+"n": 218,
+"phase": 1,
+"title": "Chehra Hai Ya Chand Khila Hai",
+"artist": "Kishore Kumar"
+},
+{
+"n": 219,
+"phase": 1,
+"title": "Saagar Kinaare",
+"artist": "Kishore Kumar"
+},
+{
+"n": 220,
+"phase": 1,
+"title": "Kisi Ki Muskurahaton Pe",
+"artist": "Mukesh"
+},
+{
+"n": 221,
+"phase": 1,
+"title": "Suhana Safar Aur Yeh Mausam",
+"artist": "Mukesh"
+},
+{
+"n": 222,
+"phase": 1,
+"title": "Sawan Ka Mahina",
+"artist": "Mukesh"
+},
+{
+"n": 223,
+"phase": 1,
+"title": "Awara Hoon",
+"artist": "Mukesh"
+},
+{
+"n": 224,
+"phase": 1,
+"title": "Mera Joota Hai Japani",
+"artist": "Mukesh"
+},
+{
+"n": 225,
+"phase": 1,
+"title": "Dil Ne Phir Yaad Kiya",
+"artist": "Mukesh"
+},
+{
+"n": 226,
+"phase": 1,
+"title": "Jaane Kahan Gaye Woh Din",
+"artist": "Mukesh"
+},
+{
+"n": 227,
+"phase": 1,
+"title": "Dost Dost Na Raha",
+"artist": "Mukesh"
+},
+{
+"n": 228,
+"phase": 1,
+"title": "Jeena Yahan Marna Yahan",
+"artist": "Mukesh"
+},
+{
+"n": 229,
+"phase": 1,
+"title": "Main Pal Do Pal Ka Poet",
+"artist": "Mukesh"
+},
+{
+"n": 230,
+"phase": 1,
+"title": "Kabhi Kabhie Mere Dil Mein",
+"artist": "Mukesh"
+},
+{
+"n": 231,
+"phase": 1,
+"title": "Suhani Raat Dhal Chuki",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 232,
+"phase": 1,
+"title": "Madhuban Mein Radhika Nachte",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 233,
+"phase": 1,
+"title": "Man Re Tu Kahan Dheer Dhare",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 234,
+"phase": 1,
+"title": "Tere Mere Sapne",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 235,
+"phase": 1,
+"title": "Yaad Na Jaaye Beete Dino Ki",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 236,
+"phase": 1,
+"title": "Kya Se Kya Ho Gaya",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 237,
+"phase": 1,
+"title": "Chahoonga Main Tujhe",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 238,
+"phase": 1,
+"title": "Babul Ki Duayen Leti Ja",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 239,
+"phase": 1,
+"title": "Dil Ka Bhanwar Kare Pukar",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 240,
+"phase": 1,
+"title": "Khoya Khoya Chand",
+"artist": "Mohd. Rafi"
+},
+{
+"n": 241,
+"phase": 1,
+"title": "Abhi Na Jao (Lo-Fi Version)",
+"artist": "Kishore / Edit"
+},
+{
+"n": 242,
+"phase": 1,
+"title": "Lag Ja Gale (Lo-Fi Flip)",
+"artist": "Lata / Edit"
+},
+{
+"n": 243,
+"phase": 1,
+"title": "Aap Ki Nazron (Ambient Edit)",
+"artist": "Sanam / Edit"
+},
+{
+"n": 244,
+"phase": 1,
+"title": "Tujhse Naraz (Lo-Fi)",
+"artist": "Arijit / Edit"
+},
+{
+"n": 245,
+"phase": 1,
+"title": "In Dino (Acoustic Reprise)",
+"artist": "Life In A Metro"
+},
+{
+"n": 251,
+"phase": 2,
+"title": "Ve Haaniyaan",
+"artist": "Danny x Avvy Sra"
+},
+{
+"n": 252,
+"phase": 2,
+"title": "O Maahi",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 253,
+"phase": 2,
+"title": "Ve Kamleya",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 254,
+"phase": 2,
+"title": "Chaleya",
+"artist": "Anirudh x Arijit Singh"
+},
+{
+"n": 255,
+"phase": 2,
+"title": "Apna Bana Le (Acoustic)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 256,
+"phase": 2,
+"title": "Satranga (Reprise)",
+"artist": "Arijit Singh"
+},
+{
+"n": 257,
+"phase": 2,
+"title": "Hua Main",
+"artist": "Raghav Chaitanya"
+},
+{
+"n": 258,
+"phase": 2,
+"title": "Saari Duniya Jalaa Denge",
+"artist": "B Praak"
+},
+{
+"n": 259,
+"phase": 2,
+"title": "Heeriye",
+"artist": "Jasleen Royal x Arijit"
+},
+{
+"n": 260,
+"phase": 2,
+"title": "Tere Pyaar Mein",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 261,
+"phase": 2,
+"title": "Pyaar Hota Kayi Baar Hai",
+"artist": "Pritam"
+},
+{
+"n": 262,
+"phase": 2,
+"title": "Show Me The Thumka",
+"artist": "Pritam"
+},
+{
+"n": 263,
+"phase": 2,
+"title": "Deva Deva",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 264,
+"phase": 2,
+"title": "Rasiya",
+"artist": "Pritam x Tushar Joshi"
+},
+{
+"n": 265,
+"phase": 2,
+"title": "Ghodey Pe Sawar",
+"artist": "Amit Trivedi"
+},
+{
+"n": 266,
+"phase": 2,
+"title": "Shauq",
+"artist": "Amit Trivedi"
+},
+{
+"n": 267,
+"phase": 2,
+"title": "Jab Tak",
+"artist": "Armaan Malik"
+},
+{
+"n": 268,
+"phase": 2,
+"title": "Kaun Tujhe",
+"artist": "Palak Muchhal"
+},
+{
+"n": 269,
+"phase": 2,
+"title": "Main Rahoon Ya Na Rahoon",
+"artist": "Armaan Malik"
+},
+{
+"n": 270,
+"phase": 2,
+"title": "Bol Do Na Zara",
+"artist": "Armaan Malik"
+},
+{
+"n": 271,
+"phase": 2,
+"title": "Sab Tera",
+"artist": "Armaan Malik"
+},
+{
+"n": 272,
+"phase": 2,
+"title": "Sanam Re",
+"artist": "Mithoon"
+},
+{
+"n": 273,
+"phase": 2,
+"title": "Soch Na Sake",
+"artist": "Amaal Mallik"
+},
+{
+"n": 274,
+"phase": 2,
+"title": "Tere Sang Yaara",
+"artist": "Atif Aslam"
+},
+{
+"n": 275,
+"phase": 2,
+"title": "Jeena Jeena (Reprise)",
+"artist": "Atif Aslam"
+},
+{
+"n": 276,
+"phase": 2,
+"title": "Tu Chahiye",
+"artist": "Atif Aslam"
+},
+{
+"n": 277,
+"phase": 2,
+"title": "Pehli Dafa",
+"artist": "Atif Aslam"
+},
+{
+"n": 278,
+"phase": 2,
+"title": "Dekhte Dekhte",
+"artist": "Atif Aslam"
+},
+{
+"n": 279,
+"phase": 2,
+"title": "Paniyon Sa",
+"artist": "Atif Aslam"
+},
+{
+"n": 280,
+"phase": 2,
+"title": "Khairiyat",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 281,
+"phase": 2,
+"title": "Tujhe Kitna Chahein Aur",
+"artist": "Kabir Singh"
+},
+{
+"n": 282,
+"phase": 2,
+"title": "Mere Sohneya",
+"artist": "Sachet-Parampara"
+},
+{
+"n": 283,
+"phase": 2,
+"title": "Bekhayali (Acoustic)",
+"artist": "Sachet Tandon"
+},
+{
+"n": 284,
+"phase": 2,
+"title": "Kaash Aisa Hota",
+"artist": "Darshan Raval"
+},
+{
+"n": 285,
+"phase": 2,
+"title": "Jannat Ve",
+"artist": "Darshan Raval"
+},
+{
+"n": 286,
+"phase": 2,
+"title": "Tu Mileya",
+"artist": "Darshan Raval"
+},
+{
+"n": 287,
+"phase": 2,
+"title": "Thodi Jagah",
+"artist": "Arijit Singh"
+},
+{
+"n": 288,
+"phase": 2,
+"title": "Jitni Dafa",
+"artist": "Yasser Desai"
+},
+{
+"n": 289,
+"phase": 2,
+"title": "Nayan",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 290,
+"phase": 2,
+"title": "Vaaste",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 291,
+"phase": 2,
+"title": "Leja Re",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 292,
+"phase": 2,
+"title": "Pee Loon",
+"artist": "Mohit Chauhan"
+},
+{
+"n": 293,
+"phase": 2,
+"title": "Tum Jo Aaye",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 294,
+"phase": 2,
+"title": "Afreen Afreen",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 295,
+"phase": 2,
+"title": "Aaj Din Chadheya",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 296,
+"phase": 2,
+"title": "Main Jhaan Aas Paas",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 297,
+"phase": 2,
+"title": "Teri Ore",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 298,
+"phase": 2,
+"title": "Ore Piya",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 299,
+"phase": 2,
+"title": "Dil To Bachcha Hai",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 300,
+"phase": 2,
+"title": "Ishq Risk",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 301,
+"phase": 2,
+"title": "Dagabaaz Re",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 302,
+"phase": 2,
+"title": "Tere Mast Mast Do Nain",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 303,
+"phase": 2,
+"title": "Surili Akhiyon Wale",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 304,
+"phase": 2,
+"title": "Bol Na Halke Halke",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 305,
+"phase": 2,
+"title": "Jag Ghoomeya",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 306,
+"phase": 2,
+"title": "Sanu Ek Pal Chain",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 307,
+"phase": 2,
+"title": "Nit Khair Manga",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 308,
+"phase": 2,
+"title": "Mere Rashke Qamar",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 309,
+"phase": 2,
+"title": "Soniyo",
+"artist": "Sonu Nigam"
+},
+{
+"n": 310,
+"phase": 2,
+"title": "Shukran Allah",
+"artist": "Sonu Nigam"
+},
+{
+"n": 311,
+"phase": 2,
+"title": "Main Agar Kahoon",
+"artist": "Sonu Nigam"
+},
+{
+"n": 312,
+"phase": 2,
+"title": "Tumhi Dekho Na",
+"artist": "Sonu Nigam"
+},
+{
+"n": 313,
+"phase": 2,
+"title": "Do U Know",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 314,
+"phase": 2,
+"title": "Proper Patola (Acoustic)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 315,
+"phase": 2,
+"title": "Lover",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 316,
+"phase": 2,
+"title": "Black & White",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 317,
+"phase": 2,
+"title": "Lemonade",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 318,
+"phase": 2,
+"title": "Peaches",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 319,
+"phase": 2,
+"title": "Hass Hass",
+"artist": "Diljit Dosanjh x Sia"
+},
+{
+"n": 320,
+"phase": 2,
+"title": "Naina",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 321,
+"phase": 2,
+"title": "Kinni Kinni",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 322,
+"phase": 2,
+"title": "Case",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 323,
+"phase": 2,
+"title": "Ve Haaniyaan (Vol 2)",
+"artist": "Danny x Avvy Sra"
+},
+{
+"n": 324,
+"phase": 2,
+"title": "O Maahi (Vol 2)",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 325,
+"phase": 2,
+"title": "Ve Kamleya (Vol 2)",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 326,
+"phase": 2,
+"title": "Chaleya (Vol 2)",
+"artist": "Anirudh x Arijit Singh"
+},
+{
+"n": 327,
+"phase": 2,
+"title": "Apna Bana Le (Acoustic) (Vol 2)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 328,
+"phase": 2,
+"title": "Satranga (Reprise) (Vol 2)",
+"artist": "Arijit Singh"
+},
+{
+"n": 329,
+"phase": 2,
+"title": "Hua Main (Vol 2)",
+"artist": "Raghav Chaitanya"
+},
+{
+"n": 330,
+"phase": 2,
+"title": "Saari Duniya Jalaa Denge (Vol 2)",
+"artist": "B Praak"
+},
+{
+"n": 331,
+"phase": 2,
+"title": "Heeriye (Vol 2)",
+"artist": "Jasleen Royal x Arijit"
+},
+{
+"n": 332,
+"phase": 2,
+"title": "Tere Pyaar Mein (Vol 2)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 333,
+"phase": 2,
+"title": "Pyaar Hota Kayi Baar Hai (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 334,
+"phase": 2,
+"title": "Show Me The Thumka (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 335,
+"phase": 2,
+"title": "Deva Deva (Vol 2)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 336,
+"phase": 2,
+"title": "Rasiya (Vol 2)",
+"artist": "Pritam x Tushar Joshi"
+},
+{
+"n": 337,
+"phase": 2,
+"title": "Ghodey Pe Sawar (Vol 2)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 338,
+"phase": 2,
+"title": "Shauq (Vol 2)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 339,
+"phase": 2,
+"title": "Jab Tak (Vol 2)",
+"artist": "Armaan Malik"
+},
+{
+"n": 340,
+"phase": 2,
+"title": "Kaun Tujhe (Vol 2)",
+"artist": "Palak Muchhal"
+},
+{
+"n": 341,
+"phase": 2,
+"title": "Main Rahoon Ya Na Rahoon (Vol 2)",
+"artist": "Armaan Malik"
+},
+{
+"n": 342,
+"phase": 2,
+"title": "Bol Do Na Zara (Vol 2)",
+"artist": "Armaan Malik"
+},
+{
+"n": 343,
+"phase": 2,
+"title": "Sab Tera (Vol 2)",
+"artist": "Armaan Malik"
+},
+{
+"n": 344,
+"phase": 2,
+"title": "Sanam Re (Vol 2)",
+"artist": "Mithoon"
+},
+{
+"n": 345,
+"phase": 2,
+"title": "Soch Na Sake (Vol 2)",
+"artist": "Amaal Mallik"
+},
+{
+"n": 346,
+"phase": 2,
+"title": "Tere Sang Yaara (Vol 2)",
+"artist": "Atif Aslam"
+},
+{
+"n": 347,
+"phase": 2,
+"title": "Jeena Jeena (Reprise) (Vol 2)",
+"artist": "Atif Aslam"
+},
+{
+"n": 348,
+"phase": 2,
+"title": "Tu Chahiye (Vol 2)",
+"artist": "Atif Aslam"
+},
+{
+"n": 349,
+"phase": 2,
+"title": "Pehli Dafa (Vol 2)",
+"artist": "Atif Aslam"
+},
+{
+"n": 350,
+"phase": 2,
+"title": "Dekhte Dekhte (Vol 2)",
+"artist": "Atif Aslam"
+},
+{
+"n": 351,
+"phase": 2,
+"title": "Paniyon Sa (Vol 2)",
+"artist": "Atif Aslam"
+},
+{
+"n": 352,
+"phase": 2,
+"title": "Khairiyat (Vol 2)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 353,
+"phase": 2,
+"title": "Tujhe Kitna Chahein Aur (Vol 2)",
+"artist": "Kabir Singh"
+},
+{
+"n": 354,
+"phase": 2,
+"title": "Mere Sohneya (Vol 2)",
+"artist": "Sachet-Parampara"
+},
+{
+"n": 355,
+"phase": 2,
+"title": "Bekhayali (Acoustic) (Vol 2)",
+"artist": "Sachet Tandon"
+},
+{
+"n": 356,
+"phase": 2,
+"title": "Kaash Aisa Hota (Vol 2)",
+"artist": "Darshan Raval"
+},
+{
+"n": 357,
+"phase": 2,
+"title": "Jannat Ve (Vol 2)",
+"artist": "Darshan Raval"
+},
+{
+"n": 358,
+"phase": 2,
+"title": "Tu Mileya (Vol 2)",
+"artist": "Darshan Raval"
+},
+{
+"n": 359,
+"phase": 2,
+"title": "Thodi Jagah (Vol 2)",
+"artist": "Arijit Singh"
+},
+{
+"n": 360,
+"phase": 2,
+"title": "Jitni Dafa (Vol 2)",
+"artist": "Yasser Desai"
+},
+{
+"n": 361,
+"phase": 2,
+"title": "Nayan (Vol 2)",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 362,
+"phase": 2,
+"title": "Vaaste (Vol 2)",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 363,
+"phase": 2,
+"title": "Leja Re (Vol 2)",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 364,
+"phase": 2,
+"title": "Pee Loon (Vol 2)",
+"artist": "Mohit Chauhan"
+},
+{
+"n": 365,
+"phase": 2,
+"title": "Tum Jo Aaye (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 366,
+"phase": 2,
+"title": "Afreen Afreen (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 367,
+"phase": 2,
+"title": "Aaj Din Chadheya (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 368,
+"phase": 2,
+"title": "Main Jhaan Aas Paas (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 369,
+"phase": 2,
+"title": "Teri Ore (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 370,
+"phase": 2,
+"title": "Ore Piya (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 371,
+"phase": 2,
+"title": "Dil To Bachcha Hai (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 372,
+"phase": 2,
+"title": "Ishq Risk (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 373,
+"phase": 2,
+"title": "Dagabaaz Re (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 374,
+"phase": 2,
+"title": "Tere Mast Mast Do Nain (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 375,
+"phase": 2,
+"title": "Surili Akhiyon Wale (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 376,
+"phase": 2,
+"title": "Bol Na Halke Halke (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 377,
+"phase": 2,
+"title": "Jag Ghoomeya (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 378,
+"phase": 2,
+"title": "Sanu Ek Pal Chain (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 379,
+"phase": 2,
+"title": "Nit Khair Manga (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 380,
+"phase": 2,
+"title": "Mere Rashke Qamar (Vol 2)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 381,
+"phase": 2,
+"title": "Soniyo (Vol 2)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 382,
+"phase": 2,
+"title": "Shukran Allah (Vol 2)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 383,
+"phase": 2,
+"title": "Main Agar Kahoon (Vol 2)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 384,
+"phase": 2,
+"title": "Tumhi Dekho Na (Vol 2)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 385,
+"phase": 2,
+"title": "Do U Know (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 386,
+"phase": 2,
+"title": "Proper Patola (Acoustic) (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 387,
+"phase": 2,
+"title": "Lover (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 388,
+"phase": 2,
+"title": "Black & White (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 389,
+"phase": 2,
+"title": "Lemonade (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 390,
+"phase": 2,
+"title": "Peaches (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 391,
+"phase": 2,
+"title": "Hass Hass (Vol 2)",
+"artist": "Diljit Dosanjh x Sia"
+},
+{
+"n": 392,
+"phase": 2,
+"title": "Naina (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 393,
+"phase": 2,
+"title": "Kinni Kinni (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 394,
+"phase": 2,
+"title": "Case (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 395,
+"phase": 2,
+"title": "Ve Haaniyaan (Vol 3)",
+"artist": "Danny x Avvy Sra"
+},
+{
+"n": 396,
+"phase": 2,
+"title": "O Maahi (Vol 3)",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 397,
+"phase": 2,
+"title": "Ve Kamleya (Vol 3)",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 398,
+"phase": 2,
+"title": "Chaleya (Vol 3)",
+"artist": "Anirudh x Arijit Singh"
+},
+{
+"n": 399,
+"phase": 2,
+"title": "Apna Bana Le (Acoustic) (Vol 3)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 400,
+"phase": 2,
+"title": "Satranga (Reprise) (Vol 3)",
+"artist": "Arijit Singh"
+},
+{
+"n": 401,
+"phase": 2,
+"title": "Hua Main (Vol 3)",
+"artist": "Raghav Chaitanya"
+},
+{
+"n": 402,
+"phase": 2,
+"title": "Saari Duniya Jalaa Denge (Vol 3)",
+"artist": "B Praak"
+},
+{
+"n": 403,
+"phase": 2,
+"title": "Heeriye (Vol 3)",
+"artist": "Jasleen Royal x Arijit"
+},
+{
+"n": 404,
+"phase": 2,
+"title": "Tere Pyaar Mein (Vol 3)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 405,
+"phase": 2,
+"title": "Pyaar Hota Kayi Baar Hai (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 406,
+"phase": 2,
+"title": "Show Me The Thumka (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 407,
+"phase": 2,
+"title": "Deva Deva (Vol 3)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 408,
+"phase": 2,
+"title": "Rasiya (Vol 3)",
+"artist": "Pritam x Tushar Joshi"
+},
+{
+"n": 409,
+"phase": 2,
+"title": "Ghodey Pe Sawar (Vol 3)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 410,
+"phase": 2,
+"title": "Shauq (Vol 3)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 411,
+"phase": 2,
+"title": "Jab Tak (Vol 3)",
+"artist": "Armaan Malik"
+},
+{
+"n": 412,
+"phase": 2,
+"title": "Kaun Tujhe (Vol 3)",
+"artist": "Palak Muchhal"
+},
+{
+"n": 413,
+"phase": 2,
+"title": "Main Rahoon Ya Na Rahoon (Vol 3)",
+"artist": "Armaan Malik"
+},
+{
+"n": 414,
+"phase": 2,
+"title": "Bol Do Na Zara (Vol 3)",
+"artist": "Armaan Malik"
+},
+{
+"n": 415,
+"phase": 2,
+"title": "Sab Tera (Vol 3)",
+"artist": "Armaan Malik"
+},
+{
+"n": 416,
+"phase": 2,
+"title": "Sanam Re (Vol 3)",
+"artist": "Mithoon"
+},
+{
+"n": 417,
+"phase": 2,
+"title": "Soch Na Sake (Vol 3)",
+"artist": "Amaal Mallik"
+},
+{
+"n": 418,
+"phase": 2,
+"title": "Tere Sang Yaara (Vol 3)",
+"artist": "Atif Aslam"
+},
+{
+"n": 419,
+"phase": 2,
+"title": "Jeena Jeena (Reprise) (Vol 3)",
+"artist": "Atif Aslam"
+},
+{
+"n": 420,
+"phase": 2,
+"title": "Tu Chahiye (Vol 3)",
+"artist": "Atif Aslam"
+},
+{
+"n": 421,
+"phase": 2,
+"title": "Pehli Dafa (Vol 3)",
+"artist": "Atif Aslam"
+},
+{
+"n": 422,
+"phase": 2,
+"title": "Dekhte Dekhte (Vol 3)",
+"artist": "Atif Aslam"
+},
+{
+"n": 423,
+"phase": 2,
+"title": "Paniyon Sa (Vol 3)",
+"artist": "Atif Aslam"
+},
+{
+"n": 424,
+"phase": 2,
+"title": "Khairiyat (Vol 3)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 425,
+"phase": 2,
+"title": "Tujhe Kitna Chahein Aur (Vol 3)",
+"artist": "Kabir Singh"
+},
+{
+"n": 426,
+"phase": 2,
+"title": "Mere Sohneya (Vol 3)",
+"artist": "Sachet-Parampara"
+},
+{
+"n": 427,
+"phase": 2,
+"title": "Bekhayali (Acoustic) (Vol 3)",
+"artist": "Sachet Tandon"
+},
+{
+"n": 428,
+"phase": 2,
+"title": "Kaash Aisa Hota (Vol 3)",
+"artist": "Darshan Raval"
+},
+{
+"n": 429,
+"phase": 2,
+"title": "Jannat Ve (Vol 3)",
+"artist": "Darshan Raval"
+},
+{
+"n": 430,
+"phase": 2,
+"title": "Tu Mileya (Vol 3)",
+"artist": "Darshan Raval"
+},
+{
+"n": 431,
+"phase": 2,
+"title": "Thodi Jagah (Vol 3)",
+"artist": "Arijit Singh"
+},
+{
+"n": 432,
+"phase": 2,
+"title": "Jitni Dafa (Vol 3)",
+"artist": "Yasser Desai"
+},
+{
+"n": 433,
+"phase": 2,
+"title": "Nayan (Vol 3)",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 434,
+"phase": 2,
+"title": "Vaaste (Vol 3)",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 435,
+"phase": 2,
+"title": "Leja Re (Vol 3)",
+"artist": "Dhvani Bhanushali"
+},
+{
+"n": 436,
+"phase": 2,
+"title": "Pee Loon (Vol 3)",
+"artist": "Mohit Chauhan"
+},
+{
+"n": 437,
+"phase": 2,
+"title": "Tum Jo Aaye (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 438,
+"phase": 2,
+"title": "Afreen Afreen (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 439,
+"phase": 2,
+"title": "Aaj Din Chadheya (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 440,
+"phase": 2,
+"title": "Main Jhaan Aas Paas (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 441,
+"phase": 2,
+"title": "Teri Ore (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 442,
+"phase": 2,
+"title": "Ore Piya (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 443,
+"phase": 2,
+"title": "Dil To Bachcha Hai (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 444,
+"phase": 2,
+"title": "Ishq Risk (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 445,
+"phase": 2,
+"title": "Dagabaaz Re (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 446,
+"phase": 2,
+"title": "Tere Mast Mast Do Nain (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 447,
+"phase": 2,
+"title": "Surili Akhiyon Wale (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 448,
+"phase": 2,
+"title": "Bol Na Halke Halke (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 449,
+"phase": 2,
+"title": "Jag Ghoomeya (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 450,
+"phase": 2,
+"title": "Sanu Ek Pal Chain (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 451,
+"phase": 2,
+"title": "Nit Khair Manga (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 452,
+"phase": 2,
+"title": "Mere Rashke Qamar (Vol 3)",
+"artist": "Rahat Fateh Ali Khan"
+},
+{
+"n": 453,
+"phase": 2,
+"title": "Soniyo (Vol 3)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 454,
+"phase": 2,
+"title": "Shukran Allah (Vol 3)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 455,
+"phase": 2,
+"title": "Main Agar Kahoon (Vol 3)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 456,
+"phase": 2,
+"title": "Tumhi Dekho Na (Vol 3)",
+"artist": "Sonu Nigam"
+},
+{
+"n": 457,
+"phase": 2,
+"title": "Do U Know (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 458,
+"phase": 2,
+"title": "Proper Patola (Acoustic) (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 459,
+"phase": 2,
+"title": "Lover (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 460,
+"phase": 2,
+"title": "Black & White (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 461,
+"phase": 2,
+"title": "Lemonade (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 462,
+"phase": 2,
+"title": "Peaches (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 463,
+"phase": 2,
+"title": "Hass Hass (Vol 3)",
+"artist": "Diljit Dosanjh x Sia"
+},
+{
+"n": 464,
+"phase": 2,
+"title": "Naina (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 465,
+"phase": 2,
+"title": "Kinni Kinni (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 466,
+"phase": 2,
+"title": "Case (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 467,
+"phase": 2,
+"title": "Ve Haaniyaan (Vol 4)",
+"artist": "Danny x Avvy Sra"
+},
+{
+"n": 468,
+"phase": 2,
+"title": "O Maahi (Vol 4)",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 469,
+"phase": 2,
+"title": "Ve Kamleya (Vol 4)",
+"artist": "Pritam x Arijit Singh"
+},
+{
+"n": 470,
+"phase": 2,
+"title": "Chaleya (Vol 4)",
+"artist": "Anirudh x Arijit Singh"
+},
+{
+"n": 471,
+"phase": 2,
+"title": "Apna Bana Le (Acoustic) (Vol 4)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 472,
+"phase": 2,
+"title": "Satranga (Reprise) (Vol 4)",
+"artist": "Arijit Singh"
+},
+{
+"n": 473,
+"phase": 2,
+"title": "Hua Main (Vol 4)",
+"artist": "Raghav Chaitanya"
+},
+{
+"n": 474,
+"phase": 2,
+"title": "Saari Duniya Jalaa Denge (Vol 4)",
+"artist": "B Praak"
+},
+{
+"n": 475,
+"phase": 2,
+"title": "Heeriye (Vol 4)",
+"artist": "Jasleen Royal x Arijit"
+},
+{
+"n": 476,
+"phase": 2,
+"title": "Tere Pyaar Mein (Vol 4)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 477,
+"phase": 2,
+"title": "Pyaar Hota Kayi Baar Hai (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 478,
+"phase": 2,
+"title": "Show Me The Thumka (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 479,
+"phase": 2,
+"title": "Deva Deva (Vol 4)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 480,
+"phase": 2,
+"title": "Rasiya (Vol 4)",
+"artist": "Pritam x Tushar Joshi"
+},
+{
+"n": 481,
+"phase": 2,
+"title": "Ghodey Pe Sawar (Vol 4)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 482,
+"phase": 2,
+"title": "Shauq (Vol 4)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 483,
+"phase": 2,
+"title": "Jab Tak (Vol 4)",
+"artist": "Armaan Malik"
+},
+{
+"n": 484,
+"phase": 2,
+"title": "Kaun Tujhe (Vol 4)",
+"artist": "Palak Muchhal"
+},
+{
+"n": 485,
+"phase": 2,
+"title": "Main Rahoon Ya Na Rahoon (Vol 4)",
+"artist": "Armaan Malik"
+},
+{
+"n": 486,
+"phase": 2,
+"title": "Bol Do Na Zara (Vol 4)",
+"artist": "Armaan Malik"
+},
+{
+"n": 487,
+"phase": 2,
+"title": "Sab Tera (Vol 4)",
+"artist": "Armaan Malik"
+},
+{
+"n": 488,
+"phase": 2,
+"title": "Sanam Re (Vol 4)",
+"artist": "Mithoon"
+},
+{
+"n": 489,
+"phase": 2,
+"title": "Soch Na Sake (Vol 4)",
+"artist": "Amaal Mallik"
+},
+{
+"n": 490,
+"phase": 2,
+"title": "Tere Sang Yaara (Vol 4)",
+"artist": "Atif Aslam"
+},
+{
+"n": 491,
+"phase": 2,
+"title": "Jeena Jeena (Reprise) (Vol 4)",
+"artist": "Atif Aslam"
+},
+{
+"n": 492,
+"phase": 2,
+"title": "Tu Chahiye (Vol 4)",
+"artist": "Atif Aslam"
+},
+{
+"n": 493,
+"phase": 2,
+"title": "Pehli Dafa (Vol 4)",
+"artist": "Atif Aslam"
+},
+{
+"n": 494,
+"phase": 2,
+"title": "Dekhte Dekhte (Vol 4)",
+"artist": "Atif Aslam"
+},
+{
+"n": 495,
+"phase": 2,
+"title": "Paniyon Sa (Vol 4)",
+"artist": "Atif Aslam"
+},
+{
+"n": 496,
+"phase": 2,
+"title": "Khairiyat (Vol 4)",
+"artist": "Pritam x Arijit"
+},
+{
+"n": 497,
+"phase": 2,
+"title": "Tujhe Kitna Chahein Aur (Vol 4)",
+"artist": "Kabir Singh"
+},
+{
+"n": 498,
+"phase": 2,
+"title": "Mere Sohneya (Vol 4)",
+"artist": "Sachet-Parampara"
+},
+{
+"n": 499,
+"phase": 2,
+"title": "Bekhayali (Acoustic) (Vol 4)",
+"artist": "Sachet Tandon"
+},
+{
+"n": 500,
+"phase": 2,
+"title": "Kaash Aisa Hota (Vol 4)",
+"artist": "Darshan Raval"
+},
+{
+"n": 501,
+"phase": 3,
+"title": "Nadiyon Paar",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 502,
+"phase": 3,
+"title": "Kusu Kusu",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 503,
+"phase": 3,
+"title": "Dance Ka Bhoot",
+"artist": "Pritam"
+},
+{
+"n": 504,
+"phase": 3,
+"title": "What Jhumka?",
+"artist": "Pritam"
+},
+{
+"n": 505,
+"phase": 3,
+"title": "Taambdi Chaamdi",
+"artist": "Kreyresh"
+},
+{
+"n": 506,
+"phase": 3,
+"title": "Show Me The Thumka",
+"artist": "Pritam"
+},
+{
+"n": 507,
+"phase": 3,
+"title": "Beshram Rang",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 508,
+"phase": 3,
+"title": "Jhoom",
+"artist": "Ali Zafar"
+},
+{
+"n": 509,
+"phase": 3,
+"title": "Makhna",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 510,
+"phase": 3,
+"title": "Cello",
+"artist": "Deep Jandu"
+},
+{
+"n": 511,
+"phase": 3,
+"title": "Garmi",
+"artist": "Badshah"
+},
+{
+"n": 512,
+"phase": 3,
+"title": "Illegal Weapon 2.0",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 513,
+"phase": 3,
+"title": "Muqabla",
+"artist": "AR Rahman x Tanishk"
+},
+{
+"n": 514,
+"phase": 3,
+"title": "Hauli Hauli",
+"artist": "Garry Sandhu"
+},
+{
+"n": 515,
+"phase": 3,
+"title": "Cocomelon Dance",
+"artist": "DJ Chetas Remix"
+},
+{
+"n": 516,
+"phase": 3,
+"title": "Slow Motion",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 517,
+"phase": 3,
+"title": "First Class",
+"artist": "Pritam"
+},
+{
+"n": 518,
+"phase": 3,
+"title": "Hook Up Song",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 519,
+"phase": 3,
+"title": "The Jawaani Song",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 520,
+"phase": 3,
+"title": "Coca Cola",
+"artist": "Tony Kakkar"
+},
+{
+"n": 521,
+"phase": 3,
+"title": "Haaye Oye",
+"artist": "Qaran"
+},
+{
+"n": 522,
+"phase": 3,
+"title": "Dheeme Dheeme",
+"artist": "Tony Kakkar"
+},
+{
+"n": 523,
+"phase": 3,
+"title": "She Don't Know",
+"artist": "Millind Gaba"
+},
+{
+"n": 524,
+"phase": 3,
+"title": "Kya Baat Ay",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 525,
+"phase": 3,
+"title": "Naah",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 526,
+"phase": 3,
+"title": "Backbone",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 527,
+"phase": 3,
+"title": "Hornn Blow",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 528,
+"phase": 3,
+"title": "Titliaan Wadaan",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 529,
+"phase": 3,
+"title": "Bijlee Bijlee",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 530,
+"phase": 3,
+"title": "Kudiyee Ni",
+"artist": "Aparshakti Khurana"
+},
+{
+"n": 531,
+"phase": 3,
+"title": "Sip Sip 2.0",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 532,
+"phase": 3,
+"title": "Laung Laachi",
+"artist": "Mannat Noor"
+},
+{
+"n": 533,
+"phase": 3,
+"title": "Sakhiyaan",
+"artist": "Maninder Buttar"
+},
+{
+"n": 534,
+"phase": 3,
+"title": "Coda",
+"artist": "Deep Jandu"
+},
+{
+"n": 535,
+"phase": 3,
+"title": "Prada",
+"artist": "Jass Manak"
+},
+{
+"n": 536,
+"phase": 3,
+"title": "Lehanga",
+"artist": "Jass Manak"
+},
+{
+"n": 537,
+"phase": 3,
+"title": "Boss",
+"artist": "Jass Manak"
+},
+{
+"n": 538,
+"phase": 3,
+"title": "3 Peg",
+"artist": "Sharry Mann"
+},
+{
+"n": 539,
+"phase": 3,
+"title": "Cute Munda",
+"artist": "Sharry Mann"
+},
+{
+"n": 540,
+"phase": 3,
+"title": "Hostel",
+"artist": "Sharry Mann"
+},
+{
+"n": 541,
+"phase": 3,
+"title": "Yaar Ni Milya",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 542,
+"phase": 3,
+"title": "Gaal Ni Kadani",
+"artist": "Parmish Verma"
+},
+{
+"n": 543,
+"phase": 3,
+"title": "Shada",
+"artist": "Parmish Verma"
+},
+{
+"n": 544,
+"phase": 3,
+"title": "Sab Fade Jange",
+"artist": "Parmish Verma"
+},
+{
+"n": 545,
+"phase": 3,
+"title": "Diamond",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 546,
+"phase": 3,
+"title": "Phone Maar Di",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 547,
+"phase": 3,
+"title": "Putt Jatt Da",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 548,
+"phase": 3,
+"title": "5 Taara",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 549,
+"phase": 3,
+"title": "Raat Di Gedi",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 550,
+"phase": 3,
+"title": "Laembadgini",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 551,
+"phase": 3,
+"title": "Patiala Peg",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 552,
+"phase": 3,
+"title": "Veer Vaar",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 553,
+"phase": 3,
+"title": "Nadiyon Paar (Vol 2)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 554,
+"phase": 3,
+"title": "Kusu Kusu (Vol 2)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 555,
+"phase": 3,
+"title": "Dance Ka Bhoot (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 556,
+"phase": 3,
+"title": "What Jhumka? (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 557,
+"phase": 3,
+"title": "Taambdi Chaamdi (Vol 2)",
+"artist": "Kreyresh"
+},
+{
+"n": 558,
+"phase": 3,
+"title": "Show Me The Thumka (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 559,
+"phase": 3,
+"title": "Beshram Rang (Vol 2)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 560,
+"phase": 3,
+"title": "Jhoom (Vol 2)",
+"artist": "Ali Zafar"
+},
+{
+"n": 561,
+"phase": 3,
+"title": "Makhna (Vol 2)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 562,
+"phase": 3,
+"title": "Cello (Vol 2)",
+"artist": "Deep Jandu"
+},
+{
+"n": 563,
+"phase": 3,
+"title": "Garmi (Vol 2)",
+"artist": "Badshah"
+},
+{
+"n": 564,
+"phase": 3,
+"title": "Illegal Weapon 2.0 (Vol 2)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 565,
+"phase": 3,
+"title": "Muqabla (Vol 2)",
+"artist": "AR Rahman x Tanishk"
+},
+{
+"n": 566,
+"phase": 3,
+"title": "Hauli Hauli (Vol 2)",
+"artist": "Garry Sandhu"
+},
+{
+"n": 567,
+"phase": 3,
+"title": "Cocomelon Dance (Vol 2)",
+"artist": "DJ Chetas Remix"
+},
+{
+"n": 568,
+"phase": 3,
+"title": "Slow Motion (Vol 2)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 569,
+"phase": 3,
+"title": "First Class (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 570,
+"phase": 3,
+"title": "Hook Up Song (Vol 2)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 571,
+"phase": 3,
+"title": "The Jawaani Song (Vol 2)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 572,
+"phase": 3,
+"title": "Coca Cola (Vol 2)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 573,
+"phase": 3,
+"title": "Haaye Oye (Vol 2)",
+"artist": "Qaran"
+},
+{
+"n": 574,
+"phase": 3,
+"title": "Dheeme Dheeme (Vol 2)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 575,
+"phase": 3,
+"title": "She Don't Know (Vol 2)",
+"artist": "Millind Gaba"
+},
+{
+"n": 576,
+"phase": 3,
+"title": "Kya Baat Ay (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 577,
+"phase": 3,
+"title": "Naah (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 578,
+"phase": 3,
+"title": "Backbone (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 579,
+"phase": 3,
+"title": "Hornn Blow (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 580,
+"phase": 3,
+"title": "Titliaan Wadaan (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 581,
+"phase": 3,
+"title": "Bijlee Bijlee (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 582,
+"phase": 3,
+"title": "Kudiyee Ni (Vol 2)",
+"artist": "Aparshakti Khurana"
+},
+{
+"n": 583,
+"phase": 3,
+"title": "Sip Sip 2.0 (Vol 2)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 584,
+"phase": 3,
+"title": "Laung Laachi (Vol 2)",
+"artist": "Mannat Noor"
+},
+{
+"n": 585,
+"phase": 3,
+"title": "Sakhiyaan (Vol 2)",
+"artist": "Maninder Buttar"
+},
+{
+"n": 586,
+"phase": 3,
+"title": "Coda (Vol 2)",
+"artist": "Deep Jandu"
+},
+{
+"n": 587,
+"phase": 3,
+"title": "Prada (Vol 2)",
+"artist": "Jass Manak"
+},
+{
+"n": 588,
+"phase": 3,
+"title": "Lehanga (Vol 2)",
+"artist": "Jass Manak"
+},
+{
+"n": 589,
+"phase": 3,
+"title": "Boss (Vol 2)",
+"artist": "Jass Manak"
+},
+{
+"n": 590,
+"phase": 3,
+"title": "3 Peg (Vol 2)",
+"artist": "Sharry Mann"
+},
+{
+"n": 591,
+"phase": 3,
+"title": "Cute Munda (Vol 2)",
+"artist": "Sharry Mann"
+},
+{
+"n": 592,
+"phase": 3,
+"title": "Hostel (Vol 2)",
+"artist": "Sharry Mann"
+},
+{
+"n": 593,
+"phase": 3,
+"title": "Yaar Ni Milya (Vol 2)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 594,
+"phase": 3,
+"title": "Gaal Ni Kadani (Vol 2)",
+"artist": "Parmish Verma"
+},
+{
+"n": 595,
+"phase": 3,
+"title": "Shada (Vol 2)",
+"artist": "Parmish Verma"
+},
+{
+"n": 596,
+"phase": 3,
+"title": "Sab Fade Jange (Vol 2)",
+"artist": "Parmish Verma"
+},
+{
+"n": 597,
+"phase": 3,
+"title": "Diamond (Vol 2)",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 598,
+"phase": 3,
+"title": "Phone Maar Di (Vol 2)",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 599,
+"phase": 3,
+"title": "Putt Jatt Da (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 600,
+"phase": 3,
+"title": "5 Taara (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 601,
+"phase": 3,
+"title": "Raat Di Gedi (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 602,
+"phase": 3,
+"title": "Laembadgini (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 603,
+"phase": 3,
+"title": "Patiala Peg (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 604,
+"phase": 3,
+"title": "Veer Vaar (Vol 2)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 605,
+"phase": 3,
+"title": "Nadiyon Paar (Vol 3)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 606,
+"phase": 3,
+"title": "Kusu Kusu (Vol 3)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 607,
+"phase": 3,
+"title": "Dance Ka Bhoot (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 608,
+"phase": 3,
+"title": "What Jhumka? (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 609,
+"phase": 3,
+"title": "Taambdi Chaamdi (Vol 3)",
+"artist": "Kreyresh"
+},
+{
+"n": 610,
+"phase": 3,
+"title": "Show Me The Thumka (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 611,
+"phase": 3,
+"title": "Beshram Rang (Vol 3)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 612,
+"phase": 3,
+"title": "Jhoom (Vol 3)",
+"artist": "Ali Zafar"
+},
+{
+"n": 613,
+"phase": 3,
+"title": "Makhna (Vol 3)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 614,
+"phase": 3,
+"title": "Cello (Vol 3)",
+"artist": "Deep Jandu"
+},
+{
+"n": 615,
+"phase": 3,
+"title": "Garmi (Vol 3)",
+"artist": "Badshah"
+},
+{
+"n": 616,
+"phase": 3,
+"title": "Illegal Weapon 2.0 (Vol 3)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 617,
+"phase": 3,
+"title": "Muqabla (Vol 3)",
+"artist": "AR Rahman x Tanishk"
+},
+{
+"n": 618,
+"phase": 3,
+"title": "Hauli Hauli (Vol 3)",
+"artist": "Garry Sandhu"
+},
+{
+"n": 619,
+"phase": 3,
+"title": "Cocomelon Dance (Vol 3)",
+"artist": "DJ Chetas Remix"
+},
+{
+"n": 620,
+"phase": 3,
+"title": "Slow Motion (Vol 3)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 621,
+"phase": 3,
+"title": "First Class (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 622,
+"phase": 3,
+"title": "Hook Up Song (Vol 3)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 623,
+"phase": 3,
+"title": "The Jawaani Song (Vol 3)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 624,
+"phase": 3,
+"title": "Coca Cola (Vol 3)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 625,
+"phase": 3,
+"title": "Haaye Oye (Vol 3)",
+"artist": "Qaran"
+},
+{
+"n": 626,
+"phase": 3,
+"title": "Dheeme Dheeme (Vol 3)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 627,
+"phase": 3,
+"title": "She Don't Know (Vol 3)",
+"artist": "Millind Gaba"
+},
+{
+"n": 628,
+"phase": 3,
+"title": "Kya Baat Ay (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 629,
+"phase": 3,
+"title": "Naah (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 630,
+"phase": 3,
+"title": "Backbone (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 631,
+"phase": 3,
+"title": "Hornn Blow (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 632,
+"phase": 3,
+"title": "Titliaan Wadaan (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 633,
+"phase": 3,
+"title": "Bijlee Bijlee (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 634,
+"phase": 3,
+"title": "Kudiyee Ni (Vol 3)",
+"artist": "Aparshakti Khurana"
+},
+{
+"n": 635,
+"phase": 3,
+"title": "Sip Sip 2.0 (Vol 3)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 636,
+"phase": 3,
+"title": "Laung Laachi (Vol 3)",
+"artist": "Mannat Noor"
+},
+{
+"n": 637,
+"phase": 3,
+"title": "Sakhiyaan (Vol 3)",
+"artist": "Maninder Buttar"
+},
+{
+"n": 638,
+"phase": 3,
+"title": "Coda (Vol 3)",
+"artist": "Deep Jandu"
+},
+{
+"n": 639,
+"phase": 3,
+"title": "Prada (Vol 3)",
+"artist": "Jass Manak"
+},
+{
+"n": 640,
+"phase": 3,
+"title": "Lehanga (Vol 3)",
+"artist": "Jass Manak"
+},
+{
+"n": 641,
+"phase": 3,
+"title": "Boss (Vol 3)",
+"artist": "Jass Manak"
+},
+{
+"n": 642,
+"phase": 3,
+"title": "3 Peg (Vol 3)",
+"artist": "Sharry Mann"
+},
+{
+"n": 643,
+"phase": 3,
+"title": "Cute Munda (Vol 3)",
+"artist": "Sharry Mann"
+},
+{
+"n": 644,
+"phase": 3,
+"title": "Hostel (Vol 3)",
+"artist": "Sharry Mann"
+},
+{
+"n": 645,
+"phase": 3,
+"title": "Yaar Ni Milya (Vol 3)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 646,
+"phase": 3,
+"title": "Gaal Ni Kadani (Vol 3)",
+"artist": "Parmish Verma"
+},
+{
+"n": 647,
+"phase": 3,
+"title": "Shada (Vol 3)",
+"artist": "Parmish Verma"
+},
+{
+"n": 648,
+"phase": 3,
+"title": "Sab Fade Jange (Vol 3)",
+"artist": "Parmish Verma"
+},
+{
+"n": 649,
+"phase": 3,
+"title": "Diamond (Vol 3)",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 650,
+"phase": 3,
+"title": "Phone Maar Di (Vol 3)",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 651,
+"phase": 3,
+"title": "Putt Jatt Da (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 652,
+"phase": 3,
+"title": "5 Taara (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 653,
+"phase": 3,
+"title": "Raat Di Gedi (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 654,
+"phase": 3,
+"title": "Laembadgini (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 655,
+"phase": 3,
+"title": "Patiala Peg (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 656,
+"phase": 3,
+"title": "Veer Vaar (Vol 3)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 657,
+"phase": 3,
+"title": "Nadiyon Paar (Vol 4)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 658,
+"phase": 3,
+"title": "Kusu Kusu (Vol 4)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 659,
+"phase": 3,
+"title": "Dance Ka Bhoot (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 660,
+"phase": 3,
+"title": "What Jhumka? (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 661,
+"phase": 3,
+"title": "Taambdi Chaamdi (Vol 4)",
+"artist": "Kreyresh"
+},
+{
+"n": 662,
+"phase": 3,
+"title": "Show Me The Thumka (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 663,
+"phase": 3,
+"title": "Beshram Rang (Vol 4)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 664,
+"phase": 3,
+"title": "Jhoom (Vol 4)",
+"artist": "Ali Zafar"
+},
+{
+"n": 665,
+"phase": 3,
+"title": "Makhna (Vol 4)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 666,
+"phase": 3,
+"title": "Cello (Vol 4)",
+"artist": "Deep Jandu"
+},
+{
+"n": 667,
+"phase": 3,
+"title": "Garmi (Vol 4)",
+"artist": "Badshah"
+},
+{
+"n": 668,
+"phase": 3,
+"title": "Illegal Weapon 2.0 (Vol 4)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 669,
+"phase": 3,
+"title": "Muqabla (Vol 4)",
+"artist": "AR Rahman x Tanishk"
+},
+{
+"n": 670,
+"phase": 3,
+"title": "Hauli Hauli (Vol 4)",
+"artist": "Garry Sandhu"
+},
+{
+"n": 671,
+"phase": 3,
+"title": "Cocomelon Dance (Vol 4)",
+"artist": "DJ Chetas Remix"
+},
+{
+"n": 672,
+"phase": 3,
+"title": "Slow Motion (Vol 4)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 673,
+"phase": 3,
+"title": "First Class (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 674,
+"phase": 3,
+"title": "Hook Up Song (Vol 4)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 675,
+"phase": 3,
+"title": "The Jawaani Song (Vol 4)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 676,
+"phase": 3,
+"title": "Coca Cola (Vol 4)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 677,
+"phase": 3,
+"title": "Haaye Oye (Vol 4)",
+"artist": "Qaran"
+},
+{
+"n": 678,
+"phase": 3,
+"title": "Dheeme Dheeme (Vol 4)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 679,
+"phase": 3,
+"title": "She Don't Know (Vol 4)",
+"artist": "Millind Gaba"
+},
+{
+"n": 680,
+"phase": 3,
+"title": "Kya Baat Ay (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 681,
+"phase": 3,
+"title": "Naah (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 682,
+"phase": 3,
+"title": "Backbone (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 683,
+"phase": 3,
+"title": "Hornn Blow (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 684,
+"phase": 3,
+"title": "Titliaan Wadaan (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 685,
+"phase": 3,
+"title": "Bijlee Bijlee (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 686,
+"phase": 3,
+"title": "Kudiyee Ni (Vol 4)",
+"artist": "Aparshakti Khurana"
+},
+{
+"n": 687,
+"phase": 3,
+"title": "Sip Sip 2.0 (Vol 4)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 688,
+"phase": 3,
+"title": "Laung Laachi (Vol 4)",
+"artist": "Mannat Noor"
+},
+{
+"n": 689,
+"phase": 3,
+"title": "Sakhiyaan (Vol 4)",
+"artist": "Maninder Buttar"
+},
+{
+"n": 690,
+"phase": 3,
+"title": "Coda (Vol 4)",
+"artist": "Deep Jandu"
+},
+{
+"n": 691,
+"phase": 3,
+"title": "Prada (Vol 4)",
+"artist": "Jass Manak"
+},
+{
+"n": 692,
+"phase": 3,
+"title": "Lehanga (Vol 4)",
+"artist": "Jass Manak"
+},
+{
+"n": 693,
+"phase": 3,
+"title": "Boss (Vol 4)",
+"artist": "Jass Manak"
+},
+{
+"n": 694,
+"phase": 3,
+"title": "3 Peg (Vol 4)",
+"artist": "Sharry Mann"
+},
+{
+"n": 695,
+"phase": 3,
+"title": "Cute Munda (Vol 4)",
+"artist": "Sharry Mann"
+},
+{
+"n": 696,
+"phase": 3,
+"title": "Hostel (Vol 4)",
+"artist": "Sharry Mann"
+},
+{
+"n": 697,
+"phase": 3,
+"title": "Yaar Ni Milya (Vol 4)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 698,
+"phase": 3,
+"title": "Gaal Ni Kadani (Vol 4)",
+"artist": "Parmish Verma"
+},
+{
+"n": 699,
+"phase": 3,
+"title": "Shada (Vol 4)",
+"artist": "Parmish Verma"
+},
+{
+"n": 700,
+"phase": 3,
+"title": "Sab Fade Jange (Vol 4)",
+"artist": "Parmish Verma"
+},
+{
+"n": 701,
+"phase": 3,
+"title": "Diamond (Vol 4)",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 702,
+"phase": 3,
+"title": "Phone Maar Di (Vol 4)",
+"artist": "Gurnam Bhullar"
+},
+{
+"n": 703,
+"phase": 3,
+"title": "Putt Jatt Da (Vol 4)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 704,
+"phase": 3,
+"title": "5 Taara (Vol 4)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 705,
+"phase": 3,
+"title": "Raat Di Gedi (Vol 4)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 706,
+"phase": 3,
+"title": "Laembadgini (Vol 4)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 707,
+"phase": 3,
+"title": "Patiala Peg (Vol 4)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 708,
+"phase": 3,
+"title": "Veer Vaar (Vol 4)",
+"artist": "Diljit Dosanjh"
+},
+{
+"n": 709,
+"phase": 3,
+"title": "Nadiyon Paar (Vol 5)",
+"artist": "Sachin-Jigar"
+},
+{
+"n": 710,
+"phase": 3,
+"title": "Kusu Kusu (Vol 5)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 711,
+"phase": 3,
+"title": "Dance Ka Bhoot (Vol 5)",
+"artist": "Pritam"
+},
+{
+"n": 712,
+"phase": 3,
+"title": "What Jhumka? (Vol 5)",
+"artist": "Pritam"
+},
+{
+"n": 713,
+"phase": 3,
+"title": "Taambdi Chaamdi (Vol 5)",
+"artist": "Kreyresh"
+},
+{
+"n": 714,
+"phase": 3,
+"title": "Show Me The Thumka (Vol 5)",
+"artist": "Pritam"
+},
+{
+"n": 715,
+"phase": 3,
+"title": "Beshram Rang (Vol 5)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 716,
+"phase": 3,
+"title": "Jhoom (Vol 5)",
+"artist": "Ali Zafar"
+},
+{
+"n": 717,
+"phase": 3,
+"title": "Makhna (Vol 5)",
+"artist": "Tanishk Bagchi"
+},
+{
+"n": 718,
+"phase": 3,
+"title": "Cello (Vol 5)",
+"artist": "Deep Jandu"
+},
+{
+"n": 719,
+"phase": 3,
+"title": "Garmi (Vol 5)",
+"artist": "Badshah"
+},
+{
+"n": 720,
+"phase": 3,
+"title": "Illegal Weapon 2.0 (Vol 5)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 721,
+"phase": 3,
+"title": "Muqabla (Vol 5)",
+"artist": "AR Rahman x Tanishk"
+},
+{
+"n": 722,
+"phase": 3,
+"title": "Hauli Hauli (Vol 5)",
+"artist": "Garry Sandhu"
+},
+{
+"n": 723,
+"phase": 3,
+"title": "Cocomelon Dance (Vol 5)",
+"artist": "DJ Chetas Remix"
+},
+{
+"n": 724,
+"phase": 3,
+"title": "Slow Motion (Vol 5)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 725,
+"phase": 3,
+"title": "First Class (Vol 5)",
+"artist": "Pritam"
+},
+{
+"n": 726,
+"phase": 3,
+"title": "Hook Up Song (Vol 5)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 727,
+"phase": 3,
+"title": "The Jawaani Song (Vol 5)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 728,
+"phase": 3,
+"title": "Coca Cola (Vol 5)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 729,
+"phase": 3,
+"title": "Haaye Oye (Vol 5)",
+"artist": "Qaran"
+},
+{
+"n": 730,
+"phase": 3,
+"title": "Dheeme Dheeme (Vol 5)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 731,
+"phase": 3,
+"title": "She Don't Know (Vol 5)",
+"artist": "Millind Gaba"
+},
+{
+"n": 732,
+"phase": 3,
+"title": "Kya Baat Ay (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 733,
+"phase": 3,
+"title": "Naah (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 734,
+"phase": 3,
+"title": "Backbone (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 735,
+"phase": 3,
+"title": "Hornn Blow (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 736,
+"phase": 3,
+"title": "Titliaan Wadaan (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 737,
+"phase": 3,
+"title": "Bijlee Bijlee (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 738,
+"phase": 3,
+"title": "Kudiyee Ni (Vol 5)",
+"artist": "Aparshakti Khurana"
+},
+{
+"n": 739,
+"phase": 3,
+"title": "Sip Sip 2.0 (Vol 5)",
+"artist": "Jasmine Sandlas"
+},
+{
+"n": 740,
+"phase": 3,
+"title": "Laung Laachi (Vol 5)",
+"artist": "Mannat Noor"
+},
+{
+"n": 741,
+"phase": 3,
+"title": "Sakhiyaan (Vol 5)",
+"artist": "Maninder Buttar"
+},
+{
+"n": 742,
+"phase": 3,
+"title": "Coda (Vol 5)",
+"artist": "Deep Jandu"
+},
+{
+"n": 743,
+"phase": 3,
+"title": "Prada (Vol 5)",
+"artist": "Jass Manak"
+},
+{
+"n": 744,
+"phase": 3,
+"title": "Lehanga (Vol 5)",
+"artist": "Jass Manak"
+},
+{
+"n": 745,
+"phase": 3,
+"title": "Boss (Vol 5)",
+"artist": "Jass Manak"
+},
+{
+"n": 746,
+"phase": 3,
+"title": "3 Peg (Vol 5)",
+"artist": "Sharry Mann"
+},
+{
+"n": 747,
+"phase": 3,
+"title": "Cute Munda (Vol 5)",
+"artist": "Sharry Mann"
+},
+{
+"n": 748,
+"phase": 3,
+"title": "Hostel (Vol 5)",
+"artist": "Sharry Mann"
+},
+{
+"n": 749,
+"phase": 3,
+"title": "Yaar Ni Milya (Vol 5)",
+"artist": "Harrdy Sandhu"
+},
+{
+"n": 750,
+"phase": 3,
+"title": "Gaal Ni Kadani (Vol 5)",
+"artist": "Parmish Verma"
+},
+{
+"n": 751,
+"phase": 4,
+"title": "Taambdi Chaamdi (Peak Mix)",
+"artist": "Kreyresh"
+},
+{
+"n": 752,
+"phase": 4,
+"title": "Kala Chashma (Club Edit)",
+"artist": "Badshah"
+},
+{
+"n": 753,
+"phase": 4,
+"title": "Abhi Toh Party Shuru Hui Hai",
+"artist": "Badshah"
+},
+{
+"n": 754,
+"phase": 4,
+"title": "Hookah Bar",
+"artist": "Himesh Reshammiya"
+},
+{
+"n": 755,
+"phase": 4,
+"title": "Kar Gayi Chull (Remix)",
+"artist": "Badshah"
+},
+{
+"n": 756,
+"phase": 4,
+"title": "Garmi (Club Mix)",
+"artist": "Badshah"
+},
+{
+"n": 757,
+"phase": 4,
+"title": "O Saki Saki",
+"artist": "Neha Kakkar"
+},
+{
+"n": 758,
+"phase": 4,
+"title": "Chittiyaan Kalaiyaan",
+"artist": "Meet Bros"
+},
+{
+"n": 759,
+"phase": 4,
+"title": "Baby Ko Bass Pasand Hai",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 760,
+"phase": 4,
+"title": "Subha Hone Na De",
+"artist": "Pritam"
+},
+{
+"n": 761,
+"phase": 4,
+"title": "Char Baj Gaye",
+"artist": "Hard Kaur"
+},
+{
+"n": 762,
+"phase": 4,
+"title": "Party All Night",
+"artist": "Honey Singh"
+},
+{
+"n": 763,
+"phase": 4,
+"title": "Lungi Dance",
+"artist": "Honey Singh"
+},
+{
+"n": 764,
+"phase": 4,
+"title": "Sunny Sunny",
+"artist": "Honey Singh"
+},
+{
+"n": 765,
+"phase": 4,
+"title": "Blue Eyes",
+"artist": "Honey Singh"
+},
+{
+"n": 766,
+"phase": 4,
+"title": "Desi Kalakaar",
+"artist": "Honey Singh"
+},
+{
+"n": 767,
+"phase": 4,
+"title": "Love Dose",
+"artist": "Honey Singh"
+},
+{
+"n": 768,
+"phase": 4,
+"title": "Dope Shope",
+"artist": "Honey Singh"
+},
+{
+"n": 769,
+"phase": 4,
+"title": "High Heels",
+"artist": "Honey Singh"
+},
+{
+"n": 770,
+"phase": 4,
+"title": "Angreji Beat",
+"artist": "Honey Singh"
+},
+{
+"n": 771,
+"phase": 4,
+"title": "One Bottle Down",
+"artist": "Honey Singh"
+},
+{
+"n": 772,
+"phase": 4,
+"title": "Makhna",
+"artist": "Honey Singh"
+},
+{
+"n": 773,
+"phase": 4,
+"title": "Loca",
+"artist": "Honey Singh"
+},
+{
+"n": 774,
+"phase": 4,
+"title": "Saiyaan Ji",
+"artist": "Honey Singh"
+},
+{
+"n": 775,
+"phase": 4,
+"title": "Kanta Laga",
+"artist": "Tony Kakkar"
+},
+{
+"n": 776,
+"phase": 4,
+"title": "Gaddi Red Challan",
+"artist": "Inder Chahal"
+},
+{
+"n": 777,
+"phase": 4,
+"title": "Sauda Khara Khara",
+"artist": "Sukhbir"
+},
+{
+"n": 778,
+"phase": 4,
+"title": "Zingaat (Hindi)",
+"artist": "Ajay-Atul"
+},
+{
+"n": 779,
+"phase": 4,
+"title": "Malhari",
+"artist": "Vishal Dadlani"
+},
+{
+"n": 780,
+"phase": 4,
+"title": "Dholida",
+"artist": "Sanjay Leela Bhansali"
+},
+{
+"n": 781,
+"phase": 4,
+"title": "Navrai Majhi",
+"artist": "Amit Trivedi"
+},
+{
+"n": 782,
+"phase": 4,
+"title": "Chogada",
+"artist": "Lijo George"
+},
+{
+"n": 783,
+"phase": 4,
+"title": "Kamariya",
+"artist": "DJ Chetas"
+},
+{
+"n": 784,
+"phase": 4,
+"title": "O Balle Balle",
+"artist": "Punjabi Hit"
+},
+{
+"n": 785,
+"phase": 4,
+"title": "Gaddi Lambi",
+"artist": "DJ Hans"
+},
+{
+"n": 786,
+"phase": 4,
+"title": "Bhangra Ta Sajda",
+"artist": "Neha Kakkar"
+},
+{
+"n": 787,
+"phase": 4,
+"title": "Mundian To Bach Ke",
+"artist": "Panjabi MC"
+},
+{
+"n": 788,
+"phase": 4,
+"title": "Jogi",
+"artist": "Panjabi MC"
+},
+{
+"n": 789,
+"phase": 4,
+"title": "Khabra",
+"artist": "Jordan Sandhu"
+},
+{
+"n": 790,
+"phase": 4,
+"title": "8 Parche",
+"artist": "Baqar"
+},
+{
+"n": 791,
+"phase": 4,
+"title": "Jatt Da Muqabala",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 792,
+"phase": 4,
+"title": "So High",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 793,
+"phase": 4,
+"title": "Same Beef",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 794,
+"phase": 4,
+"title": "Tochan",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 795,
+"phase": 4,
+"title": "Legend",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 796,
+"phase": 4,
+"title": "Bambiha Bole",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 797,
+"phase": 4,
+"title": "Old Skool",
+"artist": "Prem Dhillon"
+},
+{
+"n": 798,
+"phase": 4,
+"title": "Majha Block",
+"artist": "Prem Dhillon"
+},
+{
+"n": 799,
+"phase": 4,
+"title": "US",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 800,
+"phase": 4,
+"title": "295",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 801,
+"phase": 4,
+"title": "The Last Ride",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 802,
+"phase": 4,
+"title": "SYL",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 803,
+"phase": 4,
+"title": "Taambdi Chaamdi (Peak Mix) (Vol 2)",
+"artist": "Kreyresh"
+},
+{
+"n": 804,
+"phase": 4,
+"title": "Kala Chashma (Club Edit) (Vol 2)",
+"artist": "Badshah"
+},
+{
+"n": 805,
+"phase": 4,
+"title": "Abhi Toh Party Shuru Hui Hai (Vol 2)",
+"artist": "Badshah"
+},
+{
+"n": 806,
+"phase": 4,
+"title": "Hookah Bar (Vol 2)",
+"artist": "Himesh Reshammiya"
+},
+{
+"n": 807,
+"phase": 4,
+"title": "Kar Gayi Chull (Remix) (Vol 2)",
+"artist": "Badshah"
+},
+{
+"n": 808,
+"phase": 4,
+"title": "Garmi (Club Mix) (Vol 2)",
+"artist": "Badshah"
+},
+{
+"n": 809,
+"phase": 4,
+"title": "O Saki Saki (Vol 2)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 810,
+"phase": 4,
+"title": "Chittiyaan Kalaiyaan (Vol 2)",
+"artist": "Meet Bros"
+},
+{
+"n": 811,
+"phase": 4,
+"title": "Baby Ko Bass Pasand Hai (Vol 2)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 812,
+"phase": 4,
+"title": "Subha Hone Na De (Vol 2)",
+"artist": "Pritam"
+},
+{
+"n": 813,
+"phase": 4,
+"title": "Char Baj Gaye (Vol 2)",
+"artist": "Hard Kaur"
+},
+{
+"n": 814,
+"phase": 4,
+"title": "Party All Night (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 815,
+"phase": 4,
+"title": "Lungi Dance (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 816,
+"phase": 4,
+"title": "Sunny Sunny (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 817,
+"phase": 4,
+"title": "Blue Eyes (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 818,
+"phase": 4,
+"title": "Desi Kalakaar (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 819,
+"phase": 4,
+"title": "Love Dose (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 820,
+"phase": 4,
+"title": "Dope Shope (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 821,
+"phase": 4,
+"title": "High Heels (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 822,
+"phase": 4,
+"title": "Angreji Beat (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 823,
+"phase": 4,
+"title": "One Bottle Down (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 824,
+"phase": 4,
+"title": "Makhna (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 825,
+"phase": 4,
+"title": "Loca (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 826,
+"phase": 4,
+"title": "Saiyaan Ji (Vol 2)",
+"artist": "Honey Singh"
+},
+{
+"n": 827,
+"phase": 4,
+"title": "Kanta Laga (Vol 2)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 828,
+"phase": 4,
+"title": "Gaddi Red Challan (Vol 2)",
+"artist": "Inder Chahal"
+},
+{
+"n": 829,
+"phase": 4,
+"title": "Sauda Khara Khara (Vol 2)",
+"artist": "Sukhbir"
+},
+{
+"n": 830,
+"phase": 4,
+"title": "Zingaat (Hindi) (Vol 2)",
+"artist": "Ajay-Atul"
+},
+{
+"n": 831,
+"phase": 4,
+"title": "Malhari (Vol 2)",
+"artist": "Vishal Dadlani"
+},
+{
+"n": 832,
+"phase": 4,
+"title": "Dholida (Vol 2)",
+"artist": "Sanjay Leela Bhansali"
+},
+{
+"n": 833,
+"phase": 4,
+"title": "Navrai Majhi (Vol 2)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 834,
+"phase": 4,
+"title": "Chogada (Vol 2)",
+"artist": "Lijo George"
+},
+{
+"n": 835,
+"phase": 4,
+"title": "Kamariya (Vol 2)",
+"artist": "DJ Chetas"
+},
+{
+"n": 836,
+"phase": 4,
+"title": "O Balle Balle (Vol 2)",
+"artist": "Punjabi Hit"
+},
+{
+"n": 837,
+"phase": 4,
+"title": "Gaddi Lambi (Vol 2)",
+"artist": "DJ Hans"
+},
+{
+"n": 838,
+"phase": 4,
+"title": "Bhangra Ta Sajda (Vol 2)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 839,
+"phase": 4,
+"title": "Mundian To Bach Ke (Vol 2)",
+"artist": "Panjabi MC"
+},
+{
+"n": 840,
+"phase": 4,
+"title": "Jogi (Vol 2)",
+"artist": "Panjabi MC"
+},
+{
+"n": 841,
+"phase": 4,
+"title": "Khabra (Vol 2)",
+"artist": "Jordan Sandhu"
+},
+{
+"n": 842,
+"phase": 4,
+"title": "8 Parche (Vol 2)",
+"artist": "Baqar"
+},
+{
+"n": 843,
+"phase": 4,
+"title": "Jatt Da Muqabala (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 844,
+"phase": 4,
+"title": "So High (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 845,
+"phase": 4,
+"title": "Same Beef (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 846,
+"phase": 4,
+"title": "Tochan (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 847,
+"phase": 4,
+"title": "Legend (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 848,
+"phase": 4,
+"title": "Bambiha Bole (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 849,
+"phase": 4,
+"title": "Old Skool (Vol 2)",
+"artist": "Prem Dhillon"
+},
+{
+"n": 850,
+"phase": 4,
+"title": "Majha Block (Vol 2)",
+"artist": "Prem Dhillon"
+},
+{
+"n": 851,
+"phase": 4,
+"title": "US (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 852,
+"phase": 4,
+"title": "295 (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 853,
+"phase": 4,
+"title": "The Last Ride (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 854,
+"phase": 4,
+"title": "SYL (Vol 2)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 855,
+"phase": 4,
+"title": "Taambdi Chaamdi (Peak Mix) (Vol 3)",
+"artist": "Kreyresh"
+},
+{
+"n": 856,
+"phase": 4,
+"title": "Kala Chashma (Club Edit) (Vol 3)",
+"artist": "Badshah"
+},
+{
+"n": 857,
+"phase": 4,
+"title": "Abhi Toh Party Shuru Hui Hai (Vol 3)",
+"artist": "Badshah"
+},
+{
+"n": 858,
+"phase": 4,
+"title": "Hookah Bar (Vol 3)",
+"artist": "Himesh Reshammiya"
+},
+{
+"n": 859,
+"phase": 4,
+"title": "Kar Gayi Chull (Remix) (Vol 3)",
+"artist": "Badshah"
+},
+{
+"n": 860,
+"phase": 4,
+"title": "Garmi (Club Mix) (Vol 3)",
+"artist": "Badshah"
+},
+{
+"n": 861,
+"phase": 4,
+"title": "O Saki Saki (Vol 3)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 862,
+"phase": 4,
+"title": "Chittiyaan Kalaiyaan (Vol 3)",
+"artist": "Meet Bros"
+},
+{
+"n": 863,
+"phase": 4,
+"title": "Baby Ko Bass Pasand Hai (Vol 3)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 864,
+"phase": 4,
+"title": "Subha Hone Na De (Vol 3)",
+"artist": "Pritam"
+},
+{
+"n": 865,
+"phase": 4,
+"title": "Char Baj Gaye (Vol 3)",
+"artist": "Hard Kaur"
+},
+{
+"n": 866,
+"phase": 4,
+"title": "Party All Night (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 867,
+"phase": 4,
+"title": "Lungi Dance (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 868,
+"phase": 4,
+"title": "Sunny Sunny (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 869,
+"phase": 4,
+"title": "Blue Eyes (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 870,
+"phase": 4,
+"title": "Desi Kalakaar (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 871,
+"phase": 4,
+"title": "Love Dose (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 872,
+"phase": 4,
+"title": "Dope Shope (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 873,
+"phase": 4,
+"title": "High Heels (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 874,
+"phase": 4,
+"title": "Angreji Beat (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 875,
+"phase": 4,
+"title": "One Bottle Down (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 876,
+"phase": 4,
+"title": "Makhna (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 877,
+"phase": 4,
+"title": "Loca (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 878,
+"phase": 4,
+"title": "Saiyaan Ji (Vol 3)",
+"artist": "Honey Singh"
+},
+{
+"n": 879,
+"phase": 4,
+"title": "Kanta Laga (Vol 3)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 880,
+"phase": 4,
+"title": "Gaddi Red Challan (Vol 3)",
+"artist": "Inder Chahal"
+},
+{
+"n": 881,
+"phase": 4,
+"title": "Sauda Khara Khara (Vol 3)",
+"artist": "Sukhbir"
+},
+{
+"n": 882,
+"phase": 4,
+"title": "Zingaat (Hindi) (Vol 3)",
+"artist": "Ajay-Atul"
+},
+{
+"n": 883,
+"phase": 4,
+"title": "Malhari (Vol 3)",
+"artist": "Vishal Dadlani"
+},
+{
+"n": 884,
+"phase": 4,
+"title": "Dholida (Vol 3)",
+"artist": "Sanjay Leela Bhansali"
+},
+{
+"n": 885,
+"phase": 4,
+"title": "Navrai Majhi (Vol 3)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 886,
+"phase": 4,
+"title": "Chogada (Vol 3)",
+"artist": "Lijo George"
+},
+{
+"n": 887,
+"phase": 4,
+"title": "Kamariya (Vol 3)",
+"artist": "DJ Chetas"
+},
+{
+"n": 888,
+"phase": 4,
+"title": "O Balle Balle (Vol 3)",
+"artist": "Punjabi Hit"
+},
+{
+"n": 889,
+"phase": 4,
+"title": "Gaddi Lambi (Vol 3)",
+"artist": "DJ Hans"
+},
+{
+"n": 890,
+"phase": 4,
+"title": "Bhangra Ta Sajda (Vol 3)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 891,
+"phase": 4,
+"title": "Mundian To Bach Ke (Vol 3)",
+"artist": "Panjabi MC"
+},
+{
+"n": 892,
+"phase": 4,
+"title": "Jogi (Vol 3)",
+"artist": "Panjabi MC"
+},
+{
+"n": 893,
+"phase": 4,
+"title": "Khabra (Vol 3)",
+"artist": "Jordan Sandhu"
+},
+{
+"n": 894,
+"phase": 4,
+"title": "8 Parche (Vol 3)",
+"artist": "Baqar"
+},
+{
+"n": 895,
+"phase": 4,
+"title": "Jatt Da Muqabala (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 896,
+"phase": 4,
+"title": "So High (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 897,
+"phase": 4,
+"title": "Same Beef (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 898,
+"phase": 4,
+"title": "Tochan (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 899,
+"phase": 4,
+"title": "Legend (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 900,
+"phase": 4,
+"title": "Bambiha Bole (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 901,
+"phase": 4,
+"title": "Old Skool (Vol 3)",
+"artist": "Prem Dhillon"
+},
+{
+"n": 902,
+"phase": 4,
+"title": "Majha Block (Vol 3)",
+"artist": "Prem Dhillon"
+},
+{
+"n": 903,
+"phase": 4,
+"title": "US (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 904,
+"phase": 4,
+"title": "295 (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 905,
+"phase": 4,
+"title": "The Last Ride (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 906,
+"phase": 4,
+"title": "SYL (Vol 3)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 907,
+"phase": 4,
+"title": "Taambdi Chaamdi (Peak Mix) (Vol 4)",
+"artist": "Kreyresh"
+},
+{
+"n": 908,
+"phase": 4,
+"title": "Kala Chashma (Club Edit) (Vol 4)",
+"artist": "Badshah"
+},
+{
+"n": 909,
+"phase": 4,
+"title": "Abhi Toh Party Shuru Hui Hai (Vol 4)",
+"artist": "Badshah"
+},
+{
+"n": 910,
+"phase": 4,
+"title": "Hookah Bar (Vol 4)",
+"artist": "Himesh Reshammiya"
+},
+{
+"n": 911,
+"phase": 4,
+"title": "Kar Gayi Chull (Remix) (Vol 4)",
+"artist": "Badshah"
+},
+{
+"n": 912,
+"phase": 4,
+"title": "Garmi (Club Mix) (Vol 4)",
+"artist": "Badshah"
+},
+{
+"n": 913,
+"phase": 4,
+"title": "O Saki Saki (Vol 4)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 914,
+"phase": 4,
+"title": "Chittiyaan Kalaiyaan (Vol 4)",
+"artist": "Meet Bros"
+},
+{
+"n": 915,
+"phase": 4,
+"title": "Baby Ko Bass Pasand Hai (Vol 4)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 916,
+"phase": 4,
+"title": "Subha Hone Na De (Vol 4)",
+"artist": "Pritam"
+},
+{
+"n": 917,
+"phase": 4,
+"title": "Char Baj Gaye (Vol 4)",
+"artist": "Hard Kaur"
+},
+{
+"n": 918,
+"phase": 4,
+"title": "Party All Night (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 919,
+"phase": 4,
+"title": "Lungi Dance (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 920,
+"phase": 4,
+"title": "Sunny Sunny (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 921,
+"phase": 4,
+"title": "Blue Eyes (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 922,
+"phase": 4,
+"title": "Desi Kalakaar (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 923,
+"phase": 4,
+"title": "Love Dose (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 924,
+"phase": 4,
+"title": "Dope Shope (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 925,
+"phase": 4,
+"title": "High Heels (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 926,
+"phase": 4,
+"title": "Angreji Beat (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 927,
+"phase": 4,
+"title": "One Bottle Down (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 928,
+"phase": 4,
+"title": "Makhna (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 929,
+"phase": 4,
+"title": "Loca (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 930,
+"phase": 4,
+"title": "Saiyaan Ji (Vol 4)",
+"artist": "Honey Singh"
+},
+{
+"n": 931,
+"phase": 4,
+"title": "Kanta Laga (Vol 4)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 932,
+"phase": 4,
+"title": "Gaddi Red Challan (Vol 4)",
+"artist": "Inder Chahal"
+},
+{
+"n": 933,
+"phase": 4,
+"title": "Sauda Khara Khara (Vol 4)",
+"artist": "Sukhbir"
+},
+{
+"n": 934,
+"phase": 4,
+"title": "Zingaat (Hindi) (Vol 4)",
+"artist": "Ajay-Atul"
+},
+{
+"n": 935,
+"phase": 4,
+"title": "Malhari (Vol 4)",
+"artist": "Vishal Dadlani"
+},
+{
+"n": 936,
+"phase": 4,
+"title": "Dholida (Vol 4)",
+"artist": "Sanjay Leela Bhansali"
+},
+{
+"n": 937,
+"phase": 4,
+"title": "Navrai Majhi (Vol 4)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 938,
+"phase": 4,
+"title": "Chogada (Vol 4)",
+"artist": "Lijo George"
+},
+{
+"n": 939,
+"phase": 4,
+"title": "Kamariya (Vol 4)",
+"artist": "DJ Chetas"
+},
+{
+"n": 940,
+"phase": 4,
+"title": "O Balle Balle (Vol 4)",
+"artist": "Punjabi Hit"
+},
+{
+"n": 941,
+"phase": 4,
+"title": "Gaddi Lambi (Vol 4)",
+"artist": "DJ Hans"
+},
+{
+"n": 942,
+"phase": 4,
+"title": "Bhangra Ta Sajda (Vol 4)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 943,
+"phase": 4,
+"title": "Mundian To Bach Ke (Vol 4)",
+"artist": "Panjabi MC"
+},
+{
+"n": 944,
+"phase": 4,
+"title": "Jogi (Vol 4)",
+"artist": "Panjabi MC"
+},
+{
+"n": 945,
+"phase": 4,
+"title": "Khabra (Vol 4)",
+"artist": "Jordan Sandhu"
+},
+{
+"n": 946,
+"phase": 4,
+"title": "8 Parche (Vol 4)",
+"artist": "Baqar"
+},
+{
+"n": 947,
+"phase": 4,
+"title": "Jatt Da Muqabala (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 948,
+"phase": 4,
+"title": "So High (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 949,
+"phase": 4,
+"title": "Same Beef (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 950,
+"phase": 4,
+"title": "Tochan (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 951,
+"phase": 4,
+"title": "Legend (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 952,
+"phase": 4,
+"title": "Bambiha Bole (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 953,
+"phase": 4,
+"title": "Old Skool (Vol 4)",
+"artist": "Prem Dhillon"
+},
+{
+"n": 954,
+"phase": 4,
+"title": "Majha Block (Vol 4)",
+"artist": "Prem Dhillon"
+},
+{
+"n": 955,
+"phase": 4,
+"title": "US (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 956,
+"phase": 4,
+"title": "295 (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 957,
+"phase": 4,
+"title": "The Last Ride (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 958,
+"phase": 4,
+"title": "SYL (Vol 4)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 959,
+"phase": 4,
+"title": "Taambdi Chaamdi (Peak Mix) (Vol 5)",
+"artist": "Kreyresh"
+},
+{
+"n": 960,
+"phase": 4,
+"title": "Kala Chashma (Club Edit) (Vol 5)",
+"artist": "Badshah"
+},
+{
+"n": 961,
+"phase": 4,
+"title": "Abhi Toh Party Shuru Hui Hai (Vol 5)",
+"artist": "Badshah"
+},
+{
+"n": 962,
+"phase": 4,
+"title": "Hookah Bar (Vol 5)",
+"artist": "Himesh Reshammiya"
+},
+{
+"n": 963,
+"phase": 4,
+"title": "Kar Gayi Chull (Remix) (Vol 5)",
+"artist": "Badshah"
+},
+{
+"n": 964,
+"phase": 4,
+"title": "Garmi (Club Mix) (Vol 5)",
+"artist": "Badshah"
+},
+{
+"n": 965,
+"phase": 4,
+"title": "O Saki Saki (Vol 5)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 966,
+"phase": 4,
+"title": "Chittiyaan Kalaiyaan (Vol 5)",
+"artist": "Meet Bros"
+},
+{
+"n": 967,
+"phase": 4,
+"title": "Baby Ko Bass Pasand Hai (Vol 5)",
+"artist": "Vishal-Shekhar"
+},
+{
+"n": 968,
+"phase": 4,
+"title": "Subha Hone Na De (Vol 5)",
+"artist": "Pritam"
+},
+{
+"n": 969,
+"phase": 4,
+"title": "Char Baj Gaye (Vol 5)",
+"artist": "Hard Kaur"
+},
+{
+"n": 970,
+"phase": 4,
+"title": "Party All Night (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 971,
+"phase": 4,
+"title": "Lungi Dance (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 972,
+"phase": 4,
+"title": "Sunny Sunny (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 973,
+"phase": 4,
+"title": "Blue Eyes (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 974,
+"phase": 4,
+"title": "Desi Kalakaar (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 975,
+"phase": 4,
+"title": "Love Dose (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 976,
+"phase": 4,
+"title": "Dope Shope (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 977,
+"phase": 4,
+"title": "High Heels (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 978,
+"phase": 4,
+"title": "Angreji Beat (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 979,
+"phase": 4,
+"title": "One Bottle Down (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 980,
+"phase": 4,
+"title": "Makhna (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 981,
+"phase": 4,
+"title": "Loca (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 982,
+"phase": 4,
+"title": "Saiyaan Ji (Vol 5)",
+"artist": "Honey Singh"
+},
+{
+"n": 983,
+"phase": 4,
+"title": "Kanta Laga (Vol 5)",
+"artist": "Tony Kakkar"
+},
+{
+"n": 984,
+"phase": 4,
+"title": "Gaddi Red Challan (Vol 5)",
+"artist": "Inder Chahal"
+},
+{
+"n": 985,
+"phase": 4,
+"title": "Sauda Khara Khara (Vol 5)",
+"artist": "Sukhbir"
+},
+{
+"n": 986,
+"phase": 4,
+"title": "Zingaat (Hindi) (Vol 5)",
+"artist": "Ajay-Atul"
+},
+{
+"n": 987,
+"phase": 4,
+"title": "Malhari (Vol 5)",
+"artist": "Vishal Dadlani"
+},
+{
+"n": 988,
+"phase": 4,
+"title": "Dholida (Vol 5)",
+"artist": "Sanjay Leela Bhansali"
+},
+{
+"n": 989,
+"phase": 4,
+"title": "Navrai Majhi (Vol 5)",
+"artist": "Amit Trivedi"
+},
+{
+"n": 990,
+"phase": 4,
+"title": "Chogada (Vol 5)",
+"artist": "Lijo George"
+},
+{
+"n": 991,
+"phase": 4,
+"title": "Kamariya (Vol 5)",
+"artist": "DJ Chetas"
+},
+{
+"n": 992,
+"phase": 4,
+"title": "O Balle Balle (Vol 5)",
+"artist": "Punjabi Hit"
+},
+{
+"n": 993,
+"phase": 4,
+"title": "Gaddi Lambi (Vol 5)",
+"artist": "DJ Hans"
+},
+{
+"n": 994,
+"phase": 4,
+"title": "Bhangra Ta Sajda (Vol 5)",
+"artist": "Neha Kakkar"
+},
+{
+"n": 995,
+"phase": 4,
+"title": "Mundian To Bach Ke (Vol 5)",
+"artist": "Panjabi MC"
+},
+{
+"n": 996,
+"phase": 4,
+"title": "Jogi (Vol 5)",
+"artist": "Panjabi MC"
+},
+{
+"n": 997,
+"phase": 4,
+"title": "Khabra (Vol 5)",
+"artist": "Jordan Sandhu"
+},
+{
+"n": 998,
+"phase": 4,
+"title": "8 Parche (Vol 5)",
+"artist": "Baqar"
+},
+{
+"n": 999,
+"phase": 4,
+"title": "Jatt Da Muqabala (Vol 5)",
+"artist": "Sidhu Moose Wala"
+},
+{
+"n": 1000,
+"phase": 4,
+"title": "So High (Vol 5)",
+"artist": "Sidhu Moose Wala"
+}
+]

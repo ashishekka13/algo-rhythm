@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blind A/B</title>
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --text:#1b1c1e; --dim:#62666d; --line:#dcdad5; --accent:#2f6fde; --on:#fff; color-scheme:light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0c0d0f; --card:#16181c; --text:#f1efea; --dim:#9ba1aa; --line:#2a2e35; --accent:#7ea6ff; --on:#0b0c0e; color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px 16px 48px; background:var(--bg); color:var(--text);
+         font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+  main { max-width:640px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .dim { color:var(--dim); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:16px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  button { font:inherit; padding:12px 14px; border-radius:10px; border:1px solid var(--line); background:var(--card);
+           color:var(--text); cursor:pointer; flex:1 1 130px; }
+  button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  button.on { background:var(--accent); color:var(--on); border-color:var(--accent); }
+  kbd { font:12px ui-monospace, Menlo, monospace; border:1px solid var(--line); border-radius:4px; padding:0 4px; }
+  .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:8px; }
+  .bar > div { height:100%; background:var(--accent); width:0; transition:width .3s; }
+  #reveal { min-height:1.5em; margin-top:12px; font-weight:600; }
+  #now { margin-top:10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Which transition sounds better?</h1>
+  <div class="dim">Go with your instinct. "Both bad" is a useful answer. You can vote any time; replays are unlimited.</div>
+
+  <div class="card">
+    <div id="progress" class="dim">Loading…</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div id="now" class="dim"></div>
+    <div class="row" style="margin-top:12px">
+      <button id="start">Start <kbd>Space</kbd></button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="px">Play X <kbd>X</kbd></button>
+      <button id="py">Play Y <kbd>Y</kbd></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button data-c="x">X better <kbd>1</kbd></button>
+      <button data-c="y">Y better <kbd>2</kbd></button>
+      <button data-c="same">No difference <kbd>3</kbd></button>
+      <button data-c="both_bad">Both bad <kbd>4</kbd></button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="skip">Skip <kbd>S</kbd></button>
+    </div>
+    <div id="reveal" aria-live="polite"></div>
+  </div>
+  <p class="dim">Each clip: 12 s of the first song, the transition, 12 s of the next song. X plays, then Y.</p>
+</main>
+<audio id="player" preload="auto"></audio>
+<script>
+const $ = (id) => document.getElementById(id);
+const player = $("player");
+let trial = null, plays = {x: 0, y: 0}, busy = false, started = false;
+
+function fmt(s) { const m = Math.round(s / 60); return m < 1 ? "under a minute" : `about ${m} min`; }
+
+async function load() {
+  const r = await fetch("/api/next");
+  trial = await r.json();
+  plays = {x: 0, y: 0};
+  if (trial.done) {
+    $("progress").textContent = `All done: ${trial.n} votes recorded. Thank you.`;
+    $("fill").style.width = "100%";
+    $("now").textContent = "Run: ab_harness.py report LIBRARY";
+    player.pause();
+    return;
+  }
+  $("progress").textContent = `Trial ${trial.n} of ${trial.total} · ${fmt(trial.eta_s)} left`;
+  $("fill").style.width = `${100 * (trial.n - 1) / trial.total}%`;
+  if (started) play("x", true);
+}
+
+function play(which, chain) {
+  if (!trial || trial.done) return;
+  if (!chain || plays[which] > 0) plays[which] += 1;  // count replays, not the first automatic play
+  player.src = trial[which];
+  player.play().catch(() => {});
+  $("px").classList.toggle("on", which === "x");
+  $("py").classList.toggle("on", which === "y");
+  $("now").textContent = `Playing ${which.toUpperCase()}…`;
+  player.onended = () => {
+    $("px").classList.remove("on"); $("py").classList.remove("on");
+    if (chain && which === "x") { play("y", true); return; }
+    $("now").textContent = "Vote, or replay X / Y.";
+  };
+}
+
+async function post(path, body) {
+  const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  return r.json();
+}
+
+async function vote(choice) {
+  if (!trial || trial.done || busy) return;
+  busy = true;
+  player.pause();
+  const ans = await post("/api/vote", {token: trial.token, choice, replays_x: plays.x, replays_y: plays.y});
+  const said = {x: "X", y: "Y", same: "no difference", both_bad: "both bad"}[choice];
+  $("reveal").textContent = `X was ${ans.x}, Y was ${ans.y}. You said: ${said}${ans.winner ? ` (${ans.winner})` : ""}.`;
+  setTimeout(async () => { $("reveal").textContent = ""; busy = false; await load(); }, 2200);
+}
+
+async function skip() {
+  if (!trial || trial.done || busy) return;
+  player.pause();
+  await post("/api/skip", {token: trial.token});
+  await load();
+}
+
+function start() { started = true; $("start").textContent = "Playing in order X → Y"; play("x", true); }
+
+$("start").onclick = start;
+$("px").onclick = () => play("x", false);
+$("py").onclick = () => play("y", false);
+$("skip").onclick = skip;
+document.querySelectorAll("[data-c]").forEach((b) => (b.onclick = () => vote(b.dataset.c)));
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  const map = {"1": "x", "2": "y", "3": "same", "4": "both_bad"};
+  if (map[k]) vote(map[k]);
+  else if (k === "x") play("x", false);
+  else if (k === "y") play("y", false);
+  else if (k === "s") skip();
+  else if (k === " ") { e.preventDefault(); if (!started) start(); else if (player.paused) player.play(); else player.pause(); }
+});
+load();
+</script>
+</body>
+</html>

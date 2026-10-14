@@ -1,0 +1,16 @@
+.git
+.venv
+.venv-stems
+library*
+test_library
+test_4
+*.wav
+*.flac
+*.mp3
+*.zip
+__pycache__
+algo_rhythm.egg-info
+.claude
+.agents
+.codex
+node_modules

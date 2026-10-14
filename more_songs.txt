@@ -1,0 +1,56 @@
+# One song per line: what you would type in the request box. Lines starting with # are ignored.
+# --- high / max energy dance (the most isolated group in the library) ---
+Chaiyya Chaiyya Dil Se
+Dhoom Machale Dhoom
+Swag Se Swagat Tiger Zinda Hai
+Jumme Ki Raat Kick
+Nagada Sang Dhol Ram Leela
+Dhating Naach Phata Poster Nikla Hero
+Saturday Saturday Humpty Sharma Ki Dulhania
+The Breakup Song Ae Dil Hai Mushkil
+Tune Maari Entriyaan Gunday
+Chikni Chameli Agneepath
+Sheila Ki Jawani Tees Maar Khan
+Munni Badnaam Hui Dabangg
+Cheez Badi Hai Mast Mast Machine
+Mauja Hi Mauja Jab We Met
+Ainvayi Ainvayi Band Baaja Baaraat
+Kamli Dhoom 3
+Mere Naam Tu Zero
+Mashallah Ek Tha Tiger
+Radha Student of the Year
+Ghagra Yeh Jawaani Hai Deewani
+Tumhi Ho Bandhu Cocktail
+Gandi Baat R Rajkumar
+Abhi Toh Party Shuru Hui Hai Khoobsurat
+Sau Aasmaan Baar Baar Dekho
+# --- medium energy, mid-tempo pop and upbeat romantic ---
+Gerua Dilwale
+Manwa Laage Happy New Year
+Ik Vaari Aa Raabta
+Ilahi Yeh Jawaani Hai Deewani
+Kheech Meri Photo Sanam Teri Kasam
+Banjaara Ek Villain
+Ae Dil Hai Mushkil title track
+Zehnaseeb Hasee Toh Phasee
+Nainowale Ne Padmaavat
+Ghoomar Padmaavat
+Naina Dangal
+Pani Da Rang Vicky Donor
+Hawa Hawa Mubarakan
+Dil Dhadakne Do title track
+Subha Subha Ae Dil Hai Mushkil
+Jab Tak Hai Jaan title track
+# --- low energy, calm and romantic ---
+Kabhi Jo Baadal Barse Jackpot
+Humnava Hamari Adhuri Kahani
+Phir Mohabbat Murder 2
+Tum Hi Aana Marjaavaan
+Khairiyat Chhichhore
+Kaun Tujhe M S Dhoni
+Channa Mereya Ae Dil Hai Mushkil
+Tera Yaar Hoon Main Sonu Ke Titu Ki Sweety
+Dil Ibaadat Tum Mile
+Pee Loon Once Upon A Time in Mumbaai
+Tujhe Bhula Diya Anjaana Anjaani
+Judaai Badlapur

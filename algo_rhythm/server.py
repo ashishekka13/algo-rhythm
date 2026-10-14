@@ -11,10 +11,8 @@ The host's actions carry its key (header X-Host-Key; ?key= on the WebSocket), re
 import argparse
 import json
 import logging
-import os
 import re
 import sys
-import threading
 from pathlib import Path
 
 import uvicorn
@@ -73,8 +71,6 @@ def create_app():
     @app.on_event("startup")
     def warm():
         library.get()  # the first request should not wait for the library
-        if os.environ.get("WARM_UP", "1" if os.environ.get("K_SERVICE") else "0") == "1":  # on Cloud Run by default
-            threading.Thread(target=party.warm_up, name="warm-up", daemon=True).start()
 
     page_html = (STATIC / "live.html").read_bytes()
 

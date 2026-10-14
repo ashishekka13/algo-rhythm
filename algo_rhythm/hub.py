@@ -115,7 +115,7 @@ async def serve(ws: WebSocket, code, host):
             if m.get("type") == "sync" and host:
                 try:
                     await run_in_threadpool(party.sync, code, m.get("playhead"), m.get("status"))
-                except (ValueError, party.NotFound) as e:
+                except (ValueError, party.NotFound, party.Conflict) as e:
                     await ws.send_text(json.dumps({"type": "error", "error": str(e)}))
             elif m.get("type") == "ping":
                 await ws.send_text('{"type":"pong"}')

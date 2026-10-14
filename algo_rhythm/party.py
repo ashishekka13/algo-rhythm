@@ -28,13 +28,14 @@ import time
 import uuid
 
 import numpy as np
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, recipe, repository, storage
 
 log = logging.getLogger("algo_rhythm.party")
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I: read off a big screen
 CODE_LEN = 6
+LOCK_WAIT_S = 20       # a request waits at most this long for the party's lock, then answers "busy, try again"
 RENDER_STALE_S = 120  # a join still "rendering" after this long was abandoned (the request died): render it again
 SWAP_MARGIN_S = 4      # a moved-up request must be ready this long before the join it replaces starts
 REACTION_SHOW_S = 6
@@ -179,12 +180,19 @@ _locks = collections.defaultdict(threading.Lock)  # one process: requests for th
 
 @contextlib.contextmanager
 def locked(code):
-    """(row, state) of the party, locked; the state is saved when the block ends without an error."""
-    with _locks[code]:
+    """(row, state) of the party, locked; the state is saved when the block ends without an error.
+    PostgreSQL: FOR NO KEY UPDATE, not FOR UPDATE. Rows that point at the party (plays, requests, votes) are written on
+    other connections while the lock is held, and FOR UPDATE would make those inserts wait for it: a deadlock with
+    ourselves. Never wait forever: LOCK_WAIT_S, then Conflict."""
+    lock = _locks[code]
+    if not lock.acquire(timeout=LOCK_WAIT_S):
+        raise Conflict("the party is busy; try again in a moment")
+    try:
         with repository.session() as s:
             q = select(db.Party).where(db.Party.code == code)
             if s.bind.dialect.name == "postgresql":
-                q = q.with_for_update()
+                s.execute(text(f"SET LOCAL lock_timeout = '{LOCK_WAIT_S}s'"))
+                q = q.with_for_update(key_share=True)  # FOR NO KEY UPDATE
             row = s.scalar(q)
             if row is None or row.state is None:
                 raise NotFound("no such party")
@@ -195,6 +203,8 @@ def locked(code):
             row.updated_at = db.now()
             row.level = st["level"]
             s.commit()
+    finally:
+        lock.release()
 
 
 def read(code):

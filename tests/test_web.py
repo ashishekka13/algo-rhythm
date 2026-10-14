@@ -15,7 +15,8 @@ from pathlib import Path
 def main(library="test_library"):
     library = Path(library).resolve()
     tmp = Path(tempfile.mkdtemp())
-    os.environ["DATABASE_URL"] = f"sqlite:///{tmp / 'algo_rhythm.db'}"  # before config.settings() is first read
+    # before config.settings() is first read; TEST_DATABASE_URL: an empty PostgreSQL database instead (row locks!)
+    os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{tmp / 'algo_rhythm.db'}"
     os.environ["LIBRARY_DIR"] = str(library)
     os.environ.pop("STORAGE_URL", None)
     os.environ["MC_TTS"] = "none"  # no voice in tests: the MC stays silent

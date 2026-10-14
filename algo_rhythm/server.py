@@ -18,6 +18,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
+from starlette.concurrency import run_in_threadpool
 
 from algo_rhythm import config, hub, library, live, live_plan, party, repository, storage
 
@@ -96,16 +97,20 @@ def create_app():
         if not CODE.fullmatch(code):
             raise party.NotFound("no such party")
 
-    def host_of(request, code):
+    async def host_of(request, code):
         check(code)
-        if not party.is_host(code, request.headers.get("x-host-key")):
+        if not await run_in_threadpool(party.is_host, code, request.headers.get("x-host-key")):
             raise PermissionError("only the host can do that")
 
-    def answer(code, fn, host=False):
-        """Run fn, tell every screen, and return the view (the host's, with its player's part, to the host)."""
-        fn()
+    async def answer(code, fn, host=False):
+        """Run fn, tell every screen, and return the view (the host's, with its player's part, to the host). Both off
+        the event loop: they wait on the database, and a wait there must never stall the other screens' sockets."""
+        await run_in_threadpool(fn)
         hub.publish(code)
-        return JSONResponse(party.view(code, host=host), headers={"Cache-Control": "no-store"})
+        return JSONResponse(await run_in_threadpool(party.view, code, host), headers={"Cache-Control": "no-store"})
+
+    async def is_host(request, code):
+        return await run_in_threadpool(party.is_host, code, request.headers.get("x-host-key"))
 
     @app.exception_handler(ValueError)
     async def bad_input(request, e):
@@ -203,7 +208,7 @@ def create_app():
     @app.post("/api/parties")
     async def create_party(request: Request):
         data = await body(request)
-        code, key = party.create(data.get("level", "medium"))
+        code, key = await run_in_threadpool(party.create, data.get("level", "medium"))
         log.info("party %s created", code)
         return {"code": code, "host_key": key, "host": f"/p/{code}/host", "guest": f"/p/{code}", "screen": f"/p/{code}/screen"}
 
@@ -216,79 +221,77 @@ def create_app():
     @app.post("/api/p/{code}/sync")
     async def sync(code: str, request: Request):
         """The host's player says where the music is (the WebSocket does the same without a request)."""
-        host_of(request, code)
+        await host_of(request, code)
         data = await body(request)
-        party.sync(code, data.get("playhead"), data.get("status"))
-        return JSONResponse(party.view(code, host=True), headers={"Cache-Control": "no-store"})
+        await run_in_threadpool(party.sync, code, data.get("playhead"), data.get("status"))
+        return JSONResponse(await run_in_threadpool(party.view, code, True), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/p/{code}/advance")
     async def advance(code: str, request: Request):
         """Make the next join ready (seconds of work). swap: true = put a fitting request in place of the next song."""
-        host_of(request, code)
+        await host_of(request, code)
         data = await body(request)
-        from starlette.concurrency import run_in_threadpool
         done = await run_in_threadpool(party.advance, code, data.get("swap") is True)
         hub.publish(code)
-        return JSONResponse({**party.view(code, host=True), "advance": done}, headers={"Cache-Control": "no-store"})
+        view = await run_in_threadpool(party.view, code, True)
+        return JSONResponse({**view, "advance": done}, headers={"Cache-Control": "no-store"})
 
     @app.post("/api/p/{code}/transport")
     async def transport(code: str, request: Request):
-        host_of(request, code)
+        await host_of(request, code)
         data = await body(request)
-        from starlette.concurrency import run_in_threadpool
         await run_in_threadpool(party.transport, code, data["action"])
         hub.publish(code)
-        return JSONResponse(party.view(code, host=True), headers={"Cache-Control": "no-store"})
+        return JSONResponse(await run_in_threadpool(party.view, code, True), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/p/{code}/vibe")
     async def vibe(code: str, request: Request):
-        host_of(request, code)
+        await host_of(request, code)
         data = await body(request)
         if "vibe" in data:
-            return answer(code, lambda: party.act(code, lambda s, st: s.set_vibe(data["vibe"])), host=True)
-        return answer(code, lambda: party.act(code, lambda s, st: s.set_level(data["level"])), host=True)
+            return await answer(code, lambda: party.act(code, lambda s, st: s.set_vibe(data["vibe"])), host=True)
+        return await answer(code, lambda: party.act(code, lambda s, st: s.set_level(data["level"])), host=True)
 
     @app.post("/api/p/{code}/mood")
     async def mood(code: str, request: Request):
-        host_of(request, code)
+        await host_of(request, code)
         data = await body(request)
-        return answer(code, lambda: party.act(code, lambda s, st: s.set_mood(data["mood"])), host=True)
+        return await answer(code, lambda: party.act(code, lambda s, st: s.set_mood(data["mood"])), host=True)
 
     @app.post("/api/p/{code}/visuals")
     async def visuals(code: str, request: Request):
-        host_of(request, code)
+        await host_of(request, code)
         data = await body(request)
-        return answer(code, lambda: party.set_visuals(code, data.get("world"), data.get("kaleido")), host=True)
+        return await answer(code, lambda: party.set_visuals(code, data.get("world"), data.get("kaleido")), host=True)
 
     @app.post("/api/p/{code}/request")
     async def request_song(code: str, request: Request):
         check(code)
         data = await body(request)
-        host = party.is_host(code, request.headers.get("x-host-key"))
-        return answer(code, lambda: party.request(code, data["file"], data.get("name")), host=host)
+        host = await is_host(request, code)
+        return await answer(code, lambda: party.request(code, data["file"], data.get("name")), host=host)
 
     @app.post("/api/p/{code}/feedback")
     async def feedback(code: str, request: Request):
         check(code)
         data = await body(request)
-        host = party.is_host(code, request.headers.get("x-host-key"))
-        return answer(code, lambda: party.vote(code, data.get("guest"), data.get("target"), data.get("value"), host), host=host)
+        host = await is_host(request, code)
+        return await answer(code, lambda: party.vote(code, data.get("guest"), data.get("target"), data.get("value"), host), host=host)
 
     @app.post("/api/p/{code}/react")
     async def react(code: str, request: Request):
         check(code)
         data = await body(request)
-        return answer(code, lambda: party.react(code, data.get("guest"), data.get("emoji")))
+        return await answer(code, lambda: party.react(code, data.get("guest"), data.get("emoji")))
 
     @app.post("/api/p/{code}/talk")
     async def talk(code: str, request: Request):
         check(code)
         data = await body(request)
-        host = party.is_host(code, request.headers.get("x-host-key"))
-        from starlette.concurrency import run_in_threadpool
+        host = await is_host(request, code)
         said = await run_in_threadpool(party.talk, code, data.get("text"), not host)
         hub.publish(code)
-        return {**party.view(code, host=host), "talk": said}
+        return {**await run_in_threadpool(party.view, code, host), "talk": said}
 
     @app.websocket("/ws/p/{code}")
     async def ws(websocket: WebSocket, code: str):
@@ -296,7 +299,6 @@ def create_app():
             await websocket.close(code=4404)
             return
         key = websocket.query_params.get("key")
-        from starlette.concurrency import run_in_threadpool
         host = bool(key) and await run_in_threadpool(party.is_host, code, key)
         await hub.serve(websocket, code, host)
 

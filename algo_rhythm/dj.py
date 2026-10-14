@@ -683,9 +683,13 @@ def load_excerpt(library, song, window):
     return seg, beats
 
 
-def load_excerpt_vocals(library, song, window):
+FADE_IN_S = 0.01  # every excerpt fades in over this long, so a cut into the middle of a song never clicks
+
+
+def load_excerpt_vocals(library, song, window, info=None):
     """(excerpt, beat times, vocals or None). The vocals are the same stretch of the song's Demucs vocals track,
-    scaled exactly like the excerpt, so (excerpt - vocals) is the instrumental. None if the song has no stem yet."""
+    scaled exactly like the excerpt, so (excerpt - vocals) is the instrumental. None if the song has no stem yet.
+    info: a dict that gets "gain" (the loudness gain applied to both) and "stem" (whether vocals were found)."""
     audio, sr = sf.read(storage.local_path(song["file"], library), always_2d=True, dtype="float64")
     if audio.shape[1] == 1:
         audio = np.repeat(audio, 2, axis=1)
@@ -698,7 +702,9 @@ def load_excerpt_vocals(library, song, window):
     lufs = pyln.Meter(OUT_SR).integrated_loudness(seg)
     gain = min(10 ** ((TARGET_LUFS - lufs) / 20), 1.0 / (np.abs(seg).max() + 1e-9))  # never push a peak past full scale
     seg *= gain
-    ramp = int(0.01 * OUT_SR)
+    if info is not None:
+        info.update(gain=float(gain), lo=lo, n=len(seg))  # excerpt sample 0 is song sample lo
+    ramp = int(FADE_IN_S * OUT_SR)
     seg[:ramp] *= np.linspace(0, 1, ramp)[:, None]
 
     from algo_rhythm import media
@@ -717,6 +723,8 @@ def load_excerpt_vocals(library, song, window):
     except (OSError, ValueError, KeyError):
         voc = None  # a missing or stale stem just means no vocal swap for this song
 
+    if info is not None:
+        info["stem"] = voc is not None
     b = song["beats"]
     beats = b[window["start_beat"] : window["end_beat"]] - start
     return seg, np.append(beats, len(seg) / OUT_SR), voc

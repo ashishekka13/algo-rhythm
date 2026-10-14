@@ -335,21 +335,37 @@ def find_gap(segs, need_s, start_s=0.0, end_s=SEARCH_S):
     return None
 
 
-def mix(music, segs, voice, sr, start_s=0.0, end_s=SEARCH_S):
-    """Put `voice` over the first instrumental stretch of `music` (sung segments `segs`, in seconds of `music`),
-    with the music ducked DUCK_DB under it. Returns (new music, voice start in seconds) or (music, None)."""
+def placement(music, segs, voice, sr, start_s=0.0, end_s=SEARCH_S):
+    """Where `voice` goes over `music` and how loud: (voice start in seconds, voice gain), or None when there is no
+    instrumental stretch for it. The music is ducked DUCK_DB under it, ramping over RAMP_S either side (duck())."""
     end_s = min(end_s, len(music) / sr)
     at = find_gap(segs, len(voice) / sr, start_s, end_s)
     if at is None:
+        return None
+    rms = lambda x: np.sqrt(np.mean(np.square(x))) + 1e-9
+    ref = rms(music[:int(end_s * sr)])  # the music's usual level here, not just the (maybe quiet) gap
+    gain = ref * 10 ** (VOICE_OVER_DB / 20) / rms(voice)
+    gain *= min(1.0, 0.9 / (np.abs(voice * gain).max() + 1e-9))
+    return at, float(gain)
+
+
+def duck_points(at, voice_s):
+    """The music's gain around a voice at `at` lasting voice_s: [[seconds, gain], ...], linear between the points."""
+    low = 10 ** (-DUCK_DB / 20)
+    return [[at - RAMP_S, 1.0], [at, low], [at + voice_s, low], [at + voice_s + RAMP_S, 1.0]]
+
+
+def mix(music, segs, voice, sr, start_s=0.0, end_s=SEARCH_S):
+    """Put `voice` over the first instrumental stretch of `music` (sung segments `segs`, in seconds of `music`),
+    with the music ducked DUCK_DB under it. Returns (new music, voice start in seconds) or (music, None)."""
+    got = placement(music, segs, voice, sr, start_s, end_s)
+    if got is None:
         return music, None
+    at, gain = got
     i, n, r = int(at * sr), len(voice), int(RAMP_S * sr)
     t = np.arange(len(music))
     depth = 1 - 10 ** (-DUCK_DB / 20)
     g = 1 - depth * np.clip(np.minimum((t - (i - r)) / r, (i + n + r - t) / r), 0, 1)
-    rms = lambda x: np.sqrt(np.mean(np.square(x))) + 1e-9
-    ref = rms(music[:int(end_s * sr)])  # the music's usual level here, not just the (maybe quiet) gap
-    v = voice * (ref * 10 ** (VOICE_OVER_DB / 20) / rms(voice))
-    v *= min(1.0, 0.9 / (np.abs(v).max() + 1e-9))
     out = music * g[:, None]
-    out[i:i + n] += v
+    out[i:i + n] += voice[:len(out) - i] * gain
     return out, at

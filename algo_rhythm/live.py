@@ -422,8 +422,8 @@ class Session:
 
 # ---------------------------------------------------------------- engine
 
-def gain_curve(tail, head, sr, win_s, ramp_s, limit_db, hold_s=0):
-    """DJ gain staging: (n, gain) to start the incoming excerpt at the outgoing one's level and ease back, or None."""
+def gain_curve_params(tail, head, sr, win_s, ramp_s, limit_db, hold_s=0):
+    """DJ gain staging: (n, d_db, n_hold, n_ramp) to start the incoming excerpt d_db off and ease back, or None."""
     db = lambda x: 20 * np.log10(np.sqrt(np.mean(x.mean(axis=1) ** 2)) + 1e-9)
     w = int(win_s * sr)
     d = float(np.clip(db(tail[-w:]) - db(head[:w]), -limit_db, limit_db))
@@ -434,13 +434,27 @@ def gain_curve(tail, head, sr, win_s, ramp_s, limit_db, hold_s=0):
         d = min(d, 20 * np.log10(1.5 / peak))  # the soft limiter absorbs peaks up to ~1.5; lift no further than that
     if abs(d) < 1:
         return None
+    return n, d, n_hold, n_ramp
+
+
+def stage_gain(n, d, n_hold, n_ramp):
+    """The gain of gain_curve_params' answer, sample by sample: d_db held for n_hold, then eased to 0 dB over n_ramp."""
     curve = np.concatenate([np.ones(n_hold), 1 - np.linspace(0, 1, n_ramp)])[:n]  # hold at full lift, then ease out
-    return n, 10 ** (d * curve / 20)
+    return 10 ** (d * curve / 20)
 
 
-def trim_quiet_head(tail, head, beats, sr, drop_db=10, max_beats=16, extras=()):
+def gain_curve(tail, head, sr, win_s, ramp_s, limit_db, hold_s=0):
+    """DJ gain staging: (n, gain) to start the incoming excerpt at the outgoing one's level and ease back, or None."""
+    p = gain_curve_params(tail, head, sr, win_s, ramp_s, limit_db, hold_s)
+    return None if p is None else (p[0], stage_gain(*p))
+
+
+def trim_quiet_head(tail, head, beats, sr, drop_db=10, max_beats=16, extras=(), plan=None):
     """Start the incoming excerpt on the first beat that is not far quieter than where the outgoing one ends.
-    `extras` (e.g. its vocals) are cut identically so they stay in step. Returns (head, beats, extras)."""
+    `extras` (e.g. its vocals) are cut identically so they stay in step. Returns (head, beats, extras).
+    plan: a dict that gets "trim": [beats dropped, samples dropped] (the web player replays the same cut)."""
+    if plan is not None:
+        plan["trim"] = [0, 0]
     db = lambda x: 20 * np.log10(np.sqrt(np.mean(x.mean(axis=1) ** 2)) + 1e-9)
     ref = db(tail[-3 * sr:])
     for k in range(min(max_beats, len(beats) - 2)):
@@ -454,16 +468,23 @@ def trim_quiet_head(tail, head, beats, sr, drop_db=10, max_beats=16, extras=()):
     trimmed = head[off:]
     new = beats[k:] - off / sr
     new[-1] = len(trimmed) / sr  # the stretcher needs the last beat to sit exactly on the last sample
+    if plan is not None:
+        plan["trim"] = [int(k), off]
     return trimmed, new, tuple(x[off:] for x in extras)
 
 
-def stage_both(tail, head, sr, extras=()):
+def stage_both(tail, head, sr, extras=(), plan=None):
     """Slow match over the first 20 s (+-4 dB), then hold a quiet opening at the outgoing level for 3 s (up to +10 dB).
-    The same gain is applied to `extras`. Returns (head, extras)."""
+    The same gain is applied to `extras`. Returns (head, extras).
+    plan: a dict that gets "stage": the gain_curve_params of each pass that changed something, in order."""
+    if plan is not None:
+        plan["stage"] = []
     for win_s, ramp_s, limit_db, hold_s in ((8, 20, 4, 0), (3, 4, 10, 3)):
-        c = gain_curve(tail, head, sr, win_s, ramp_s, limit_db, hold_s)
-        if c is not None:
-            n, g = c
+        p = gain_curve_params(tail, head, sr, win_s, ramp_s, limit_db, hold_s)
+        if p is not None:
+            if plan is not None:
+                plan["stage"].append([int(p[0]), float(p[1]), int(p[2]), int(p[3])])
+            n, g = p[0], stage_gain(*p)
             head = head.copy()
             head[:n] *= g[:, None]
             extras = tuple(x.copy() for x in extras)
@@ -472,9 +493,10 @@ def stage_both(tail, head, sr, extras=()):
     return head, extras
 
 
-def level_swap(before, overlap, nxt, nxt_skip, sr, max_lift_db=4):
+def level_swap(before, overlap, nxt, nxt_skip, sr, max_lift_db=4, plan=None):
     """Taking the voices out of the middle of a blend lowers the level (the voice is the loudest part). Lift the
-    overlap back toward the level of the music either side, smoothly and never by more than max_lift_db."""
+    overlap back toward the level of the music either side, smoothly and never by more than max_lift_db.
+    plan: a dict that gets "lift": [[seconds into the overlap, dB], ...], linear in dB between the points."""
     db = lambda x: 20 * np.log10(np.sqrt(np.mean(x ** 2)) + 1e-9)
     mono = lambda x: x.mean(axis=1)
     target = (db(mono(before[-6 * sr:])) + db(mono(nxt[nxt_skip:nxt_skip + 6 * sr]))) / 2
@@ -482,7 +504,10 @@ def level_swap(before, overlap, nxt, nxt_skip, sr, max_lift_db=4):
     env = np.array([db(mono(overlap[i:i + w])) for i in range(0, len(overlap), w)])
     lift = np.clip(target - env, 0, max_lift_db)
     lift = np.convolve(np.pad(lift, 2, mode="edge"), np.ones(5) / 5, mode="valid")  # ~2.5 s smoothing: no pumping
-    curve = np.interp(np.arange(len(overlap)), (np.arange(len(env)) + 0.5) * w, lift)
+    centres = (np.arange(len(env)) + 0.5) * w
+    curve = np.interp(np.arange(len(overlap)), centres, lift)
+    if plan is not None:
+        plan["lift"] = [[round(float(c / sr), 4), round(float(v), 3)] for c, v in zip(centres, lift)]
     return overlap * (10 ** (curve / 20))[:, None]
 
 
@@ -552,7 +577,10 @@ def echo_exit(seg, seg_voc, beats, sr, look_beats=ECHO_LOOK_BEATS):
     return int(round(t * sr)), {"vocal_out_at_s": round(t - end, 2), "out_midline": True}
 
 
-def echo_entry(nxt, nxt_voc, nxt_beats, sr, fade_s=0.04):
+ENTRY_FADE_S = 0.04  # the held-back incoming singer comes in over this long
+
+
+def echo_entry(nxt, nxt_voc, nxt_beats, sr, fade_s=ENTRY_FADE_S):
     """The incoming song starts on its first beat (that beat lands on the cut). If it would start mid-line, hold its
     voice back until its next line starts (the music plays, the singer comes in on a line). A hold over
     ECHO_HOLD_MAX_BEATS sounds stretched: start the song later instead, on a bar line about ECHO_LEAD_BEATS before
@@ -580,7 +608,7 @@ def echo_entry(nxt, nxt_voc, nxt_beats, sr, fade_s=0.04):
     nxt_beats[-1] = len(nxt) / sr  # the stretcher needs the last beat to sit exactly on the last sample
     hold = t_in - off / sr
     info = {"vocal_in_at_s": None if nxt_voc is None else round(max(0.0, hold), 2), "in_midline": midline,
-            "in_skip_s": round(off / sr, 2)}
+            "in_skip_s": round(off / sr, 2), "_entry": [int(k), off, None if nxt_voc is None or hold <= 0 else float(hold)]}
     if nxt_voc is None:
         return nxt, nxt_voc, nxt_beats, info
     nxt_voc = nxt_voc[off:]
@@ -590,7 +618,7 @@ def echo_entry(nxt, nxt_voc, nxt_beats, sr, fade_s=0.04):
     return nxt - nxt_voc * (1 - g), nxt_voc * g, nxt_beats, info
 
 
-def echo_out(seg, beats, nxt, nxt_beats, before, sr, seg_voc=None, nxt_voc=None):
+def echo_out(seg, beats, nxt, nxt_beats, before, sr, seg_voc=None, nxt_voc=None, plan=None):
     """Echo-out that checks itself and keeps the lyrics whole: the outgoing song stops on a beat where its singer is
     between lines, the echo repeats only its music (no word is repeated) on the incoming song's beat grid, the
     incoming singer comes in on a line start; then try three echo strengths and keep the first with neither a hole
@@ -616,12 +644,16 @@ def echo_out(seg, beats, nxt, nxt_beats, before, sr, seg_voc=None, nxt_voc=None)
         cost = max(dip / (0.75 * dj.QA_MAX_DIP_DB), jump / (0.85 * dj.QA_LOUDNESS_JUMP_DB),  # margin: the final check
                    pile / (0.85 * dj.QA_BASS_PILEUP_DB))                                 # measures slightly differently
         if best is None or cost < best[0]:
-            best = (cost, overlap, n)
+            best = (cost, overlap, n, feedback, repeats)
         if cost <= 1:
             break
     cost = best[0] + (1.0 if out_info["out_midline"] or in_info["in_midline"] else 0.0)  # a mid-line cut is worse than a small bump
     wait = (in_info["vocal_in_at_s"] or 0) + in_info["in_skip_s"]  # singer held back, or that much of the part skipped
     cost += 0.5 if wait > ECHO_MAX_HOLD_S else 0.0  # a long wait for the singer: try another part
+    entry = in_info.pop("_entry")
+    if plan is not None:
+        plan.update(kind="echo", cut=int(cut), entry=entry, rep_s=float(rep), src_period_s=period, feedback=best[3],
+                    repeats=best[4], n=int(best[2]), music_only=seg_voc is not None)
     return a, best[1], best[2], {"type": "echo-out", **out_info, **in_info}, cost, nxt, nxt_voc, nxt_beats
 
 
@@ -731,99 +763,25 @@ class Engine(threading.Thread):
             scored.append((t["join"] + t["clean"] + 0.5 * t["hook"] + t["exit"] + t["entry"] + t["best"], -w["start_beat"], w))
         return [w for _, _, w in sorted(scored, key=lambda x: (x[0], x[1]), reverse=True)[:limit]]
 
-    def _render_join(self, entry, seg, beats, skip, seg_voc, nxt_entry):
-        """Render the transition into nxt_entry, measuring it. If the blend has a hole, a bump or two voices,
-        audition other parts of the song; only if none works, fall back to an echo-out."""
-        sess, lib, sr = self.sess, self.library, dj.OUT_SR
-        songs = sess.songs
-        original = nxt_entry["window"]
-        name = songs[nxt_entry["song"]]["name"]
-
-        def load(w):
-            nxt, nxt_beats, voc = dj.load_excerpt_vocals(lib, songs[nxt_entry["song"]], w)
-            extras = (voc,) if voc is not None else ()
-            nxt, nxt_beats, extras = trim_quiet_head(seg, nxt, nxt_beats, sr, extras=extras)
-            nxt, extras = stage_both(seg, nxt, sr, extras=extras)
-            return nxt, nxt_beats, (extras[0] if extras else None)
-
-        nxt, nxt_beats, nxt_voc = load(original)
-        kind = nxt_entry["transition_in"]
-        if kind == "blend":
-            step_a, _ = transition.beat_steps(beats, nxt_beats)
-            if beats[-(transition.OVERLAP_BEATS * step_a + 1)] * sr < skip:
-                kind = nxt_entry["transition_in"] = "echo"  # excerpt too short to hold a blend
-        if kind == "blend":
-            why = ""
-            tries = [original] + self._alternatives(entry, nxt_entry, limit=3)
-            limit = len(tries) - 1  # the last try is taken even if a line is cut, rather than an echo-out
-            for n, w in enumerate(tries):
-                if n:
-                    nxt_entry["window"] = w
-                    nxt, nxt_beats, nxt_voc = load(w)
-                before, overlap, nxt_skip, info = transition.transition(seg, beats, nxt, nxt_beats, sr, "blend",
-                                                                        seg_voc, nxt_voc)
-                if info.get("vocal_swap"):
-                    overlap = level_swap(before[skip:], overlap, nxt, nxt_skip, sr)
-                clash = min(entry["window"]["out_vocal"], w["in_vocal"])
-                if clash > dj.QA_MAX_VOCAL_CLASH and not info.get("vocal_swap"):  # with the swap, voices cannot overlap
-                    why = "two voices would overlap"
-                elif dj.GRID_SLIP_GUARD and info.get("grid_slip_ms", 0) > dj.GRID_MAX_SLIP_MS:
-                    why = "one song's beats slipped off the grid"
-                elif info.get("in_midline") and n < limit:
-                    why = "the next song's singer would come in mid-line"
-                elif not blend_is_clean(before[skip:], overlap, nxt, nxt_skip, info, sr):
-                    why = "the blend did not line up"
-                elif dip_db(before[skip:], overlap, nxt, nxt_skip, sr) > max(0.75 * dj.QA_MAX_DIP_DB,
-                                                                             own_dip_db(before[skip:], sr) + OWN_DIP_MARGIN_DB):
-                    why = "the blend had a hole in it"
-                else:
-                    if n:
-                        sess._say(f"into '{name}': used a different part of the song for a smoother mix")
-                    return nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info
-            nxt_entry["window"] = original  # nothing worked: echo out into the planned part
-            nxt, nxt_beats, nxt_voc = load(original)
-            kind = nxt_entry["transition_in"] = "echo"
-            sess._say(f"into '{name}': {why} (tried other parts too), used an echo-out")
-        # An echo-out is a hard cut, so it matters even more where the incoming song starts: audition parts too.
-        cands = [nxt_entry["window"]] + self._alternatives(entry, nxt_entry, limit=3)
-        best = None
-        for w in cands:
-            nxt_entry["window"] = w
-            nxt, nxt_beats, nxt_voc = load(w)
-            before, overlap, nxt_skip, info, cost, nxt, nxt_voc, nxt_beats = echo_out(seg, beats, nxt, nxt_beats,
-                                                                                     before_tail(seg, skip), sr, seg_voc, nxt_voc)
-            if best is None or cost < best[0]:
-                best = (cost, w, nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info)
-            if cost <= 1:
-                break
-        _, w, nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info = best
-        nxt_entry["window"] = w
-        if w is not cands[0]:
-            sess._say(f"into '{name}': used a different part of the song for a cleaner cut")
-        if info["in_skip_s"]:  # the song starts later than its window: keep the page's length and the plays log true
-            nxt_entry["window"] = {**w, "start_s": w["start_s"] + info["in_skip_s"]}
-        if filler.ENABLED:  # FILLER=1: a drum fill bridges the cut; the incoming song lands on its last downbeat
-            f_overlap, f_skip = filler.over_echo(before, overlap, nxt, nxt_skip, beats=beats, nxt_beats=nxt_beats, sr=sr)
-            # echo_out chose its echo strength without the fill: keep the fill only if the join passes the final QA
-            # loudness check (same windows: 8 s before, the first 4 beats, the 8 s from there) and has no hole
-            x = np.concatenate([before[-8 * sr:], f_overlap, nxt[f_skip:f_skip + 10 * sr]])
-            t0, t1 = min(8 * sr, len(before)), min(8 * sr, len(before)) + int(4 * 60 / songs[nxt_entry["song"]]["tempo"]["bpm"] * sr)
-            db = lambda v: 20 * np.log10(np.sqrt(np.mean(v.mean(axis=1) ** 2)) + 1e-9)
-            jump = min(db(x[t0:t1]) - db(x[:t0]), db(x[t0:t1]) - db(x[t1:t1 + 8 * sr]), key=abs)
-            if abs(jump) <= 0.85 * dj.QA_LOUDNESS_JUMP_DB and dip_db(before, f_overlap, nxt, f_skip, sr) <= 0.75 * dj.QA_MAX_DIP_DB:
-                overlap, nxt_skip, info = f_overlap, f_skip, {**info, "filler": filler.STYLE}
-        return nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info
+    def _render_join(self, entry, a, skip, nxt_entry):
+        """Render the transition into nxt_entry (joins.render_join, the same code the web server runs).
+        Returns (nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info, nxt_excerpt)."""
+        from algo_rhythm import joins
+        j = joins.render_join(self.library, self.sess.songs, entry, a, skip, nxt_entry,
+                              alternatives=lambda limit: self._alternatives(entry, nxt_entry, limit), say=self.sess._say)
+        return j.nxt.audio, j.nxt.beats, j.nxt.voc, j.before, j.overlap, j.nxt_skip, j.info, j.nxt
 
     def _loop(self):
+        from algo_rhythm import joins
         sess, lib, sr = self.sess, self.library, dj.OUT_SR
         songs = sess.songs
         entry = sess.start(self.start_name)
         sess.played_hook(entry, None)
-        seg, beats, seg_voc = dj.load_excerpt_vocals(lib, songs[entry["song"]], entry["window"])
+        a = joins.load(lib, songs[entry["song"]], entry["window"])
         skip = 0
         while True:
             nxt_entry = sess.commit_next(self.sink.written / sr)   # locks the next song, then renders into it
-            r = self._render_join(entry, seg, beats, skip, seg_voc, nxt_entry)
+            r = self._render_join(entry, a, skip, nxt_entry)
             pos, job = skip, None
             while pos < len(r[3]):  # play the song on air; a request may still take the next slot meanwhile
                 if self.skip.is_set():  # jump to just before the transition, to hear it without the whole song
@@ -834,7 +792,7 @@ class Engine(threading.Thread):
                 pos += sr // 2
                 if sess.mc:
                     sess.mc.warm(sess.level)  # background: the voice is ready before the join needs it
-                job = self._early(job, entry, seg, beats, skip, seg_voc, (len(r[3]) - pos) / sr)
+                job = self._early(job, entry, a, skip, (len(r[3]) - pos) / sr)
                 if job and "result" in job:
                     new = job["result"]
                     if isinstance(new, tuple) and len(new[3]) - pos >= sr and pos <= len(new[3]) \
@@ -842,8 +800,9 @@ class Engine(threading.Thread):
                             and sess.swap_next(job["entry"], nxt_entry):
                         nxt_entry, r = job["entry"], new
                     job = None
-            nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info = r
+            nxt, nxt_beats, nxt_voc, before, overlap, nxt_skip, info, nxt_ex = r
             overlap, nxt = self._mc(overlap, nxt, nxt_skip, nxt_voc, info)
+            nxt_ex.audio = nxt  # with the MC's line in it, as heard
             with sess.lock:  # the next song becomes audible where its overlap starts
                 sess.timeline[-1]["start_s"] = self.sink.written / sr
                 sess.timeline[-1]["overlap_s"] = len(overlap) / sr
@@ -851,7 +810,7 @@ class Engine(threading.Thread):
             sess.played_hook(nxt_entry, info)
             self._clip(nxt_entry["position"], before, skip, overlap, nxt, nxt_skip)
             self._write(overlap)
-            entry, seg, beats, skip, seg_voc = nxt_entry, nxt, nxt_beats, nxt_skip, nxt_voc
+            entry, a, skip = nxt_entry, nxt_ex, nxt_skip
 
     def _mc(self, overlap, nxt, nxt_skip, nxt_voc, info):
         """AI MC: when a line is due and its voice is ready, put it over an instrumental stretch near this join (the
@@ -888,7 +847,7 @@ class Engine(threading.Thread):
         sess._say(f"MC: {got[0]}")
         return mixed[:n_ov], nxt
 
-    def _early(self, job, entry, seg, beats, skip, seg_voc, left_s):
+    def _early(self, job, entry, a, skip, left_s):
         """Render a moved-up request in the background while the song on air keeps playing."""
         sess = self.sess
         if job is None:
@@ -900,7 +859,7 @@ class Engine(threading.Thread):
 
             def work():
                 try:
-                    job["result"] = self._render_join(entry, seg, beats, skip, seg_voc, new)
+                    job["result"] = self._render_join(entry, a, skip, new)
                 except Exception as e:  # keep the planned song
                     job["result"] = e
             job["thread"] = threading.Thread(target=work, daemon=True)

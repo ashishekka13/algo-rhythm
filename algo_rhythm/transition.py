@@ -195,7 +195,10 @@ def line_starts(segs, gap_s=LINE_GAP_S):
     return [a for k, (a, _) in enumerate(segs) if k == 0 or a - segs[k - 1][1] >= gap_s]
 
 
-def line_swap_gains(av, bv, sr, fade_s=0.04, ref_a=None, ref_b=None):
+GATE_FADE_S = 0.04  # a voice is cut or let in over this long
+
+
+def line_swap_gains(av, bv, sr, fade_s=GATE_FADE_S, ref_a=None, ref_b=None):
     """Vocal swap timed to the words, the way a DJ rides the vocal: the outgoing voice is cut where a line has ended
     and none starts within CUT_GUARD_S (never mid-word, never into the breath before a line), and the incoming voice
     is let in at full level just before one of its lines starts, so no lyric is faded in or out.
@@ -219,9 +222,11 @@ def line_swap_gains(av, bv, sr, fade_s=0.04, ref_a=None, ref_b=None):
     t = np.arange(len(av)) / sr
     ramp = lambda at: np.clip((t - at) / fade_s, 0, 1)
     g_out = 1 - ramp(t_out)
-    g_in = ramp(t_in) if t_in is not None else (ramp(dur) if not in_midline else ramp(t_out))
+    t_gate_in = t_in if t_in is not None else (dur if not in_midline else t_out)
+    g_in = ramp(t_gate_in)
     return g_out, g_in, {"vocal_out_at_s": round(t_out, 2), "vocal_in_at_s": round(t_in, 2) if t_in is not None else None,
-                         "out_midline": out_midline, "in_midline": bool(in_midline)}
+                         "out_midline": out_midline, "in_midline": bool(in_midline),
+                         "vocal_out_at_s_exact": float(t_out), "vocal_in_at_s_exact": float(t_gate_in)}
 
 
 def vocal_overlap_s(av, bv, g_out, g_in, sr, floor_db=-32, follow=True):
@@ -235,10 +240,14 @@ def vocal_overlap_s(av, bv, g_out, g_in, sr, floor_db=-32, follow=True):
     return 0.5 * sum(db(out[k:k + w]) > floor_db and db(inc[k:k + w]) > floor_db for k in range(0, len(av) - w, w))
 
 
-def blend_swap(a, b, av, bv, slots, sr, g_out=None, g_in=None):
+def blend_swap(a, b, av, bv, slots, sr, g_out=None, g_in=None, instrumentals=False):
     """The blend, with the vocal swap. a, b are full mixes and av, bv their vocals; instrumental = mix - vocals.
     The instrumentals crossfade as usual; the voices do not follow the crossfade: each is at full level until it is
-    cut (outgoing) or from the moment it comes in (incoming), so words are never faded."""
+    cut (outgoing) or from the moment it comes in (incoming), so words are never faded.
+    instrumentals=True: a and b are already the instrumentals. Use it when they were time-stretched: a stretched mix
+    minus a separately stretched stem is not an instrumental (measured: the leftover was louder than the voice)."""
+    if instrumentals:
+        a, b = a + av, b + bv
     t = np.linspace(0, 1, len(a))[:, None]
     swap_end = slots[BASS_SWAP_BEATS]
     if g_out is None:
@@ -288,7 +297,7 @@ def beat_steps(a_beats, b_beats):
     return 1, 1
 
 
-def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None, overlap_beats=OVERLAP_BEATS):
+def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None, overlap_beats=OVERLAP_BEATS, plan=None):
     """Join excerpt `a` into excerpt `b` with a "blend" (the plan) or an "echo" out.
 
     `a_beats` / `b_beats` are beat boundaries in seconds from each excerpt's
@@ -299,6 +308,10 @@ def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None,
 
     Returns (a_before, overlap, b_skip_samples, info): play `a_before`, then
     `overlap`, then `b` from `b_skip_samples` onward.
+
+    plan: a dict that gets what the web player needs to make the same blend itself (algo_rhythm.recipe): where the
+    overlap starts in `a` (a0, samples), the beat maps (a: tail seconds of `a`, b: head seconds of `b`, both onto
+    slots, seconds into the overlap), b's nudge (samples, + = later), the bass-swap length and the voice gates.
     """
     step_a, step_b = beat_steps(a_beats, b_beats)
     tail = a_beats[-(overlap_beats * step_a + 1)::step_a]
@@ -334,7 +347,18 @@ def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None,
         info.update(vocal_swap=True, **lines,
                     vocal_overlap_s=vocal_overlap_s(av_w, bv_w, g_out, g_in, sr, follow=False),
                     vocal_overlap_s_without=vocal_overlap_s(av_w, bv_w, np.ones(len(av_w)), np.ones(len(av_w)), sr))
-        mixed = blend_swap(a_w, b_w, av_w, bv_w, slots, sr, g_out, g_in)
+        # each instrumental is stretched once, as itself (the browser subtracts before it changes the speed, too)
+        ai_w = warp(a[a0:] - a_voc[a0:], tail, slots, sr)
+        bi_w = shift(warp(b - b_voc, head, slots, sr), nudge)
+        mixed = blend_swap(ai_w, bi_w, av_w, bv_w, slots, sr, g_out, g_in, instrumentals=True)
     else:
         mixed = blend(a_w, b_w, slots, sr)
+    if plan is not None:
+        plan.update(kind="blend", a0=a0, tail=[float(x) for x in tail], head=[float(x) for x in head],
+                    slots=[float(x) for x in slots], nudge=int(nudge), swap_end_s=float(slots[BASS_SWAP_BEATS]),
+                    n=len(mixed), b_skip=int(round(head[-1] * sr)),
+                    gates=None if not info.get("vocal_swap") else {
+                        "out_s": info["vocal_out_at_s_exact"], "in_s": info["vocal_in_at_s_exact"], "fade_s": GATE_FADE_S})
+    info.pop("vocal_out_at_s_exact", None)
+    info.pop("vocal_in_at_s_exact", None)
     return a[:a0], mixed, int(round(head[-1] * sr)), info

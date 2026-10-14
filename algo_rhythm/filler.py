@@ -122,10 +122,11 @@ def fill(bpm_from, bpm_to, beats=BEATS, sr=dj.OUT_SR, style=STYLE, ref=None, rel
     return dj.soft_limit(x)
 
 
-def over_echo(before, overlap, nxt, nxt_skip, beats, nxt_beats, sr=dj.OUT_SR, style=STYLE, n_beats=BEATS):
+def over_echo(before, overlap, nxt, nxt_skip, beats, nxt_beats, sr=dj.OUT_SR, style=STYLE, n_beats=BEATS, plan=None):
     """Lay a fill over an echo-out from live.echo_out: (before, overlap, nxt_skip) -> (overlap, nxt_skip).
     The echo tail (overlap - nxt[:nxt_skip]) stays where it is, on the cut; the fill starts there too and the
-    incoming song is delayed so its first beat lands on the fill's last downbeat."""
+    incoming song is delayed so its first beat lands on the fill's last downbeat.
+    plan: a dict that gets "fill" (the fill's audio, starting on the cut) and "delay" (samples the song waits)."""
     tail = overlap - nxt[:nxt_skip]
     bpm_from = 60 / float(np.median(np.diff(beats)))
     bpm_to = 60 / float(np.median(np.diff(nxt_beats)))
@@ -144,4 +145,6 @@ def over_echo(before, overlap, nxt, nxt_skip, beats, nxt_beats, sr=dj.OUT_SR, st
     out[:len(tail)] += tail
     out[:len(f)] += f
     out[delay:n] += nxt[:n - delay]
+    if plan is not None:
+        plan.update(fill=f, delay=int(delay))
     return out, n - delay

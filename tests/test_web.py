@@ -36,7 +36,7 @@ def main(library="test_library"):
     assert b"function garden" in c.get("/static/visuals.js").content
     assert c.get("/static/nope.js").status_code == 404
     songs = c.get("/api/songs").json()
-    assert len(songs) == c.get("/healthz").json()["songs"] >= 8
+    assert len(songs) == c.get("/health").json()["songs"] >= 8
     assert c.get("/api/search", params={"q": "Synth 03"}).json()[0]["name"].startswith("Synth 03")
 
     # a party: the host gets a key, guests only the code

@@ -157,7 +157,8 @@ def create_app():
             return JSONResponse({"error": "not found"}, 404)
         return Response((STATIC / name).read_bytes(), media_type="text/javascript", headers={"Cache-Control": "no-store"})
 
-    @app.get("/healthz")
+    @app.get("/health")
+    @app.get("/healthz")  # Cloud Run's front end answers /healthz itself: use /health there
     def healthz():
         lib = library.get()
         return {"ok": True, "songs": len(lib.songs)}

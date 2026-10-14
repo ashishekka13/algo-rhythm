@@ -90,8 +90,14 @@ account)
   echo "service account $SA ready"
   ;;
 cors)
-  URL=$($G run services describe "$SERVICE" --region="$REGION" --format="value(status.url)" 2>/dev/null || true)
-  ORIGINS="[\"${URL:-*}\", \"http://127.0.0.1:8765\", \"http://localhost:8765\"]"
+  # every address of the service (Cloud Run gives two), plus a laptop's
+  URLS=$($G run services describe "$SERVICE" --region="$REGION" --format=json 2>/dev/null | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+urls = json.loads(d["metadata"]["annotations"].get("run.googleapis.com/urls", "[]")) + [d["status"]["url"]]
+print(json.dumps(sorted(set(urls)) + ["http://127.0.0.1:8765", "http://localhost:8765"]))' || echo '["*"]')
+  ORIGINS="$URLS"
+  URL="$URLS"
   printf '[{"origin": %s, "method": ["GET", "HEAD"], "responseHeader": ["Content-Type", "Content-Length", "Range"], "maxAgeSeconds": 3600}]' \
     "$ORIGINS" > /tmp/algo-cors.json
   gcloud storage buckets update "gs://$BUCKET" --cors-file=/tmp/algo-cors.json

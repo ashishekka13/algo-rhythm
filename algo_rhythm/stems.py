@@ -1,11 +1,15 @@
 """Separate the vocals of each song with Demucs (htdemucs). Run it with the stems environment, not the main one:
 
-    .venv-stems/bin/python algo_rhythm/stems.py LIBRARY                    every song that has no vocals file yet
-    .venv-stems/bin/python algo_rhythm/stems.py LIBRARY --files a/b.mp3    just these (paths relative to LIBRARY)
-    .venv-stems/bin/python algo_rhythm/stems.py LIBRARY --force            redo everything
+    .venv-stems/bin/python -m algo_rhythm.stems LIBRARY                    every song that has no vocals file yet
+    .venv-stems/bin/python -m algo_rhythm.stems LIBRARY --files a/b.mp3    just these (paths relative to LIBRARY)
+    .venv-stems/bin/python -m algo_rhythm.stems LIBRARY --force            redo everything
 
-Writes LIBRARY/stems/<key>.vocals.flac (44.1 kHz stereo, 16-bit) and <key>.json {sha256, model}. The
-instrumental is not stored: it is exactly (song - vocals), so the mixer computes it when it needs it.
+(.venv-stems needs this package too: .venv-stems/bin/pip install -e . --no-deps.) Runs on the Apple GPU when there is
+one, else the CPU (the Cloud Run job, algo_rhythm.pipeline).
+
+Writes LIBRARY/stems/<key>.vocals.mp3 (algo_rhythm.media: the same encoding as the songs, so the browser can subtract
+it sample for sample) and <key>.json {sha256, model}. The instrumental is not stored: it is exactly (song - vocals),
+so the mixer computes it when it needs it.
 <key> is the tagger's key: the relative path without its extension, "/" replaced by "__".
 """
 import argparse
@@ -20,6 +24,8 @@ import truststore
 truststore.inject_into_ssl()  # the model downloads once; use the macOS trust store so certificate checks stay on
 import julius  # noqa: E402
 import soundfile as sf  # noqa: E402
+
+from algo_rhythm import media  # noqa: E402
 import torch  # noqa: E402
 from demucs.apply import apply_model  # noqa: E402
 from demucs.pretrained import get_model  # noqa: E402
@@ -65,6 +71,21 @@ def separate(model, path, device):
     return out[model.sources.index("vocals")].cpu().numpy().T, model.samplerate
 
 
+def load_model():
+    """(model, device): htdemucs on the Apple GPU when there is one, else the CPU."""
+    model, device = load_model()
+    return model, device
+
+
+def separate_to(model, device, src, voc, meta, digest):
+    """Separate `src` and write its vocals (canonical MP3, media.encode) and the meta file {sha256, model, sr}."""
+    vocals, sr = separate(model, str(src), device)
+    if sr != media.SR:
+        vocals = julius.resample_frac(torch.from_numpy(vocals.T.copy()), sr, media.SR).numpy().T
+    media.encode(vocals, media.SR, voc)
+    meta.write_text(json.dumps({"sha256": digest, "model": MODEL, "sr": media.SR}))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("library", type=Path)
@@ -74,27 +95,21 @@ def main(argv=None):
     lib = args.library.resolve()
     out_dir = lib / "stems"
     out_dir.mkdir(exist_ok=True)
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    model = get_model(MODEL)
-    model.eval()
+    model, device = load_model()
 
     files = args.files if args.files else list_audio(lib)
     failed = done = skipped = 0
     t0 = time.time()
     for i, rel in enumerate(files, 1):
         key, src = tag_key(rel), lib / rel
-        voc, meta = out_dir / f"{key}.vocals.flac", out_dir / f"{key}.json"
+        voc, meta = lib / media.stem_rel(key), out_dir / f"{key}.json"
         try:
             digest = sha256(src)
             if not args.force and voc.exists() and meta.exists() and json.loads(meta.read_text()).get("sha256") == digest:
                 skipped += 1
                 continue
             t = time.time()
-            vocals, sr = separate(model, str(src), device)
-            tmp = voc.with_name(voc.name + ".tmp")
-            sf.write(str(tmp), vocals, sr, format="FLAC", subtype="PCM_16")
-            tmp.replace(voc)
-            meta.write_text(json.dumps({"sha256": digest, "model": MODEL, "sr": sr}))
+            separate_to(model, device, src, voc, meta, digest)
             done += 1
             print(f"[{i}/{len(files)}] {time.time() - t:5.1f}s  {rel}", flush=True)
         except Exception as e:  # one bad file must not stop the rest

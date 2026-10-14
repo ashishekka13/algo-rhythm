@@ -18,6 +18,8 @@ from pathlib import Path
 
 import mlx_whisper
 
+from algo_rhythm import media
+
 MODEL = "mlx-community/whisper-large-v3-turbo"
 # Whisper's Punjabi output is Gurmukhi and worse; the Hindi hint gives readable Devanagari for both.
 LANG = {"english": "en", "hindi": "hi", "punjabi": "hi", "mixed": "hi"}  # anything else: let Whisper detect
@@ -51,7 +53,7 @@ def main(argv=None):
     out_dir = lib / "lyrics"
     out_dir.mkdir(exist_ok=True)
     k, n = map(int, args.worker.split("/"))
-    keys = sorted(p.name[:-len(".vocals.flac")] for p in (lib / "stems").glob("*.vocals.flac"))[k::n]
+    keys = sorted({p.name.split(".vocals.")[0] for p in (lib / "stems").glob("*.vocals.*")})[k::n]
     todo = [key for key in keys if not (out_dir / f"{key}.json").exists()]
     print(f"{len(keys) - len(todo)} done, {len(todo)} to do", flush=True)
     for done, key in enumerate(todo[:args.limit or None], 1):
@@ -59,7 +61,7 @@ def main(argv=None):
         info = json.loads(meta.read_text()) if meta.exists() else {}
         t = time.time()
         try:
-            r = mlx_whisper.transcribe(str(lib / "stems" / f"{key}.vocals.flac"), path_or_hf_repo=MODEL,
+            r = mlx_whisper.transcribe(str(media.stem_path(lib, key)), path_or_hf_repo=MODEL,
                                        language=LANG.get(info.get("language")), word_timestamps=True,
                                        condition_on_previous_text=False, temperature=0.0,  # no slow retries
                                        hallucination_silence_threshold=2.0, verbose=None)

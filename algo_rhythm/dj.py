@@ -305,8 +305,8 @@ def cached_slips(library, song):
 def vocal_segments(library, song):
     """Where the song is sung, as [start, end] seconds (transition.sung_segments on its Demucs vocal stem, 20 ms
     steps), or None without a stem. Gaps of transition.LINE_GAP_S or more between segments are where lines end."""
-    from algo_rhythm import transition
-    p = storage.local_path(f"stems/{tagger.tag_key(song['file'])}.vocals.flac", library)
+    from algo_rhythm import media, transition
+    p = media.stem_path(library, tagger.tag_key(song["file"]), storage.local_path)
     if not p.exists():
         return None
     v, sr = sf.read(p, always_2d=True)
@@ -701,9 +701,10 @@ def load_excerpt_vocals(library, song, window):
     ramp = int(0.01 * OUT_SR)
     seg[:ramp] *= np.linspace(0, 1, ramp)[:, None]
 
+    from algo_rhythm import media
     voc = None
     key = tagger.tag_key(song["file"])
-    stem, meta = (storage.local_path(f"stems/{key}.{ext}", library) for ext in ("vocals.flac", "json"))
+    stem, meta = media.stem_path(library, key, storage.local_path), storage.local_path(f"stems/{key}.json", library)
     try:
         if stem.exists() and json.loads(meta.read_text()).get("sha256") == song["sha256"]:
             v, vsr = sf.read(stem, always_2d=True, dtype="float64")

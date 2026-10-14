@@ -499,7 +499,8 @@ def tag_one(library, rel_path, force, verbose):
     out_dir, err_dir = library / "tags", library / "tags" / "_errors"
     key = tag_key(rel_path)
     out, err = out_dir / f"{key}.json", err_dir / f"{key}.json"
-    vocals = library / "stems" / f"{key}.vocals.flac"
+    from algo_rhythm import media
+    vocals = media.stem_path(library, key)
     vocals = vocals if vocals.exists() else None
     if not force and is_current(out, path) and not (vocals and not _has_real_vocals(out)):
         return "skipped", rel_path, None

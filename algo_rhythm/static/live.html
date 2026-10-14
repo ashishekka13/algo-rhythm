@@ -101,6 +101,15 @@
 
   header.top { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:18px; }
   header.top .grow { flex:1; }
+  button.chip { font:inherit; font-size:13px; cursor:pointer; min-height:32px; }
+  button.chip:hover { color:var(--ink); border-color:var(--acc); }
+  .invite { position:absolute; right:0; top:calc(100% + 8px); z-index:20; width:min(280px, calc(100vw - 32px)); text-align:center;
+    background:var(--bg); }
+  .invite .qr { width:100%; }
+  .invite .code { font-family:var(--mono); font-size:22px; font-weight:700; letter-spacing:.2em; margin-top:10px; }
+  .invite .hint { color:var(--ink-2); font-size:13px; margin-top:4px; }
+  .invitewrap { position:relative; }
+  @media (max-width:700px) { .invite { position:fixed; top:110px; left:0; right:0; margin-inline:auto; } }
   nav.tabs { display:flex; gap:4px; padding:4px; border-radius:var(--radius-pill); background:var(--glass); border:1px solid var(--line); }
   nav.tabs a { padding:8px 14px; border-radius:var(--radius-pill); text-decoration:none; font-size:13px; font-weight:500; color:var(--ink-2); min-height:36px; display:inline-flex; align-items:center; }
   nav.tabs a[aria-current="page"] { background:color-mix(in srgb, var(--acc) 22%, transparent); color:var(--ink); }
@@ -368,9 +377,11 @@
   .p-br .n { font-size:clamp(18px, 1.8vw, 40px); font-weight:650; letter-spacing:-.02em; line-height:1.15; overflow-wrap:anywhere; }
   .p-br .count { font-size:clamp(28px, 3.2vw, 72px); font-weight:700; color:var(--acc); }
   html.offline-long .p-br .count { visibility:hidden; }
-  .join { margin-top:3vh; }
-  .join .url { font-size:clamp(18px, 1.9vw, 44px); font-weight:700; color:var(--ink); letter-spacing:-.01em; margin-top:4px; }
-  html.st-idle .join .url { font-size:clamp(26px, 3vw, 64px); color:var(--acc); }
+  .join { margin-top:3vh; display:flex; flex-direction:column; align-items:flex-end; }
+  .qr { display:block; background:#fff; border-radius:12px; aspect-ratio:1; max-width:100%; }
+  .join .qr { width:clamp(110px, 11vw, 260px); margin-top:8px; }
+  html.st-idle .join .qr { width:clamp(160px, 17vw, 400px); }
+  .join .code { font-family:var(--mono); font-size:clamp(14px, 1.3vw, 30px); font-weight:700; letter-spacing:.2em; color:var(--ink); margin-top:8px; }
   @media (max-width:700px) { .p-bl { width:auto; right:4vw; bottom:30vh; } .p-br { left:4vw; width:auto; } }
 
   /* Landing: start a party (this device plays the music) or join one with its code */
@@ -438,7 +449,11 @@
     </nav>
     <span class="grow"></span>
     <span class="chip" id="where">Plays on this device</span>
-    <span class="chip mono" id="partycode"></span>
+    <span class="invitewrap">
+      <button type="button" class="chip mono" id="partycode" aria-expanded="false" aria-controls="invite" title="Show the QR code guests scan to join"></button>
+      <div class="glass invite" id="invite" hidden><img class="qr" id="inviteqr" alt="QR code: scan to join the party">
+        <div class="code" id="invitecode"></div><div class="hint">Guests scan this to join and request songs</div></div>
+    </span>
     <span class="chip num" id="timer">Session not started</span>
   </header>
 
@@ -627,7 +642,7 @@
     <div class="label">Energy</div>
     <div class="meter" id="meter" role="img" aria-label="Energy level"><i></i><i></i><i></i><i></i></div>
     <div id="meterlabel"></div>
-    <div class="join" id="join" hidden><div class="label">Request a song</div><div class="url" id="joinurl"></div></div>
+    <div class="join" id="join" hidden><div class="label">Scan to request a song</div><img class="qr" id="joinqr" alt="QR code: scan to join the party and request a song"><div class="code" id="joincodeshow"></div></div>
   </div>
   <div class="p-bl">
     <div class="by" id="nowby" hidden></div>
@@ -1182,9 +1197,9 @@ function show(s) {
   safe("feedback", () => drawFeedback(s));
   safe("reactions", () => drawReactions(s));
   safe("my requests", () => drawMine(s));
-  safe("join link", () => ifEl("join", j => {         // presenter: where guests request songs (no QR library, so the address, big)
-    const url = location.origin + "/p/" + CODE;     // guests open this, or type the code on the start page
-    j.hidden = false; $("joinurl").textContent = url.replace(/^https?:\/\//, "");
+  safe("join link", () => ifEl("join", j => {         // presenter: a QR of the guest page (the server draws it), and the
+    if (!j.hidden) return;                            // code, for typing on the start page
+    $("joinqr").src = `/qr/${CODE}.svg`; $("joincodeshow").textContent = CODE; j.hidden = false;
   }));
   if (s.engine_error) $("err").textContent = "Player error: " + s.engine_error;
   if (VIEW === "admin" && s.engine) safe("player", () => hostPlayer(s));
@@ -1405,7 +1420,16 @@ vis = visPrefs();
       return;
     }
     P = new Player({report, onError: m => { $("err").textContent = m; }});
-    $("partycode").textContent = "Code " + CODE;
+    $("partycode").textContent = "Invite · " + CODE;
+    $("invitecode").textContent = CODE;
+    $("partycode").onclick = () => {                  // the guests' QR, on demand: the host page has no room to keep it up
+      const inv = $("invite"), open = inv.hidden;
+      if (open && !$("inviteqr").getAttribute("src")) $("inviteqr").src = `/qr/${CODE}.svg`;
+      inv.hidden = !open; $("partycode").setAttribute("aria-expanded", String(open));
+    };
+    document.addEventListener("click", e => {
+      if (!$("invite").hidden && !e.target.closest(".invitewrap")) { $("invite").hidden = true; $("partycode").setAttribute("aria-expanded", "false"); }
+    });
     for (const a of document.querySelectorAll("nav.tabs a[data-to]"))
       if (a.dataset.to !== "screen") a.setAttribute("href", a.dataset.to === "host" ? `/p/${CODE}/host` : `/p/${CODE}`);
     const rb = el("button", "btn", "Play here"); rb.id = "resumehere"; rb.type = "button"; rb.hidden = true;

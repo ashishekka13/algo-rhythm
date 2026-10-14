@@ -251,8 +251,9 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     await wait(1500);
     check("presenter: guests' reactions rise on the big screen; the requester is credited", P.D.getElementById("bursts").children.length === 2
       && P.D.getElementById("nowby").textContent === "Requested by Priya" && !P.D.getElementById("nowby").hidden, P.D.getElementById("bursts").children.length);
-    check("presenter: shows where guests join, big", !P.D.getElementById("join").hidden && P.D.getElementById("joinurl").textContent === `127.0.0.1:8765/p/${CODE}`
-      && !P.errors.length, [P.D.getElementById("joinurl").textContent, P.errors]);
+    check("presenter: shows the QR guests scan to join, and the code", !P.D.getElementById("join").hidden
+      && P.D.getElementById("joinqr").getAttribute("src") === `/qr/${CODE}.svg` && P.D.getElementById("joincodeshow").textContent === CODE
+      && !P.errors.length, [P.D.getElementById("joinqr").getAttribute("src"), P.errors]);
     P.dom.window.close();
     const A2 = open("/", async (url) => ({ok: true, json: async () => (url === "/songs" ? [] : {...base, reactions: [{id: 1, emoji: "🔥"}], next: [entry("Tum Hi Ho", {request: true, by: "Priya"})]})}));
     await wait(1500);
@@ -387,6 +388,16 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     let st = artState;
     const A = open("/", async (url) => ({ok: true, json: async () => (url === "/songs" ? [] : st)}), stubs(false));
     await wait(300);
+    {
+      const chip = A.D.getElementById("partycode"), inv = A.D.getElementById("invite");
+      const closed = inv.hidden && !A.D.getElementById("inviteqr").getAttribute("src");
+      chip.click();
+      const shown = !inv.hidden && A.D.getElementById("inviteqr").getAttribute("src") === `/qr/${CODE}.svg`
+        && A.D.getElementById("invitecode").textContent === CODE && chip.getAttribute("aria-expanded") === "true";
+      A.D.body.click();
+      check("host: the code chip opens the guests' QR and a click elsewhere closes it", /TESTAB/.test(chip.textContent) && closed && shown && inv.hidden,
+        [chip.textContent, closed, shown, inv.hidden]);
+    }
     const box = A.D.querySelector(".songart"), imgs = [...box.querySelectorAll("img")];
     const layer = u => imgs.find(i => i.getAttribute("src") === u), op = u => layer(u) ? Number(layer(u).style.opacity) : null;
     check("art: shown with the song's image at full strength, moving", !box.hidden && op(K) === 1 && box.classList.contains("moving"), [box.hidden, imgs.map(i => [i.getAttribute("src"), i.style.opacity]), box.className]);

@@ -156,6 +156,19 @@ def create_app():
     def screen(code: str):
         return page()
 
+    @app.get("/qr/{code}.svg")
+    def qr(code: str, request: Request):
+        """A QR code of the party's guest page, for the big screen and the host to show: scan it to join."""
+        if not re.fullmatch(r"[A-Za-z0-9]{1,12}", code):
+            return JSONResponse({"error": "not found"}, 404)
+        import io
+        import segno
+        scheme = request.headers.get("x-forwarded-proto") or request.url.scheme  # Cloud Run ends TLS in front
+        buf = io.BytesIO()
+        segno.make(f"{scheme}://{request.headers.get('host', request.url.netloc)}/p/{code.upper()}", error="m").save(
+            buf, kind="svg", scale=8, border=2, dark="#09090B", light="#FFFFFF", xmldecl=False, svgns=True)
+        return Response(buf.getvalue(), media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=3600"})
+
     @app.get("/static/{name}")
     def static(name: str):
         if name not in ("visuals.js", "player.js"):

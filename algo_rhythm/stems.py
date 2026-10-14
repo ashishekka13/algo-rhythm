@@ -73,7 +73,9 @@ def separate(model, path, device):
 
 def load_model():
     """(model, device): htdemucs on the Apple GPU when there is one, else the CPU."""
-    model, device = load_model()
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    model = get_model(MODEL)
+    model.eval()
     return model, device
 
 

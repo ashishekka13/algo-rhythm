@@ -11,7 +11,7 @@
 #   deploy/gcp.sh build        build both images in Cloud Build (billed per build minute, about 15 min)
 #   deploy/gcp.sh server       deploy the web server on Cloud Run (billed per request time; scales to zero)
 #   deploy/gcp.sh jobs         create or update the three Cloud Run Jobs (billed only while they run)
-#   deploy/gcp.sh run-songs    analyse every original not yet in the library (10 tasks in parallel)
+#   deploy/gcp.sh run-songs    analyse every original not yet in the library (10 tasks, 4 at a time)
 #   deploy/gcp.sh run-details  Gemini song details and search vectors
 #   deploy/gcp.sh run-art      song images (about $0.04 each)
 #
@@ -113,10 +113,11 @@ jobs)
   COMMON=(--image="$JOBS_IMAGE" --region="$REGION" --service-account="$SA" --set-cloudsql-instances="$CONN"
           --set-secrets="DATABASE_URL=database-url:latest,GEMINI_API_KEY=gemini-api-key:latest"
           --set-env-vars="SOURCE_URL=gs://$BUCKET/$SOURCE_PREFIX,STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex")
-  for spec in "songs:10:4:8Gi:3600" "details:1:1:2Gi:1800" "art:1:1:2Gi:3600"; do
-    IFS=: read -r name tasks cpu mem timeout <<< "$spec"
+  # songs: 10 tasks, 4 at a time (4 x 4 vCPU: the project's 20 vCPU per region leaves room for the server)
+  for spec in "songs:10:4:4:8Gi:3600" "details:1:1:1:2Gi:1800" "art:1:1:1:2Gi:3600"; do
+    IFS=: read -r name tasks parallel cpu mem timeout <<< "$spec"
     verb=create; $G run jobs describe "algo-rhythm-$name" --region="$REGION" >/dev/null 2>&1 && verb=update
-    $G run jobs "$verb" "algo-rhythm-$name" "${COMMON[@]}" --args="$name" --tasks="$tasks" --parallelism="$tasks" \
+    $G run jobs "$verb" "algo-rhythm-$name" "${COMMON[@]}" --args="$name" --tasks="$tasks" --parallelism="$parallel" \
       --cpu="$cpu" --memory="$mem" --task-timeout="${timeout}s" --max-retries=1
   done
   ;;

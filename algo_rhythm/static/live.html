@@ -373,6 +373,18 @@
   html.st-idle .join .url { font-size:clamp(26px, 3vw, 64px); color:var(--acc); }
   @media (max-width:700px) { .p-bl { width:auto; right:4vw; bottom:30vh; } .p-br { left:4vw; width:auto; } }
 
+  /* Landing: start a party (this device plays the music) or join one with its code */
+  #v-landing { max-width:720px; padding-top:max(8vh, 24px); }
+  #v-landing h1 { font-size:clamp(40px, 7vw, 72px); font-weight:700; letter-spacing:-.04em; margin:18px 0 6px; }
+  #v-landing .lead { font-size:18px; color:var(--ink-2); margin:0 0 28px; }
+  #v-landing .choice { display:grid; gap:12px; margin-bottom:20px; }
+  #v-landing .row2 { display:flex; gap:10px; flex-wrap:wrap; }
+  #v-landing .row2 > * { flex:1; min-width:180px; }
+  #startparty { min-height:56px; border:0; border-radius:var(--radius-inner); background:var(--acc); color:#09090B; font-size:18px; font-weight:700; }
+  #joincode { text-transform:uppercase; letter-spacing:.2em; font-family:var(--mono); }
+  #landmsg { min-height:1.3em; color:var(--bad); }
+  .hostonly { margin-top:12px; }
+
   @keyframes pulse { 50% { opacity:.4; transform:scale(.8); } }
   @keyframes glow { 50% { box-shadow:0 0 20px -10px var(--c); } }
   @keyframes liquid { to { background-position:-200% 0; } }
@@ -396,15 +408,37 @@
 <div class="bursts" id="bursts" aria-hidden="true"></div>
 <div id="sr-status" class="sr" aria-live="polite"></div>
 
+<template id="t-landing">
+<div id="v-landing" class="shell">
+  <div class="wordmark"><span class="dot" aria-hidden="true"></span><span>algo<b>-</b>rhythm</span></div>
+  <h1>Your AI DJ</h1>
+  <p class="lead">Start a party on the device connected to the speakers: it plays and mixes the music. Everyone else joins with the party code to request songs and vote.</p>
+  <section class="glass choice" aria-labelledby="h-start">
+    <h2 id="h-start">Start a party</h2>
+    <button id="startparty" type="button">Start a party on this device</button>
+  </section>
+  <section class="glass choice" aria-labelledby="h-join">
+    <h2 id="h-join">Join a party</h2>
+    <form id="joinform" class="row2">
+      <label class="sr" for="joincode">Party code</label>
+      <input id="joincode" type="text" maxlength="12" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+      <button class="btn" type="submit">Join</button>
+    </form>
+  </section>
+  <div id="landmsg" role="alert"></div>
+</div>
+</template>
+
 <template id="t-admin">
 <div id="v-admin" class="shell">
   <header class="top">
     <div class="wordmark"><span>algo<b>-</b>rhythm</span></div>
     <nav class="tabs" aria-label="Views">
-      <a href="/" aria-current="page">Admin</a><a href="/guest" target="_blank" rel="noopener">Guest</a><a href="/presenter" target="_blank" rel="noopener">Presenter</a>
+      <a href="host" aria-current="page" data-to="host">Host</a><a href="." target="_blank" rel="noopener" data-to="guest">Guest</a><a href="screen" target="_blank" rel="noopener" data-to="screen">Big screen</a>
     </nav>
     <span class="grow"></span>
-    <span class="chip">Laptop speakers</span>
+    <span class="chip" id="where">Plays on this device</span>
+    <span class="chip mono" id="partycode"></span>
     <span class="chip num" id="timer">Session not started</span>
   </header>
 
@@ -614,10 +648,17 @@
 </template>
 
 <script src="/static/visuals.js"></script>
+<script src="/static/player.js"></script>
 <script>
-const API = 2;                                   // must match the server; if not, the page asks for a reload
+const API = 3;                                   // must match the server; if not, the page asks for a reload
 const LEVELS = ["low", "medium", "high", "max"]; // drawn even before the server has answered
-const VIEW = {"/guest": "guest", "/presenter": "presenter"}[location.pathname.replace(/\/+$/, "")] || "admin";
+// /  landing   /p/CODE  guest   /p/CODE/host  the host (plays the music)   /p/CODE/screen  the big screen
+const ROUTE = /^\/p\/([A-Za-z0-9]{4,12})(?:\/(host|screen))?\/?$/.exec(location.pathname);
+const CODE = ROUTE ? ROUTE[1].toUpperCase() : null;
+const VIEW = !ROUTE ? "landing" : ROUTE[2] === "host" ? "admin" : ROUTE[2] === "screen" ? "presenter" : "guest";
+const hostKey = () => { try { return CODE ? localStorage.getItem("algo-host-" + CODE) : null; } catch (e) { return null; } };
+const apiPath = path => path.startsWith("/songs") || path.startsWith("/search") ? "/api" + path : `/api/p/${CODE}${path}`;
+const headers = (extra = {}) => { const k = VIEW === "admin" ? hostKey() : null; return k ? {...extra, "X-Host-Key": k} : extra; };
 document.getElementById("app").replaceChildren(document.getElementById("t-" + VIEW).content.cloneNode(true));
 document.body.className = "v-" + VIEW;
 const $ = id => document.getElementById(id);
@@ -659,7 +700,7 @@ function palette(name) {
 const artBg = p => `linear-gradient(135deg, rgb(${p[0]}), rgb(${p[1]}) 55%, rgb(${p[2]}))`;
 
 // ---- the visual: four living worlds, beat-locked blooms and the art kaleidoscope (static/visuals.js)
-const G = garden($("garden"), VIEW === "presenter", VIEW !== "presenter");
+const G = $("garden") ? garden($("garden"), VIEW === "presenter", VIEW !== "presenter") : {set() {}};
 
 // ---- song art: "art": "/art/<id>.jpg" or null on now, next and mixing (from_art, to_art). An older server sends none.
 // Each image is loaded once and sampled once for a palette; a failed load counts as no art, so the page looks as before.
@@ -750,8 +791,8 @@ function visSetup() {                                 // admin: the Visuals menu
   const sel = $("vis"), k = $("kaleido");
   const paint = () => {
     sel.value = vis.world; k.setAttribute("aria-checked", vis.kaleido ? "true" : "false");
-    const a = document.querySelector('nav.tabs a[href^="/presenter"]');
-    if (a) a.href = "/presenter" + (vis.world !== "auto" || vis.kaleido ? `?world=${vis.world}${vis.kaleido ? "&kaleido=1" : ""}` : "");
+    const a = document.querySelector('nav.tabs a[data-to="screen"]');
+    if (a) a.setAttribute("href", `/p/${CODE}/screen` + (vis.world !== "auto" || vis.kaleido ? `?world=${vis.world}${vis.kaleido ? "&kaleido=1" : ""}` : ""));
   };
   // the server keeps the pick so every guest and presenter screen shows the same world; this browser remembers it too
   const save = () => { store("algo-visuals", {world: vis.world, kaleido: vis.kaleido}); paint(); if (last) drawVisual(last); post("/visuals", vis); };
@@ -764,13 +805,13 @@ function visSetup() {                                 // admin: the Visuals menu
 // ---- talking to the server
 async function post(path, body) {
   try {
-    const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+    const r = await fetch(apiPath(path), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify(body)});
     const data = await r.json();
     if (!r.ok) { $("err").textContent = data.error || "That did not work."; return false; }
     $("err").textContent = "";
     show(data);
-    return true;
-  } catch (e) { $("err").textContent = "Could not reach the player."; return false; }
+    return data;
+  } catch (e) { $("err").textContent = "Could not reach the server."; return false; }
 }
 
 // Each part of the page draws on its own: a problem in one never blanks the others.
@@ -1059,7 +1100,7 @@ function drawFeedback(s) {
 async function vote(b) {
   const t = b.dataset.t, v = b.dataset.v, pos = fbNow[t];
   if (!pos) return;
-  if (await post("/feedback", VIEW === "admin" ? {guest: guestId(), target: t, value: v, host: true} : {guest: guestId(), target: t, value: v})) {
+  if (await post("/feedback", {guest: guestId(), target: t, value: v})) {
     votes[`${t}:${pos}`] = v;
     const keep = Object.keys(votes).slice(-40);         // only recent plays matter
     votes = Object.fromEntries(keep.map(k => [k, votes[k]])); store("algo-votes", votes);
@@ -1142,11 +1183,11 @@ function show(s) {
   safe("reactions", () => drawReactions(s));
   safe("my requests", () => drawMine(s));
   safe("join link", () => ifEl("join", j => {         // presenter: where guests request songs (no QR library, so the address, big)
-    const local = /^(127\.|localhost$|\[::1\]$)/.test(location.hostname);
-    const url = s.guest_url || (local ? null : location.origin + "/guest");
-    j.hidden = !url; if (url) $("joinurl").textContent = url.replace(/^https?:\/\//, "");
+    const url = location.origin + "/p/" + CODE;     // guests open this, or type the code on the start page
+    j.hidden = false; $("joinurl").textContent = url.replace(/^https?:\/\//, "");
   }));
   if (s.engine_error) $("err").textContent = "Player error: " + s.engine_error;
+  if (VIEW === "admin" && s.engine) safe("player", () => hostPlayer(s));
 }
 
 // 3+ characters ask the server (names first, then songs close in meaning), 250 ms after the last key;
@@ -1161,7 +1202,7 @@ function search() {
   searchTimer = setTimeout(async () => {
     let found;
     try {
-      const r = await fetch("/search?q=" + encodeURIComponent(typed));
+      const r = await fetch(apiPath("/search?q=" + encodeURIComponent(typed)));
       if (!r.ok) throw new Error(r.status);
       found = await r.json();
       if (!Array.isArray(found)) throw new Error("bad answer");
@@ -1194,9 +1235,10 @@ function showResults(list, typed) {
 }
 
 async function tick() {
+  if (sock && sock.readyState === 1) return;        // the socket brings the state
   let s;
   try {
-    const r = await fetch("/state");
+    const r = await fetch(apiPath("/state"), {headers: headers()});
     if (!r.ok) throw new Error(r.status);
     s = await r.json();
     $("conn").hidden = true; offlineSince = 0;
@@ -1205,7 +1247,7 @@ async function tick() {
     offlineSince = offlineSince || Date.now();
     document.documentElement.classList.add("offline");
     document.documentElement.classList.toggle("offline-long", Date.now() - offlineSince > 10000);
-    $("conn").hidden = false; $("conn").textContent = "Cannot reach the player. Reconnecting…";
+    $("conn").hidden = false; $("conn").textContent = "Cannot reach the server. Reconnecting…";
     return;
   }
   show(s);
@@ -1234,12 +1276,13 @@ function talkSetup() {
     if (!text) return;
     $("talksend").disabled = true; $("talkreply").textContent = "Thinking…";
     try {
-      const r = await fetch("/talk", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(VIEW === "guest" ? {text, guest: true} : {text})});
+      const r = await fetch(apiPath("/talk"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify({text})});
       const data = await r.json();
       if (!r.ok) { $("talkreply").textContent = data.error || "The DJ did not understand that."; return; }
       $("talk").value = "";
-      $("talkreply").textContent = data.talk.reply + (data.talk.done.length ? "" : " (nothing changed)");
+      $("talkreply").textContent = data.talk.reply + (data.talk.done.length || (data.talk.client_actions || []).length ? "" : " (nothing changed)");
       show(data);
+      for (const a of data.talk.client_actions || []) hostAction(a);   // play, pause and skip happen in this browser
     } catch (e) { $("talkreply").textContent = "Could not reach the player."; }
     finally { $("talksend").disabled = false; }
   });
@@ -1288,16 +1331,99 @@ function presenterChrome() {                          // full screen on first cl
   document.addEventListener("visibilitychange", lock); lock();
 }
 
+// ---- the host's player: this browser plays and mixes (static/player.js); the server plans
+let P = null, advancing = false, sock = null, sockTries = 0;
+function hostPlayer(s) {
+  if (!P) return;
+  P.update(s.engine);
+  const e = s.engine;
+  if (P.status === "playing" && !advancing && (e.need_advance || e.swap_pending)) {
+    advancing = true;
+    post("/advance", e.need_advance ? {} : {swap: true}).finally(() => { advancing = false; });
+  }
+  // a reload mid-party (or another tab started it): the music can only start here after a tap
+  ifEl("resumehere", b => { b.hidden = !(s.status !== "idle" && P.status === "idle"); });
+}
+async function playHere(s) {
+  P.unlock();
+  P.update(s.engine);
+  await P.start(s.status === "idle" ? 0 : s.playhead);
+  if (s.status === "paused") { P.pause(); }
+}
+async function hostAction(a) {
+  if (!P) return;
+  if (a === "pause" && P.status === "playing") { P.pause(); post("/transport", {action: "pause"}); }
+  else if (a === "play" && P.status === "paused") { await P.resume(); post("/transport", {action: "resume"}); }
+  else if (a === "skip" && P.skip()) post("/transport", {action: "skip"});
+}
+function report(playhead, st) {
+  if (st !== "playing" && st !== "paused") return;
+  const m = {type: "sync", playhead, status: st};
+  if (sock && sock.readyState === 1) sock.send(JSON.stringify(m));
+  else fetch(apiPath("/sync"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify(m)}).catch(() => {});
+}
+// live updates: the server pushes the state on every change and once a second; polling takes over while it is down
+function connect() {
+  const k = VIEW === "admin" ? hostKey() : null;
+  const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/p/${CODE}` + (k ? "?key=" + encodeURIComponent(k) : "");
+  try { sock = new WebSocket(url); } catch (e) { sock = null; return; }
+  sock.onopen = () => { sockTries = 0; $("conn").hidden = true; };
+  sock.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m.type === "state") show(m.state); };
+  sock.onclose = ev => {
+    sock = null;
+    if (ev.code === 4404) { $("err").textContent = "There is no party with this code."; return; }
+    setTimeout(connect, Math.min(30000, 1000 * 2 ** sockTries++));     // back off: 1, 2, 4 ... 30 s
+  };
+}
+function landingSetup() {
+  $("startparty").onclick = async () => {
+    $("startparty").disabled = true;
+    try {
+      const r = await fetch("/api/parties", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({level: "medium"})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || r.status);
+      localStorage.setItem("algo-host-" + d.code, d.host_key);           // this browser is the host; the key never leaves it
+      location.href = d.host;
+    } catch (e) { $("landmsg").textContent = "Could not start a party: " + e.message; $("startparty").disabled = false; }
+  };
+  $("joinform").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const c = $("joincode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (c.length >= 4) location.href = "/p/" + c; else $("landmsg").textContent = "Type the party code from the big screen.";
+  });
+}
+
+if (VIEW === "landing") landingSetup();
+else {
 drawLevels();                                         // buttons exist from the first moment
 vis = visPrefs();
 (async () => {
   if (VIEW === "admin") {
-    $("restart").onclick = () => {
+    if (!hostKey()) {                                 // the host page opened in a browser that did not start the party
+      $("err").textContent = "This browser did not start the party, so it cannot play it. Opening the guest page instead.";
+      setTimeout(() => { location.href = "/p/" + CODE; }, 2500);
+      return;
+    }
+    P = new Player({report, onError: m => { $("err").textContent = m; }});
+    $("partycode").textContent = "Code " + CODE;
+    for (const a of document.querySelectorAll("nav.tabs a[data-to]"))
+      if (a.dataset.to !== "screen") a.setAttribute("href", a.dataset.to === "host" ? `/p/${CODE}/host` : `/p/${CODE}`);
+    const rb = el("button", "btn", "Play here"); rb.id = "resumehere"; rb.type = "button"; rb.hidden = true;
+    rb.title = "The party is on: tap to play it on this device from where it is now";
+    $("transport").after(rb);
+    rb.onclick = async () => { rb.hidden = true; const s = await (await fetch(apiPath("/state"), {headers: headers()})).json(); await playHere(s); };
+    $("restart").onclick = async () => {
       if (!sure) { sure = true; if (last) drawTransport(last); setTimeout(() => { sure = false; if (last) drawTransport(last); }, 4000); return; }
-      sure = false; post("/transport", {action: "restart"});
+      sure = false; P.reset(); await post("/transport", {action: "restart"});
     };
-    $("transport").onclick = () => post("/transport", {action: status === "playing" ? "pause" : "play"});
-    $("skip").onclick = () => post("/transport", {action: "skip"});
+    $("transport").onclick = async () => {
+      if (status === "playing") { P.pause(); return post("/transport", {action: "pause"}); }
+      if (status === "paused" && P.status === "paused") { await P.resume(); return post("/transport", {action: "resume"}); }
+      P.unlock();                                     // inside the click: the browser allows sound from here on
+      const s = await post("/transport", {action: "play"});
+      if (s && P.status === "idle") await playHere(s);
+    };
+    $("skip").onclick = () => hostAction("skip");
     $("levels").addEventListener("keydown", ev => {     // arrow keys move between levels; Enter or Space picks one
       const d = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[ev.key];
       const bs = [...$("levels").children], i = bs.indexOf(document.activeElement);
@@ -1306,8 +1432,6 @@ vis = visPrefs();
       const j = (i + d + bs.length) % bs.length;
       bs.forEach((b, k) => b.tabIndex = k === j ? 0 : -1); bs[j].focus();
     });
-    // closing the admin tab stops the server (a reload comes straight back and cancels it). Guest and presenter never send this.
-    addEventListener("pagehide", () => navigator.sendBeacon("/transport", new Blob([JSON.stringify({action: "bye"})], {type: "application/json"})));
     $("mc").onclick = () => post("/transport", {action: $("mc").getAttribute("aria-checked") === "true" ? "mc_off" : "mc_on"});
     talkSetup();
     visSetup();
@@ -1319,10 +1443,12 @@ vis = visPrefs();
   if (VIEW === "guest") { talkSetup(); reactSetup(); $("byname").value = store("algo-name") || ""; }
   if ($("q")) {
     $("q").addEventListener("input", search);
-    try { songs = await (await fetch("/songs")).json(); } catch (e) { songs = []; }
+    try { songs = await (await fetch(apiPath("/songs"))).json(); } catch (e) { songs = []; }
   }
   tick(); setInterval(tick, 1000);
+  connect();
 })();
+}
 </script>
 </body>
 </html>

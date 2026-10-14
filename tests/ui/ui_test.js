@@ -1,15 +1,24 @@
-// Tests the page (algo_rhythm/static/live.html: admin at /, guest at /guest, presenter at /presenter) against fake server data in a simulated browser.
-// Setup once:  cd tests_ui && npm init -y && npm install jsdom      Run:  node ui_test.js
+// Tests the page (algo_rhythm/static/live.html: the host at /p/CODE/host, guests at /p/CODE, the big screen at /p/CODE/screen)
+// against fake server data in a simulated browser. The checks below still say "/", "/guest", "/presenter" and "/songs";
+// open() maps them onto the party routes and the /api paths, and records a host key header as {host: true}.
+// Setup once:  npm install jsdom@22 (anywhere; Node 16+)      Run:  NODE_PATH=<that node_modules> node tests/ui/ui_test.js
+// The real browser and the real server: tests/ui/player_browser.py.
 const { JSDOM, VirtualConsole } = require("jsdom");
 const fs = require("fs");
 const STATIC = require("path").join(__dirname, "..", "..", "algo_rhythm", "static");
 // jsdom does not fetch scripts here, so the visual engine (static/visuals.js) is inlined where the page loads it
-const TAG = '<script src="/static/visuals.js"></script>', page = fs.readFileSync(require("path").join(STATIC, "live.html"), "utf8");
-if (!page.includes(TAG)) throw new Error("live.html no longer loads /static/visuals.js");
-const html = page.replace(TAG, () => `<script>${fs.readFileSync(require("path").join(STATIC, "visuals.js"), "utf8")}</script>`);
+const inline = (page, name) => {
+  const tag = `<script src="/static/${name}"></script>`;
+  if (!page.includes(tag)) throw new Error(`live.html no longer loads /static/${name}`);
+  return page.replace(tag, () => `<script>${fs.readFileSync(require("path").join(STATIC, name), "utf8")}</script>`);
+};
+const html = inline(inline(fs.readFileSync(require("path").join(STATIC, "live.html"), "utf8"), "visuals.js"), "player.js");
+const CODE = "TESTAB", ROUTES = {"/": `/p/${CODE}/host`, "/guest": `/p/${CODE}`, "/presenter": `/p/${CODE}/screen`};
+// the page's own URLs -> the ones these checks were written against
+const plain = url => url.replace(new RegExp(`^/api/p/${CODE}`), "").replace(/^\/api/, "");
 
 const entry = (name, extra = {}) => ({name, bpm: 97, key: "10B", energy: "low", mood: "bright/laid-back", kind: "blend", match: 0.72, request: false, status: "planned", ...extra});
-const base = {api: 2, status: "playing", level: "low", levels: ["low","medium","high","max"], now: entry("Behti Hawa Sa Tha Woh - 3 Idiots"),
+const base = {api: 3, status: "playing", level: "low", levels: ["low","medium","high","max"], now: entry("Behti Hawa Sa Tha Woh - 3 Idiots"),
   position_s: 38.4, length_s: 70, mixing: null, next: [entry("Kabira Encore - YJHD", {status: "locked"}), entry("Tum Hi Ho", {request: true, kind: "echo", match: 0.31})],
   requests: [], history: ["Baarishein - Anuv Jain"], log: ["02:10:00  vibe set to low"]};
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -18,8 +27,22 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 function open(path, fetchFn, setup) {
   const errors = [], vc = new VirtualConsole();
   vc.on("jsdomError", e => { if (!/Not implemented/.test(e.message)) errors.push(e.message); });
-  const dom = new JSDOM(html, {runScripts: "dangerously", pretendToBeVisual: true, url: "http://127.0.0.1:8765" + path, virtualConsole: vc,
-    beforeParse(w) { w.fetch = fetchFn; w.navigator.sendBeacon = (url, blob) => { w.beacons = (w.beacons || 0) + 1; return true; }; if (setup) setup(w); }});
+  const [route, query] = path.split("?");
+  const dom = new JSDOM(html, {runScripts: "dangerously", pretendToBeVisual: true, url: "http://127.0.0.1:8765" + (ROUTES[route] || route) + (query ? "?" + query : ""), virtualConsole: vc,
+    beforeParse(w) {
+      w.fetch = (url, opt) => {
+        if (opt && opt.method === "POST" && opt.body && opt.headers && opt.headers["X-Host-Key"]) {
+          const b = JSON.parse(opt.body); b.host = true; opt = {...opt, body: JSON.stringify(b)};
+        }
+        // an answer that arrives after the check closed the window is dropped (the page is gone)
+        const gone = () => new Promise(() => {});
+        return Promise.resolve(fetchFn(plain(url), opt)).then(v => (w.document ? v : gone()), e => { if (!w.document) return gone(); throw e; });
+      };
+      w.navigator.sendBeacon = (url, blob) => { w.beacons = (w.beacons || 0) + 1; return true; };
+      w.WebSocket = class { constructor() { this.readyState = 0; } send() {} close() {} };   // live updates: the checks feed /state instead
+      w.localStorage.setItem(`algo-host-${CODE}`, "host-key-for-tests");                 // this browser started the party
+      if (setup) setup(w);
+    }});
   return {dom, errors, D: dom.window.document};
 }
 
@@ -60,7 +83,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   check("normal: status line names what comes next", /Up next: Kabira Encore, as a blend/.test(o.status), o.status);
   check("normal: no banners, no script errors", !o.stale && o.conn === "" && o.err === "" && !o.errors.length, o);
   check("admin: view tabs, talk and request shown; garden has a label", o.tabs && o.talk && o.q && /decorative/.test(o.garden), o);
-  check("admin: closing the tab sends the goodbye beacon", o.beacons === 1, o.beacons);
+  check("admin: closing the tab no longer stops anything (no goodbye beacon)", o.beacons === 0, o.beacons);
 
   o = await load(() => ({...base, mixing: {from: "Behti Hawa Sa Tha Woh - 3 Idiots", to: "Kabira Encore - YJHD", kind: "blend", progress: 0.4}}));
   check("mixing: blend bar says blending now with both songs and 40%", /Behti Hawa.*Blending now ?40%.*Kabira Encore/.test(o.blend), o.blend);
@@ -228,11 +251,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     await wait(1500);
     check("presenter: guests' reactions rise on the big screen; the requester is credited", P.D.getElementById("bursts").children.length === 2
       && P.D.getElementById("nowby").textContent === "Requested by Priya" && !P.D.getElementById("nowby").hidden, P.D.getElementById("bursts").children.length);
-    check("presenter: on a local-only server there is no guest address to show", P.D.getElementById("join").hidden);
-    ps = {...ps, guest_url: "http://192.168.1.5:8765/guest"};
-    await wait(1200);
-    check("presenter: shows where to request songs, big", !P.D.getElementById("join").hidden && P.D.getElementById("joinurl").textContent === "192.168.1.5:8765/guest"
-      && !P.errors.length, P.errors);
+    check("presenter: shows where guests join, big", !P.D.getElementById("join").hidden && P.D.getElementById("joinurl").textContent === `127.0.0.1:8765/p/${CODE}`
+      && !P.errors.length, [P.D.getElementById("joinurl").textContent, P.errors]);
     P.dom.window.close();
     const A2 = open("/", async (url) => ({ok: true, json: async () => (url === "/songs" ? [] : {...base, reactions: [{id: 1, emoji: "🔥"}], next: [entry("Tum Hi Ho", {request: true, by: "Priya"})]})}));
     await wait(1500);
@@ -268,7 +288,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   lv[5].click(); await wait(50);
   check("vibes: tapping peak posts /vibe peak", posts.length === 1 && posts[0].url === "/vibe" && posts[0].vibe === "peak", posts);
   D.getElementById("skip").click(); await wait(50);
-  check("transport: skip posts skip", posts[1] && posts[1].action === "skip", posts);
+  check("transport: skip does nothing until this device plays the music", posts.length === 1, posts);
   posts.length = 0;
   const T = D.getElementById("talk"); T.value = "build it up";
   D.getElementById("talkform").dispatchEvent(new dom.window.Event("submit", {cancelable: true}));
@@ -483,10 +503,10 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
       && aG.stats.world === "koi" && aG.kaleido === false, [sel.value, aG.stats.world, aG.kaleido]);
     sel.value = "flowers"; sel.dispatchEvent(new A.dom.window.Event("change"));
     kal.click();
-    const saved = JSON.parse(A.dom.window.localStorage.getItem("algo-visuals")), link = A.D.querySelector('nav.tabs a[href^="/presenter"]').getAttribute("href");
+    const saved = JSON.parse(A.dom.window.localStorage.getItem("algo-visuals")), link = A.D.querySelector('nav.tabs a[data-to="screen"]').getAttribute("href");
     check("admin visuals: Flowers + Kaleidoscope apply at once, are stored, and the Presenter link carries them",
       aG.stats.world === "flowers" && aG.kaleido === true && kal.getAttribute("aria-checked") === "true" && saved.world === "flowers" && saved.kaleido === true
-      && link === "/presenter?world=flowers&kaleido=1", [aG.stats.world, aG.kaleido, saved, link]);
+      && link === `/p/${CODE}/screen?world=flowers&kaleido=1`, [aG.stats.world, aG.kaleido, saved, link]);
     A.dom.window.close();
     const U = vis("/presenter?world=lanterns&kaleido=1", () => base);
     await wait(300);

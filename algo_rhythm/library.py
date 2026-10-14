@@ -101,8 +101,10 @@ def stem_rel(file):
 
 
 def media_url(rel):
-    """The browser's address for a file of the library: the server answers it (algo_rhythm.server /media)."""
-    return "/media/" + rel
+    """The browser's address for a file of the library: the server answers it (algo_rhythm.server /media). Quoted:
+    song names hold spaces, "#" ("F#m") and "?" that would otherwise end the path."""
+    from urllib.parse import quote
+    return "/media/" + quote(rel, safe="/")
 
 
 def store_asset(kind, audio, key=None):

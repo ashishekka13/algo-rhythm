@@ -26,6 +26,8 @@ import numpy as np
 import pyrubberband as pyrb
 from scipy.signal import butter, sosfilt
 
+from algo_rhythm import timing
+
 OVERLAP_BEATS = 32
 BASS_SWAP_BEATS = 8
 ECHO_REPEATS, ECHO_FEEDBACK = 4, 0.5
@@ -48,7 +50,8 @@ def warp(audio, beats, slots, sr):
     clip = audio[: src[-1]]
     # crispness 6: measured on drum-heavy songs it keeps the highs (-0.5 dB vs -1.0 dB) and the hits sharp;
     # the "finer" R3 engine measured duller (-2 dB highs, smeared hits) and 5-10x slower.
-    out = pyrb.timemap_stretch(clip, sr, list(zip(src, dst)), rbargs={"--crisp": "6"})
+    with timing.count("rubberband"):
+        out = pyrb.timemap_stretch(clip, sr, list(zip(src, dst)), rbargs={"--crisp": "6"})
     if len(out) < dst[-1]:
         out = np.pad(out, ((0, dst[-1] - len(out)), (0, 0)))
     return out[: dst[-1]]
@@ -95,6 +98,11 @@ def grid_slip_ms(x, slots, sr, win_s=4.0):
     w = int(win_s * sr)
     offs = [phase_offset(x[k:k + w], clk[k:k + w], sr, max_ms=90) / sr * 1000 for k in range(0, len(x) - w, w // 2)]
     return float(np.ptp(offs)) if offs else 0.0
+
+
+def _timed_slip(a_w, b_w, slots, sr):
+    with timing.count("grid_slip"):
+        return round(max(grid_slip_ms(a_w, slots, sr), grid_slip_ms(b_w, slots, sr)), 1)
 
 
 def shift(x, samples):
@@ -274,7 +282,8 @@ def echo_tail(a, period, sr, repeats=ECHO_REPEATS, feedback=ECHO_FEEDBACK, src_p
     n = int(period * sr)
     src = a[-int((src_period or period) * sr):]
     if src_period and abs(src_period - period) > 1e-3:
-        src = pyrb.time_stretch(src, sr, src_period / period)
+        with timing.count("rubberband"):
+            src = pyrb.time_stretch(src, sr, src_period / period)
     src = np.pad(src[:n], ((0, max(0, n - len(src))), (0, 0)))
     edge = min(int(SEAM_FADE_S * sr), n // 4)  # each repeat starts and ends at zero: no click where repeats meet
     ramp = np.linspace(0, 1, edge)[:, None]
@@ -339,7 +348,7 @@ def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None,
     b_w = shift(b_w, nudge)
     info.update(type="blend",
                 overlap_s=round(float(slots[-1]), 1),
-                grid_slip_ms=round(max(grid_slip_ms(a_w, slots, sr), grid_slip_ms(b_w, slots, sr)), 1),
+                grid_slip_ms=_timed_slip(a_w, b_w, slots, sr),
                 phase_nudge_ms=round(nudge / sr * 1000, 1))
     if a_voc is not None and b_voc is not None:
         av_w, bv_w = warp(a_voc[a0:], tail, slots, sr), shift(warp(b_voc, head, slots, sr), nudge)

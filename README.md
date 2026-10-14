@@ -102,7 +102,7 @@ algo-rhythm/
     config.py  db.py  repository.py  storage.py  importer.py
     static/live.html (start page, host, guest, big screen), static/player.js (the browser's mixer), static/visuals.js, static/ab.html
   tools/             validate_tags, ab_harness, feature_study, explain_mix, make_test_track (synthetic library), lyrics
-  tests/             test_recipe, test_web, test_feedback, test_pipeline, test_data, test_talk, ..., ui/ (Chromium, jsdom)
+  tests/             test_recipe, test_web, test_advance, test_feedback, test_pipeline, test_data, test_talk, ..., ui/ (Chromium, jsdom)
 ```
 
 ## 4. How it works
@@ -206,6 +206,7 @@ The synthetic library (`python -m tools.make_test_track --library test_library -
 |---|---|
 | `python -m tests.test_recipe` | a recipe is the join the server rendered (blend with vocal swap, blend 2:1 without stems, echo-out); rebuild exact |
 | `python -m tests.test_web` | the API end to end: party, host key, play, advance, sync, a request moved up, votes, reactions, talk, media rules, WebSockets, restart |
+| `python -m tests.test_advance` | `/advance` when a render fails (echo-out retry, then the song is dropped), a part too short for a blend, the timing log line |
 | `python -m tests.test_feedback` | clips of each join, votes (upsert, rate limit, song vs mix), Gemini review with a fake answer, analytics export |
 | `python -m tests.test_pipeline` | the Cloud Run jobs on local folders (Demucs replaced by the true vocals), two tasks, a rerun, a party from the result |
 | `python -m tests.ui.player_browser` | Chromium: player.js renders a join like the reference; a live party (start, advance, skip through a join, pause, a guest) |

@@ -30,7 +30,7 @@ import uuid
 import numpy as np
 from sqlalchemy import func, select, text
 
-from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, recipe, repository, storage
+from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, recipe, repository, storage, timing
 
 log = logging.getLogger("algo_rhythm.party")
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I: read off a big screen
@@ -341,11 +341,43 @@ def _clip(party_id, pos, j, skip):
 def advance(code, swap=False):
     """Make the next join ready: lock in the next song, render the join into it (without holding the lock: it takes
     seconds) and attach its recipe. swap=True: a fitting request takes the place of the locked next song instead.
-    Returns {"status": "ready" | "rendering" | "nothing"}."""
+    Returns {"status": "ready" | "rendering" | "nothing" | "failed"} ("failed": the song could not be mixed into and was
+    dropped; the next call picks another). Every call that renders logs where its time went (one JSON line)."""
+    with timing.request() as t:
+        result = {"status": "error"}
+        try:
+            result = _advance(code, swap, t)
+            return result
+        finally:
+            if "render" in t.stages:
+                log.info("advance %s timing %s", code, t.summary(status=result["status"], swap=swap))
+
+
+def _give_up(code, token, swap, drop, name=None):
+    """A render that failed: free the claim at once (a stale "rendering" mark would stall the party for RENDER_STALE_S
+    while the music runs out). drop: the next song cannot be mixed into at all, so it leaves the timeline and the
+    planner, which counts it as played, picks another."""
+    lib = library.get()
+    with locked(code) as (row, st):
+        sess = session_from(st, lib)
+        tl = sess.timeline
+        if swap:
+            if (st.get("swapping") or {}).get("token") == token:
+                st.pop("swapping")
+        elif tl and "item" not in tl[-1] and (tl[-1].get("rendering") or [None])[0] == token:
+            if drop:
+                tl.pop()
+                sess._say(f"skipped '{name}': it could not be mixed in")
+            else:
+                tl[-1].pop("rendering")
+        dump(sess, st)
+
+
+def _advance(code, swap, t):
     lib = library.get()
     token = uuid.uuid4().hex[:12]
     # 1. decide what to render, and claim it
-    with locked(code) as (row, st):
+    with t.stage("claim"), locked(code) as (row, st):
         party_id = row.id
         if st["status"] == "idle" or not st["timeline"]:
             return {"status": "nothing"}
@@ -377,20 +409,54 @@ def advance(code, swap=False):
                 "mc": copy.deepcopy(_mc_state(st)), "pos": st["positions"] + 1}
     # 2. render it (no lock: guests can request and vote meanwhile)
     base, nxt_entry = snap["base"], snap["target"]
-    a = joins.rebuild(lib.root, lib.songs[base["entry"]["song"]], base["ex"])
-    planner = lib.planner()
+    name = lib.songs[nxt_entry["song"]]["name"]
+    planned = copy.deepcopy(nxt_entry)
     said = []
-    j = joins.render_join(lib.root, lib.songs, base["entry"], a, base["skip"], nxt_entry,
-                          alternatives=lambda limit: live.alternatives(planner, lib.songs, base["entry"], nxt_entry, limit),
-                          say=said.append)
-    J = recipe.next_join_at(base["item"], base["body_start"], len(j.before))
-    rng = random.Random(f"{code}:{snap['pos']}")
-    line = _mc_line(lib, snap["mc"], snap["level"], J, j, rng)
-    item = recipe.join_item(a, j, J, asset=lambda kind, audio: library.store_asset(kind, audio),
-                            mc_line=line[:3] if line else None)
+    try:
+        with t.stage("rebuild"):
+            a = joins.rebuild(lib.root, lib.songs[base["entry"]["song"]], base["ex"])
+    except Exception:
+        log.exception("advance %s: could not rebuild the song on the air", code)
+        _give_up(code, token, swap, drop=False)
+        raise
+    try:
+        with t.stage("render"):
+            planner = lib.planner()
+            j = joins.render_join(lib.root, lib.songs, base["entry"], a, base["skip"], nxt_entry,
+                                  alternatives=lambda limit: live.alternatives(planner, lib.songs, base["entry"], nxt_entry, limit),
+                                  say=said.append)
+    except Exception:
+        # the planned join cannot be made: an echo-out (no stretch, no blend checks) into the same part instead
+        log.exception("advance %s: the join into '%s' failed; trying an echo-out", code, name)
+        nxt_entry.clear()
+        nxt_entry.update(copy.deepcopy(planned), transition_in="echo")
+        said = [f"into '{name}': the mix could not be made, used an echo-out"]
+        try:
+            with t.stage("render_fallback"):
+                j = joins.render_join(lib.root, lib.songs, base["entry"], a, base["skip"], nxt_entry, say=said.append)
+        except Exception:
+            log.exception("advance %s: no join into '%s' at all; dropping it", code, name)
+            _give_up(code, token, swap, drop=True, name=name)
+            return {"status": "failed"}
+    try:
+        J = recipe.next_join_at(base["item"], base["body_start"], len(j.before))
+        rng = random.Random(f"{code}:{snap['pos']}")
+        with t.stage("mc"):
+            try:
+                line = _mc_line(lib, snap["mc"], snap["level"], J, j, rng)
+            except Exception:  # the join goes ahead without the MC
+                log.exception("advance %s: no MC line", code)
+                line = None
+        with t.stage("recipe"):
+            item = recipe.join_item(a, j, J, asset=lambda kind, audio: library.store_asset(kind, audio),
+                                    mc_line=line[:3] if line else None)
+    except Exception:
+        log.exception("advance %s: could not make the recipe of the join into '%s'", code, name)
+        _give_up(code, token, swap, drop=False)
+        raise
     body_start = j.nxt_skip
     # 3. attach it, unless the party moved on meanwhile (restart, another swap)
-    with locked(code) as (row, st):
+    with t.stage("attach"), locked(code) as (row, st):
         sess = session_from(st, lib)
         sess.on_play = lambda entry, info: _record_play(row.id, sess, entry, info)
         tl = sess.timeline
@@ -423,7 +489,8 @@ def advance(code, swap=False):
         sess.played_hook(e, j.info)
         pos = e["position"]
         dump(sess, st)
-    _clip(party_id, pos, j, base["skip"])
+    with t.stage("clip"):
+        _clip(party_id, pos, j, base["skip"])
     return {"status": "ready"}
 
 

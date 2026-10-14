@@ -12,7 +12,7 @@ the previous request worked with (rebuild) instead of keeping it in memory betwe
 """
 import numpy as np
 
-from algo_rhythm import dj, filler, live, transition
+from algo_rhythm import dj, filler, live, timing, transition
 
 SR = dj.OUT_SR
 
@@ -163,8 +163,12 @@ def render_join(library, songs, entry, a, skip, nxt_entry, alternatives=lambda l
                 nxt_entry["window"] = w
                 nxt = load_in(w)
             plan = {}
-            before, overlap, nxt_skip, info = transition.transition(seg, beats, nxt.audio, nxt.beats, SR, "blend",
-                                                                    seg_voc, nxt.voc, plan=plan)
+            with timing.count("blend_try"):
+                before, overlap, nxt_skip, info = transition.transition(seg, beats, nxt.audio, nxt.beats, SR, "blend",
+                                                                        seg_voc, nxt.voc, plan=plan)
+            if plan.get("kind") != "blend":  # the incoming excerpt is too short to hold the overlap at this tempo ratio
+                why = "the next song's part was too short for a blend"
+                break
             if info.get("vocal_swap"):
                 overlap = live.level_swap(before[skip:], overlap, nxt.audio, nxt_skip, SR, plan=plan)
             clash = min(entry["window"]["out_vocal"], w["in_vocal"])
@@ -186,7 +190,7 @@ def render_join(library, songs, entry, a, skip, nxt_entry, alternatives=lambda l
         nxt_entry["window"] = original  # nothing worked: echo out into the planned part
         nxt = load_in(original)
         kind = nxt_entry["transition_in"] = "echo"
-        say(f"into '{name}': {why} (tried other parts too), used an echo-out")
+        say(f"into '{name}': {why}{' (tried other parts too)' if n else ''}, used an echo-out")
     # An echo-out is a hard cut, so it matters even more where the incoming song starts: audition parts too.
     cands = [nxt_entry["window"]] + alternatives(3)
     best = None
@@ -194,8 +198,9 @@ def render_join(library, songs, entry, a, skip, nxt_entry, alternatives=lambda l
         nxt_entry["window"] = w
         cand = load_in(w)
         plan = {}
-        before, overlap, nxt_skip, info, cost, audio, voc, nbeats = live.echo_out(
-            seg, beats, cand.audio, cand.beats, live.before_tail(seg, skip), SR, seg_voc, cand.voc, plan=plan)
+        with timing.count("echo_try"):
+            before, overlap, nxt_skip, info, cost, audio, voc, nbeats = live.echo_out(
+                seg, beats, cand.audio, cand.beats, live.before_tail(seg, skip), SR, seg_voc, cand.voc, plan=plan)
         cand.audio, cand.voc, cand.beats = audio, voc, nbeats
         cand.p["entry"] = plan["entry"]
         if best is None or cost < best[0]:

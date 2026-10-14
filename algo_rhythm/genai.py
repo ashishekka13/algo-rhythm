@@ -158,7 +158,11 @@ def _send(url, body, timeout, spend=True):
             last = f"HTTP {r.status_code}"
             continue
         if r.status_code != 200:
-            raise GenAIError(f"Gemini answered HTTP {r.status_code}")
+            try:
+                msg = ": " + r.json()["error"]["message"][:200]
+            except Exception:
+                msg = ""
+            raise GenAIError(f"Gemini answered HTTP {r.status_code}{msg}")
         try:
             return r.json()
         except ValueError:
@@ -198,8 +202,8 @@ def generate(task, prompt_version, parts, schema, *, cache=None, on_call=None, t
     finally:
         ms = int((time.monotonic() - t0) * 1000)
         ename = type(err).__name__ if err else None
-        log.info("genai task=%s model=%s prompt_version=%s cached=%s ok=%s latency_ms=%d error=%s",
-                 task, model, prompt_version, cached, err is None, ms, ename)
+        log.info("genai task=%s model=%s prompt_version=%s cached=%s ok=%s latency_ms=%d error=%s%s",
+                 task, model, prompt_version, cached, err is None, ms, ename, f" ({err})" if err else "")
         if on_call:
             on_call(task, model, prompt_version, cached, err is None, ms, ename)
 

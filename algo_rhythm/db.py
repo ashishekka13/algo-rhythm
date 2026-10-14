@@ -60,10 +60,17 @@ class SongFeature(Base):
 
 
 class Party(Base):
+    """One night. The web player keeps the whole session here (state, algo_rhythm.party), so any server instance can
+    answer any request: the server holds nothing between requests but caches of the library."""
     __tablename__ = "parties"
     id: Mapped[int] = mapped_column(primary_key=True)
     level: Mapped[str] = mapped_column(String(16))
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    code: Mapped[str | None] = mapped_column(String(16), unique=True, nullable=True)  # what guests type or open
+    host_key: Mapped[str | None] = mapped_column(String(64), nullable=True)  # sha256 of the host's secret
+    state: Mapped[dict | None] = mapped_column(Json, nullable=True)
+    version: Mapped[int | None] = mapped_column(Integer, nullable=True)  # bumped on every change of state
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Play(Base):
@@ -114,6 +121,36 @@ class TransitionReview(Base):
     smooth: Mapped[bool]
     issues: Mapped[list] = mapped_column(Json)
     summary: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Reaction(Base):
+    """A guest's emoji, shown rising on every guest and presenter screen for a few seconds."""
+    __tablename__ = "reactions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    party_id: Mapped[int] = mapped_column(ForeignKey("parties.id"), index=True)
+    guest: Mapped[str] = mapped_column(String(64))
+    emoji: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class GuestAction(Base):
+    """One rate-limited action by a guest (a vote): counted over the last minute, kept for the analytics."""
+    __tablename__ = "guest_actions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    party_id: Mapped[int] = mapped_column(ForeignKey("parties.id"), index=True)
+    guest: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class Asset(Base):
+    """Audio the server made for the browser (an MC line, a drum fill), stored under STORAGE_URL (or the library)."""
+    __tablename__ = "assets"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)  # sha256 of what made it: the same line is made once
+    kind: Mapped[str] = mapped_column(String(16))
+    path: Mapped[str] = mapped_column(Text)  # relative to the library / bucket prefix
+    seconds: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
@@ -169,7 +206,20 @@ def create_all(engine):
         except Exception:
             SongEmbedding.__table__.c.vector.type = JSONB()
     Base.metadata.create_all(engine)
-    # ponytail: the one column added since the first release, by hand; switch to Alembic at the next schema change
-    if "clip" not in {c["name"] for c in inspect(engine).get_columns("plays")}:
-        with engine.begin() as c:
-            c.execute(text("ALTER TABLE plays ADD COLUMN clip TEXT"))
+    add_missing_columns(engine)
+
+
+def add_missing_columns(engine):
+    """Columns added to an existing table since it was created (all nullable): ALTER TABLE ADD COLUMN for each.
+    ponytail: enough while columns are only ever added; switch to Alembic when one has to change or go."""
+    insp = inspect(engine)
+    for table in Base.metadata.sorted_tables:
+        have = {c["name"] for c in insp.get_columns(table.name)}
+        for col in table.columns:
+            if col.name not in have:
+                kind = col.type.compile(dialect=engine.dialect)
+                with engine.begin() as c:
+                    c.execute(text(f'ALTER TABLE {table.name} ADD COLUMN {col.name} {kind}'))
+                if col.unique:
+                    with engine.begin() as c:
+                        c.execute(text(f'CREATE UNIQUE INDEX IF NOT EXISTS ix_{table.name}_{col.name} ON {table.name} ({col.name})'))

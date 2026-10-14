@@ -30,7 +30,7 @@ from algo_rhythm import mc
 from algo_rhythm import tagger
 from algo_rhythm import transition
 
-API_VERSION = 2              # the page compares this with its own; a mismatch means "reload the page"
+API_VERSION = 3              # the page compares this with its own; a mismatch means "reload the page"
 AHEAD_S = 10                 # audio rendered ahead of the speakers; transitions are prepared inside this
 EXCERPT_S = 80   # preferred length only; each song's window is free between dj.FLEX_MIN_S and FLEX_MAX_S
 STATIC = Path(__file__).parent / "static" / "live.html"
@@ -169,6 +169,8 @@ class Session:
             return {}
 
     def _save_history(self):
+        if self.history_path is None:  # the web player keeps the counts in the party's state instead
+            return
         try:
             self.history_path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.history_path.with_suffix(".tmp")
@@ -231,6 +233,9 @@ class Session:
         self.planner.recent = [t["entry"]["song"] for t in self.timeline]
         self.queue = self.planner.plan(last["song"], last["window"], avoid, live_plan.LEVELS[self.level], req, slots,
                                        penalty=self._penalties())
+        if not self.queue:  # every song that could follow was heard lately: only the last two are off limits now
+            self.queue = self.planner.plan(last["song"], last["window"], set(self.played[-2:]), live_plan.LEVELS[self.level],
+                                           req, slots, penalty=self._penalties())
         for p, e in enumerate(self.queue):
             if e["request"]:
                 locked = sum(t["start_s"] > self.playhead() for t in self.timeline)
@@ -674,6 +679,51 @@ def blend_is_clean(before, overlap, nxt, nxt_skip, info, sr):
     return db(low(o)) - max(db(low(a)), db(low(b))) <= dj.QA_BASS_PILEUP_DB
 
 
+def alternatives(planner, songs, entry, nxt_entry, limit=2):
+    """Other parts of the incoming song, best first: the hook is not the only place a mix can go."""
+    song, cur = songs[nxt_entry["song"]], nxt_entry["window"]
+    seen, scored = {(cur["start_beat"], cur["end_beat"])}, []
+    for w in planner.win[nxt_entry["song"]] + planner.all_windows(nxt_entry["song"]):
+        key = (w["start_beat"], w["end_beat"])
+        if key in seen:
+            continue
+        seen.add(key)
+        if w["last_rel"] < -live_plan.QUIET_EDGE_DB or w["out_low_rel"] < -live_plan.DIP_EDGE_DB \
+                or w["in_low_rel"] < -live_plan.DIP_EDGE_DB or w["first_rel"] < -live_plan.QUIET_EDGE_DB:
+            continue
+        t = dj.window_terms(song, song["energy_pct"], w, entry["window"])
+        scored.append((t["join"] + t["clean"] + 0.5 * t["hook"] + t["exit"] + t["entry"] + t["best"], -w["start_beat"], w))
+    return [w for _, _, w in sorted(scored, key=lambda x: (x[0], x[1]), reverse=True)[:limit]]
+
+
+def mc_room(overlap, nxt, nxt_skip, nxt_voc, info, sr=dj.OUT_SR):
+    """Where an MC line may go near this join: (music, sung segments in it, seconds to search) with music = the overlap
+    and the incoming song after it; None when there is no place (no stem, a fill, a blend without the vocal swap, or
+    too little song before the next join). The line goes over an instrumental stretch (the echo tail, the incoming
+    lead-in, the gap in a vocal swap), never over a sung line."""
+    # with a fill the incoming song starts late, so its sung lines are not where the MC would look
+    if nxt_voc is None or info.get("filler") or (info.get("type") == "blend" and not info.get("vocal_swap")):
+        return None
+    n_ov = len(overlap)
+    room = min(int(mc.SEARCH_S * sr), n_ov + len(nxt) - nxt_skip - 20 * sr)  # stay clear of the next join
+    if room <= 0:
+        return None
+    ref = transition.vocal_ref_db(nxt_voc, sr)
+    if info.get("type") == "blend":  # sung: the outgoing voice until its cut, the incoming one's lines once it is in
+        out_at, in_at = info["vocal_out_at_s"], info["vocal_in_at_s"]
+        gate = out_at if in_at is None else in_at
+        # ponytail: linear map of nxt[:nxt_skip] onto the stretched overlap, +-0.3 s for the tempo ramp; exact = warped stems
+        scale = n_ov / max(1, nxt_skip)
+        segs = [(0.0, out_at)] + [(max(gate, a * scale - 0.3), b * scale + 0.3)
+                                  for a, b in transition.sung_segments(nxt_voc[:nxt_skip], sr, ref) if b * scale + 0.3 > gate]
+        segs += [(a + n_ov / sr, b + n_ov / sr) for a, b in
+                 transition.sung_segments(nxt_voc[nxt_skip:nxt_skip + max(0, room - n_ov)], sr, ref)]
+    else:  # echo-out: the echo is music only, and the overlap runs on the incoming song's own clock
+        segs = transition.sung_segments(nxt_voc[:room], sr, ref)
+    k = max(0, room - n_ov)
+    return np.concatenate([overlap, nxt[nxt_skip:nxt_skip + k]]), segs, room / sr
+
+
 class Engine(threading.Thread):
     """Renders the audio one transition ahead and feeds the sink."""
 
@@ -747,21 +797,7 @@ class Engine(threading.Thread):
             raise
 
     def _alternatives(self, entry, nxt_entry, limit=2):
-        """Other parts of the incoming song, best first: the hook is not the only place a mix can go."""
-        sess = self.sess
-        song, cur = sess.songs[nxt_entry["song"]], nxt_entry["window"]
-        seen, scored = {(cur["start_beat"], cur["end_beat"])}, []
-        for w in sess.planner.win[nxt_entry["song"]] + sess.planner.all_windows(nxt_entry["song"]):
-            key = (w["start_beat"], w["end_beat"])
-            if key in seen:
-                continue
-            seen.add(key)
-            if w["last_rel"] < -live_plan.QUIET_EDGE_DB or w["out_low_rel"] < -live_plan.DIP_EDGE_DB \
-                    or w["in_low_rel"] < -live_plan.DIP_EDGE_DB or w["first_rel"] < -live_plan.QUIET_EDGE_DB:
-                continue
-            t = dj.window_terms(song, song["energy_pct"], w, entry["window"])
-            scored.append((t["join"] + t["clean"] + 0.5 * t["hook"] + t["exit"] + t["entry"] + t["best"], -w["start_beat"], w))
-        return [w for _, _, w in sorted(scored, key=lambda x: (x[0], x[1]), reverse=True)[:limit]]
+        return alternatives(self.sess.planner, self.sess.songs, entry, nxt_entry, limit)
 
     def _render_join(self, entry, a, skip, nxt_entry):
         """Render the transition into nxt_entry (joins.render_join, the same code the web server runs).
@@ -817,28 +853,14 @@ class Engine(threading.Thread):
         echo tail, the incoming lead-in, the gap in a vocal swap), never over a sung line. No such stretch: next join."""
         sess, sr = self.sess, dj.OUT_SR
         now = self.sink.written / sr
-        # with a fill the incoming song starts late, so its sung lines are not where the MC would look: skip this join
         got = sess.mc and nxt_voc is not None and not info.get("filler") and sess.mc.take(now, sess.level, wait=not getattr(self.sink, "realtime", True))
-        if not got or (info.get("type") == "blend" and not info.get("vocal_swap")):
+        room = got and mc_room(overlap, nxt, nxt_skip, nxt_voc, info, sr)
+        if not room:
             return overlap, nxt
+        music, segs, end_s = room
         n_ov = len(overlap)
-        room = min(int(mc.SEARCH_S * sr), n_ov + len(nxt) - nxt_skip - 20 * sr)  # stay clear of the next join
-        if room <= 0:
-            return overlap, nxt
-        ref = transition.vocal_ref_db(nxt_voc, sr)
-        if info.get("type") == "blend":  # sung: the outgoing voice until its cut, the incoming one's lines once it is in
-            out_at, in_at = info["vocal_out_at_s"], info["vocal_in_at_s"]
-            gate = out_at if in_at is None else in_at
-            # ponytail: linear map of nxt[:nxt_skip] onto the stretched overlap, +-0.3 s for the tempo ramp; exact = warped stems
-            scale = n_ov / max(1, nxt_skip)
-            segs = [(0.0, out_at)] + [(max(gate, a * scale - 0.3), b * scale + 0.3)
-                                      for a, b in transition.sung_segments(nxt_voc[:nxt_skip], sr, ref) if b * scale + 0.3 > gate]
-            segs += [(a + n_ov / sr, b + n_ov / sr) for a, b in
-                     transition.sung_segments(nxt_voc[nxt_skip:nxt_skip + max(0, room - n_ov)], sr, ref)]
-        else:  # echo-out: the echo is music only, and the overlap runs on the incoming song's own clock
-            segs = transition.sung_segments(nxt_voc[:room], sr, ref)
-        k = max(0, room - n_ov)
-        mixed, at = mc.mix(np.concatenate([overlap, nxt[nxt_skip:nxt_skip + k]]), segs, got[1], sr, end_s=room / sr)
+        k = len(music) - n_ov
+        mixed, at = mc.mix(music, segs, got[1], sr, end_s=end_s)
         if at is None:
             return overlap, nxt
         nxt = nxt.copy()

@@ -169,7 +169,27 @@ def make_library(library, vocals=False):
         truth[name] = t
         print(name)
     (library / "ground_truth.json").write_text(json.dumps(truth, indent=2))
+    write_enrich(library)
     return truth
+
+
+def write_enrich(library):
+    """Made-up Gemini song details (LIBRARY/enrich/<key>.json, as algo_rhythm.enrich writes them), from each track's
+    energy, so the mood and energy paths run without calling Gemini."""
+    from algo_rhythm import tagger
+    (Path(library) / "enrich").mkdir(exist_ok=True)
+    for i, (bpm, tonic, mode, energy) in enumerate(LIBRARY):
+        name = f"Synth {i:02d} - {bpm}bpm {tonic}{'m' if mode == 'minor' else ''} e{int(energy * 100)}.mp3"
+        level = min(4, 1 + int(energy * 4))
+        party = energy >= 0.6
+        answer = {"energy": level, "familiarity": 3, "occasion": ["club"] if party else ["late night"],
+                  "lyric_mood": "energetic" if party else ("romantic" if mode == "major" else "melancholic"),
+                  "confidence": 0.8, "style": "club_edm" if party else "ballad", "rhythm": "straight", "sound": "electronic",
+                  "language": "english" if i % 5 == 4 else "hindi", "voice": "female", "year": 2016 + i % 8,
+                  "moment": "peak" if energy >= 0.85 else "groove" if party else "warmup",
+                  "title": f"Synth {i:02d}", "film": f"{tonic}{'m' if mode == 'minor' else ''} {bpm}", "singers": ["Test Voice"],
+                  "model": "made-up"}
+        (Path(library) / "enrich" / f"{tagger.tag_key(name)}.json").write_text(json.dumps(answer, indent=1))
 
 
 

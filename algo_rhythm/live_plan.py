@@ -231,7 +231,7 @@ class Planner:
         cur_e = self.songs[prev]["energy_pct"]
         if request is None:
             best = self._beam(init, [ramp(cur_e, level_e, k, 1) for k in range(1, h + 1)], played)  # aim at the level from the next song on
-            if not best:
+            if not best or not best[0]["chain"]:  # no song left that may follow (a small library, all heard lately)
                 return []
             chain, seen, alts = best[0]["chain"], {best[0]["chain"][0]["song"]}, []
             for st in best[1:]:  # runners-up for the next slot, for the "under the hood" view

@@ -48,6 +48,10 @@ class QuotaError(GenAIError):
     pass
 
 
+class RateLimited(QuotaError):
+    """HTTP 429: Google's per-minute quota, which refills within minutes; a batch job may wait and try again."""
+
+
 class MemoryCache:
     """Default cache: answers kept for the life of the process. A DB-backed one has the same two methods."""
 
@@ -205,7 +209,7 @@ def _send(url, body, timeout, spend=True):
                 msg = r.json()["error"]["message"].split(". ")[0]
             except Exception:
                 msg = "429"
-            raise QuotaError("Gemini quota used up: " + msg + ". Retry later.")
+            raise RateLimited("Gemini quota used up: " + msg + ". Retry later.")
         if r.status_code in TRANSIENT:
             last = f"HTTP {r.status_code}"
             continue

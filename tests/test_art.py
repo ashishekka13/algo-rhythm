@@ -2,15 +2,17 @@
 import base64
 import io
 import json
+import os
 import tempfile
 from pathlib import Path
 
 from PIL import Image
 
-from algo_rhythm import art
+from algo_rhythm import art, genai
 
 
 def main():
+    os.environ.setdefault("GEMINI_API_KEY", "test-key")  # an URL without credentials; nothing is sent
     png = io.BytesIO()
     Image.new("RGB", (1536, 1536), (200, 40, 90)).save(png, "PNG")
     song = {"sha256": "ab" * 32, "name": "Kala Chashma - Baar Baar Dekho", "mood": "bright/driving",
@@ -36,6 +38,19 @@ def main():
     assert art.load_index(Path(tempfile.mkdtemp())) == {}, "no art yet = empty index"
     bad = lambda url, body, timeout: {"candidates": [{"content": {"parts": [{"text": "sorry"}]}}]}
     assert art.run(lib, [song], jobs=1, send=bad) == (0, 1), "no image in the answer is a failure, not a crash"
+
+    # a 429 waits and tries again; one that outlasts every wait stops the run
+    calls, waited, art.sleep = [], [], lambda s: waited.append(s)
+    def busy_once(url, body, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            raise genai.RateLimited("429")
+        return fake_send(url, body, timeout)
+    assert art.run(Path(tempfile.mkdtemp()), [song], jobs=1, send=busy_once) == (1, 0) and waited == [art.WAITS_S[0]]
+    def busy(url, body, timeout):
+        raise genai.RateLimited("429")
+    waited.clear()
+    assert art.run(Path(tempfile.mkdtemp()), [song], jobs=1, send=busy) == (0, 1) and waited == list(art.WAITS_S)
     print("ART PASS")
 
 

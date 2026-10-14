@@ -1,7 +1,7 @@
 """Song art: one generated image per song, made once ahead of time and animated by the page (no AI while music plays).
 
     python -m algo_rhythm.art LIBRARY --dry-run        what it would make, the prompts and the cost (no calls)
-    python -m algo_rhythm.art LIBRARY [--limit N] [--force] [--jobs 4]
+    python -m algo_rhythm.art LIBRARY [--limit N] [--force] [--jobs 2]
 
 Images come from Gemini's image model through the gateway (same Vertex AI key and daily cap), prompted from the
 song's Gemini details (mood, style, occasion, era, energy) with no faces, text or posters. Each is stored as
@@ -14,6 +14,7 @@ import io
 import json
 import logging
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -24,6 +25,8 @@ MODEL = "gemini-2.5-flash-image"
 PRICE_PER_IMAGE = 0.039  # USD, Gemini 2.5 Flash Image (Oct 2026); check the Vertex AI pricing page before a big run
 MAX_SIDE, QUALITY = 1024, 82
 INDEX = "art/index.json"
+WAITS_S = (20, 40, 80, 160, 300)  # after a 429: Vertex's shared image quota refills within minutes
+sleep = time.sleep  # replaceable in tests
 
 
 def art_id(song):
@@ -71,14 +74,21 @@ def generate(song, send=None):
     return to_jpeg(base64.b64decode(part["inlineData"]["data"]))
 
 
-def run(library, songs, *, jobs=4, send=None):
+def run(library, songs, *, jobs=2, send=None):
     """Make art for `songs`, saving each image and the index as it goes. Returns (made, failed)."""
     library = Path(library)
     (library / "art").mkdir(exist_ok=True)
     index, made, failed = load_index(library), 0, 0
 
     def one(s):
-        return s, generate(s, send)
+        for wait in WAITS_S + (None,):
+            try:
+                return s, generate(s, send)
+            except genai.RateLimited:
+                if wait is None:
+                    raise
+                log.info("rate-limited; trying %s again in %d s", s["name"][:40], wait)
+                sleep(wait)
 
     with ThreadPoolExecutor(jobs) as pool:
         for fut in [pool.submit(one, s) for s in songs]:
@@ -110,7 +120,7 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", help="show what would be made and the cost; no calls")
     ap.add_argument("--limit", type=int, help="make at most this many images")
     ap.add_argument("--force", action="store_true", help="remake images that already exist")
-    ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--jobs", type=int, default=2)
     args = ap.parse_args(argv)
     library = args.library.resolve()
     songs, _ = dj.load_library(library)

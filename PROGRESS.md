@@ -1,8 +1,22 @@
 # algo-rhythm: progress
 
-Updated 2026-10-10 evening. The approach is in `README.md`; this file is the status.
+Updated 2026-10-15. The approach is in `README.md`; this file is the status.
 
-## 0. Latest (2026-10-10, night): productionised
+## 0. Latest (2026-10-14/15): a web app on Google Cloud
+- **Architecture:** stateless FastAPI server (Cloud Run), Cloud SQL for the library and every party's session, the
+  host's browser plays and mixes (Web Audio, `static/player.js`) from per-join recipes the server makes; WebSockets
+  for live updates (one instance for now). Guests join with a party code; the host holds a key.
+- **The browser's mix is checked against the server's:** songs either side of a join sample for sample, overlaps
+  within 0.5 dB, beats within 5 samples (0.1 ms) through a 15 s blend, Chromium's MP3 timing equal to the server's.
+- **Found and fixed on the way:** a vocal-swap blend left a residue louder than the voice (song and stem were
+  stretched separately and subtracted); the planner crashed when every following song had played lately; song
+  files with "#" in the name could not be fetched.
+- **Library build:** Cloud Run Jobs from the originals in the bucket (`algo_rhythm/pipeline.py`): canonical MP3,
+  Demucs on CPU (10 tasks), analysis, Gemini details, search vectors, art. Tested locally; not yet run in the cloud.
+- **Not yet done:** the Google Cloud resources (deploy/gcp.sh, step by step with the user's OK), the first cloud run
+  of the jobs on the 100 originals in `gs://song-mixer-511123-algo-rhythm/library`, and listening to it.
+
+## 0b. 2026-10-10, night: productionised
 - **Name:** algo-rhythm; Python package `algo_rhythm`.
 - **Library:** about 400 songs: songs released before 2015 moved to `library_100/_retired/` (manifest kept); the trendy list added.
 - **Removed:** the downloader. Requests come only from the library.

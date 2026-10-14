@@ -5,7 +5,8 @@ file keep their measured energy. Songs that already have the other details only 
 (about 45 songs per request); a song whose audio is a copy of another is asked about once.
 
     export GEMINI_API_KEY=...        (or put the key alone in ~/.config/song-matcher/gemini_key, chmod 600)
-    .venv/bin/python enrich.py LIBRARY [--force] [--model gemini-3.5-flash-lite]
+    .venv/bin/python -m algo_rhythm.enrich LIBRARY [--force] [--model gemini-3.5-flash-lite]
+    DATABASE_URL=... .venv/bin/python -m algo_rhythm.enrich         the songs in the database (song_ai), no files
 """
 import argparse
 import json
@@ -101,12 +102,75 @@ def match(rows, raw):
     return answers
 
 
+def merged(old, a, names_only, model):
+    """One answer on top of what a song already has (save(), without the file)."""
+    if names_only:
+        return {**old, **clean_names(a)}
+    new = {**clean(a), "model": model}
+    if old.get("source") == "tracklist":  # the DJ list's phase wins
+        new.update(energy=old["energy"], confidence=old["confidence"], source="tracklist")
+    return new
+
+
+def run_db(model=MODEL, force=False):
+    """Database mode: ask about every active song without an answer (song_ai) and store the answers there, with each
+    song's display name. Returns (saved, asked)."""
+    from sqlalchemy import select
+    from algo_rhythm import db, dj, repository
+    with repository.session() as s:
+        rows = s.execute(select(db.Song.id, db.Song.file, db.SongAnalysis.tag).join(db.SongAnalysis)
+                         .where(db.Song.status == "active")).all()
+        ai = {a.song_id: a.answer for a in s.scalars(select(db.SongAI))}
+    todo, names = [], []
+    for sid, file, tag in rows:
+        old = ai.get(sid) or {}
+        row = {"id": sid, "name": Path(file).stem, "bpm": tag["tempo"]["bpm"], "tag": tag, "old": old}
+        if force or "rhythm" not in old:
+            todo.append(row)
+        elif "title" not in old:
+            names.append(row)
+    if not todo and not names:
+        print("nothing to do: every song already has an answer")
+        return 0, 0
+    genai.api_key()
+    done = 0
+    jobs = [(todo[i:i + BATCH], ask) for i in range(0, len(todo), BATCH)]
+    jobs += [(names[i:i + NAME_BATCH], ask_names) for i in range(0, len(names), NAME_BATCH)]
+    for n, (part, fn) in enumerate(jobs, 1):
+        try:
+            answers = match(part, fn(model, part))
+        except QuotaError as e:
+            print(str(e), file=sys.stderr)
+            break
+        except Exception as e:  # keep what is already saved; rerun continues
+            print(f"batch {n} failed: {type(e).__name__}: {e}", file=sys.stderr)
+            continue
+        with repository.session() as s:
+            for r in part:
+                a = answers.get(r["name"].strip().lower())
+                if a is None:
+                    print(f"no answer for {r['name']}", file=sys.stderr)
+                    continue
+                new = merged(r["old"], a, fn is ask_names, model)
+                s.merge(db.SongAI(song_id=r["id"], model=model, prompt_version=PROMPT_VERSION, answer=new))
+                song = s.get(db.Song, r["id"])
+                song.name = dj.display_name(r["tag"], new)
+                done += 1
+                print(f"{r['name']}  ->  {song.name}")
+            s.commit()
+    return done, len(todo) + len(names)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("library", type=Path)
+    ap.add_argument("library", type=Path, nargs="?", help="a library folder; without one, the database (DATABASE_URL)")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--model", default=MODEL)
     args = ap.parse_args(argv)
+    if args.library is None:
+        done, total = run_db(args.model, args.force)
+        print(f"\n{done}/{total} saved to the database")
+        return 0 if done == total else 1
     lib, out = args.library.resolve(), args.library.resolve() / "enrich"
     out.mkdir(exist_ok=True)
     todo, names, copies = [], [], {}  # copies: sha256 -> keys of every tag with that audio
@@ -161,13 +225,7 @@ def save(path, a, names_only, model):
     """Write one answer, keeping what the file already has: name fields are added; a full answer replaces the
     rest, except that the DJ tracklist's energy wins."""
     old = json.loads(path.read_text()) if path.exists() else {}
-    if names_only:
-        new = {**old, **clean_names(a)}
-    else:
-        new = {**clean(a), "model": model}
-        if old.get("source") == "tracklist":  # the DJ list's phase wins
-            new.update(energy=old["energy"], confidence=old["confidence"], source="tracklist")
-    path.write_text(json.dumps(new, indent=1))
+    path.write_text(json.dumps(merged(old, a, names_only, model), indent=1))
 
 
 if __name__ == "__main__":

@@ -49,12 +49,14 @@ _lock = threading.Lock()
 
 
 def signature():
-    """Changes whenever songs are imported, archived or re-analysed: (active songs, last song id, analyses)."""
+    """Changes whenever songs are imported, archived, re-analysed, described or given art."""
     with repository.session() as s:
         return (s.scalar(select(func.count()).select_from(db.Song).where(db.Song.status == "active")),
                 s.scalar(select(func.max(db.Song.id))),
                 s.scalar(select(func.count()).select_from(db.SongAnalysis)),
-                s.scalar(select(func.count()).select_from(db.SongAI)))
+                s.scalar(select(func.count()).select_from(db.SongAI)),
+                s.scalar(select(func.count()).select_from(db.SongEmbedding)),
+                s.scalar(select(func.count()).select_from(db.Asset).where(db.Asset.kind == "art")))
 
 
 def load():
@@ -66,6 +68,8 @@ def load():
     lib = Library(songs, root)
     search.attach(root, songs)
     from algo_rhythm import art
+    if config.settings().storage_url:
+        (root / art.INDEX).unlink(missing_ok=True)  # the bucket's index, not the copy fetched last time
     lib.art = art.load_index(root)
     lib.signature = signature()
     log.info("library loaded: %d songs (%d skipped) in %.1f s", len(songs), len(skipped), time.monotonic() - t0)

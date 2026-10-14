@@ -1,104 +1,132 @@
 # algo-rhythm
 
-A live AI DJ for a Bollywood library (about 400 songs today). Every song is analysed once. The player then plays continuously through the speakers of the machine it runs on and mixes like a DJ. You steer it from a web page: **4 energy levels**, **song requests from the library**, and **Talk to the DJ** (plain words, in English or Hinglish, turned into DJ actions by Gemini).
+A live AI DJ for a Bollywood library, as a web app. Every song is analysed once and stored in the database. A party
+is started on the device connected to the speakers: **that browser plays and mixes the music**, from a plan the
+server makes (which song next, which part of it, and a recipe for each join). Guests join with the party code on
+their phones to request songs, vote and react; a big screen shows what is playing. You steer it with **6 vibes**
+(an energy level and a mood), **song requests** and **Talk to the DJ** (English or Hinglish, turned into DJ actions
+by Gemini).
 
-> Status, numbers and open items: **`PROGRESS.md`**. Architecture diagrams: the "algo-rhythm HLD" artifact.
+> Status, numbers and open items: **`PROGRESS.md`**.
 
 ---
 
 ## 1. Rules for anyone working on it
 
 - **Claude cannot hear audio.** "How it sounds" is measured, or judged by the user. The user's ears are the real test.
-- **The user controls playback.** Never press Play. Before restarting the server, run `curl -s localhost:8765/state` and only restart if `status` is not `playing`.
-- **Gemini: `gemini-3.5-flash-lite` only** for text, through Vertex AI (billed). The gateway caps text requests at 200 a day (`GEMINI_DAILY_CAP`) as a cost guard.
-- **No AI call inside the audio path.** Gemini runs offline (song details, transition review), on a Talk to the DJ command (it only sets goals), and once per party in the background for the MC's line pool; rendering is rules and signal processing.
-- **No downloads.** Songs come only from the library.
-- Tests use their own history file and temp databases; the real play history is never touched.
-- Version control is a local git repository only: commit each working change, never push or add a remote.
+- **The user controls playback.** Never press Play on a party the user is listening to.
+- **Gemini: `gemini-3.5-flash-lite` only** for text, through Vertex AI (billed). The gateway caps text requests at 200 a day (`GEMINI_DAILY_CAP`) per process as a cost guard.
+- **No AI call inside the audio path.** Gemini runs offline (song details, transition review), on a Talk to the DJ command (it only sets goals), and for the MC's lines and voice; mixing is rules and signal processing.
+- **No downloads.** Songs come only from the library (the originals in the bucket).
+- Tests use temp databases and the synthetic library; the real data is never touched.
+- Version control: git, pushed to https://github.com/ashishekka13/algo-rhythm. Commit each working change.
 
 ## 2. Run it
 
-```bash
-cd ~/Downloads/song-matcher
-python3.11 -m venv .venv && .venv/bin/pip install -e ".[dev]"   # once; also: brew install rubberband
+### On a laptop (SQLite, the library folder as storage)
 
-.venv/bin/python -m algo_rhythm.server library_100          # http://127.0.0.1:8765 (starts idle; closing the page stops it)
+```bash
+python3.11 -m venv .venv && .venv/bin/pip install -e ".[dev]"     # once; also: brew install rubberband
+DATABASE_URL=sqlite:///$PWD/local.db .venv/bin/python -m algo_rhythm.server LIBRARY   # imports LIBRARY once if the database is empty
 ```
 
-Pages: `/` admin console, `/guest` (now playing, up next, requests), `/presenter` (big screen, read-only), `/docs` (API).
+Open http://127.0.0.1:8765, press **Start a party**: that tab is the host and plays the music. Guests open
+`/p/CODE` (the code is on the host page and the big screen, `/p/CODE/screen`). A tagged library is needed: `LIBRARY/tags`
+and `LIBRARY/stems` (see Offline jobs), or the synthetic one for trying it out:
+`python -m tools.make_test_track --library test_library --vocals && python -m algo_rhythm.tagger test_library`.
 
-The server loads the library once at start. **Restart it to pick up new songs or code.**
+### On Google Cloud
+
+| Piece | What |
+|---|---|
+| Cloud Storage `gs://song-mixer-511123-algo-rhythm` | `library/` the originals (input); `web/` the library the browser plays: canonical MP3s, vocal stems, art, MC lines |
+| Cloud SQL (PostgreSQL 16) | songs, analyses, Gemini details, features, embeddings (shared by every party); parties and their whole session state; plays, requests, votes, reactions, AI cache |
+| Cloud Run service `algo-rhythm` | the web server, stateless (at most one instance for now: the WebSocket hub is in-process) |
+| Cloud Run Jobs `algo-rhythm-songs / -details / -art` | build the library from the originals: analysis + Demucs on CPU (10 tasks), Gemini details + search vectors, images |
+| Secret Manager | `database-url`, `gemini-api-key` |
+
+`deploy/gcp.sh` does it step by step (`check`, `apis`, `registry`, `sql`, `secrets`, `account`, `build`, `server`, `cors`,
+`jobs`, `run-songs`, `run-details`, `run-art`); each step is safe to run again and the billed ones say so.
 
 ### Configuration (environment, see `.env.example`)
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `LIBRARY_DIR` | the path given on the command line | Local library folder, or the local cache when audio comes from a bucket |
-| `DATABASE_URL` | unset = read the library's JSON files | `postgresql+psycopg://…` (Cloud SQL) or `sqlite:///…` |
-| `STORAGE_URL` | unset = audio already local | `gs://bucket/prefix` or `file:///abs/path`; files are fetched into `LIBRARY_DIR` on first use |
-| `GEMINI_API_KEY` | `~/.config/song-matcher/gemini_key` | Use Secret Manager in GCP |
-| `GEMINI_BACKEND` | `vertex` | `vertex`: Vertex AI express-mode key, global endpoint. `studio`: an AI Studio key (generativelanguage.googleapis.com) |
-| `VERTEX_LOCATION`, `GOOGLE_CLOUD_PROJECT` | unset | Use the regional Vertex endpoint of that project instead of the global one |
+| `DATABASE_URL` | required for the server | `postgresql+psycopg://…` (Cloud SQL; `?host=/cloudsql/PROJECT:REGION:INSTANCE` on Cloud Run) or `sqlite:///…` |
+| `STORAGE_URL` | unset = audio is in `LIBRARY_DIR` | `gs://bucket/prefix` or `file:///abs/path`; files are fetched into `LIBRARY_DIR` when the server needs them |
+| `LIBRARY_DIR` | the path given on the command line | Local library folder, or the cache for the bucket |
+| `SOURCE_URL` | jobs only | `gs://bucket/prefix` of the original audio |
+| `GEMINI_API_KEY` | `~/.config/song-matcher/gemini_key` | Secret Manager on GCP |
+| `GEMINI_BACKEND` | `vertex` | `vertex`: Vertex AI express-mode key. `studio`: an AI Studio key |
 | `GEMINI_MODEL`, `GEMINI_DAILY_CAP` | `gemini-3.5-flash-lite`, 200 | Text model and the daily cap on text requests |
-| `GEMINI_EMBED_MODEL` | `gemini-embedding-001` | Search by meaning (Vertex `:predict`, 768 dimensions); not counted in the cap |
+| `GEMINI_EMBED_MODEL` | `gemini-embedding-001` | Search by meaning |
 | `HOST`, `PORT`, `LOG_LEVEL` | `127.0.0.1`, 8765, `INFO` | Logs are one JSON object per line |
-| `GOOGLE_TTS_API_KEY`, `MC_VOICE` | unset, `en-IN-Wavenet-C` | AI MC voice: Cloud Text-to-Speech (key, or Application Default Credentials), else macOS `say` |
-
-### Deploy with GCP
-
-The player must run on the machine connected to the speakers (the venue laptop). GCP holds the data:
-
-1. **Cloud SQL (PostgreSQL 16):** create a database; point `DATABASE_URL` at it (Cloud SQL Auth Proxy on the laptop, or a private IP).
-2. **Cloud Storage:** create a bucket; set `STORAGE_URL=gs://BUCKET/library`. Authenticate with `gcloud auth application-default login` or a service account key.
-3. **Secret Manager:** store the Gemini key; export it as `GEMINI_API_KEY` on the laptop.
-4. **Load the library once** (tables are created on first connect; no migrations yet):
-   ```bash
-   DATABASE_URL=... STORAGE_URL=gs://BUCKET/library .venv/bin/python -m algo_rhythm.importer library_100 --upload
-   ```
-5. **Run the player** on the laptop with the same variables: `python -m algo_rhythm.server`.
-
-`Dockerfile` builds the same app for Linux (pass `--device /dev/snd` for sound) and for one-off jobs on Cloud Run Jobs (the importer, `algo_rhythm.enrich`). On macOS run it natively: Docker cannot reach the Mac's speakers. `docker-compose.yml` runs a local PostgreSQL for development.
+| `MC_TTS`, `MC_VOICE` | `gemini`, `Aoede` | AI MC voice (Gemini text-to-speech on the same key) |
 
 ### Offline jobs
 
+On Google Cloud these are the Cloud Run Jobs (`python -m algo_rhythm.pipeline songs | details | art`). On a laptop:
+
 ```bash
-.venv/bin/python -m algo_rhythm.tagger library_100 --jobs 10    # analyse new songs (skips up-to-date ones)
-.venv-stems/bin/python algo_rhythm/stems.py library_100        # Demucs vocals for new songs
-.venv/bin/python -m algo_rhythm.enrich library_100             # Gemini song details for songs that lack them
-.venv/bin/python -m algo_rhythm.search library_100             # embed song descriptions that lack a vector
-.venv/bin/python -m algo_rhythm.importer library_100           # copy files into the database (idempotent)
-.venv/bin/python -m algo_rhythm.art library_100 --dry-run     # song art: what it would make and cost (drop --dry-run to make it; ~$0.04/image)
+.venv/bin/python -m algo_rhythm.tagger LIBRARY --jobs 3         # analyse new songs (skips up-to-date ones)
+.venv-stems/bin/python -m algo_rhythm.stems LIBRARY            # Demucs vocals (.vocals.mp3) for new songs
+.venv/bin/python -m algo_rhythm.enrich LIBRARY                 # Gemini song details (no LIBRARY: the database)
+.venv/bin/python -m algo_rhythm.search LIBRARY                 # embed song descriptions that lack a vector
+.venv/bin/python -m algo_rhythm.importer LIBRARY [--upload]    # copy files into the database (idempotent)
+.venv/bin/python -m algo_rhythm.art LIBRARY --dry-run          # song art: what it would make and cost
 .venv/bin/python -m algo_rhythm.review [--party N] [--limit 15]  # Gemini scores each join's clip (database mode)
-.venv/bin/python -m algo_rhythm.analytics export [--project P]  # tables as JSON lines; with --project, load into BigQuery (sql/analytics.sql)
+.venv/bin/python -m algo_rhythm.analytics export [--project P]  # tables as JSON lines; with --project, load into BigQuery
 ```
 
 ## 3. Folder layout
 
 ```
-song-matcher/
+algo-rhythm/
   README.md  PROGRESS.md  TAGGING_CONTRACT.md  AB_HARNESS.md
-  pyproject.toml  Dockerfile  docker-compose.yml  .env.example
+  pyproject.toml  Dockerfile (server)  Dockerfile.jobs  cloudbuild.yaml  deploy/gcp.sh  docker-compose.yml  .env.example
   algo_rhythm/
-    server.py        FastAPI: pages, JSON API, health check, Talk to the DJ, close-on-tab watchdog
-    live.py          session (what plays next), engine (renders each join ~10 s ahead), speaker sink
+    server.py        FastAPI: pages, the party API, /media, the WebSocket; stateless
+    party.py         a party's session in the database: start, advance (the next join), sync, requests, votes, talk, views
+    hub.py           WebSocket hub: pushes each party's view on change and once a second
+    library.py       the library one server instance caches (read-only), planners per request, media URLs, assets
+    joins.py         one join: rendered (numpy, rubberband) to check it, and recorded; excerpts rebuilt from a description
+    recipe.py        a join as Web Audio "plays" for the browser, and a numpy reference player with the browser's rules
+    live.py          the session (what plays next) and the offline engine (scripted checks, no speakers)
     live_plan.py     beam-search planner toward the chosen level; requests
     dj.py            pair scores, which part of a song plays, QA, library loading, analysis caches
     transition.py    blend, vocal swap, echo-out, 20 ms sung-segment detector
+    media.py         the one encoding every browser-played file uses
+    pipeline.py      Cloud Run Jobs: originals -> library in the database and the bucket
     tagger.py  stems.py  tag_schema.json      audio analysis, Demucs vocals
-    genai.py         the one Gemini gateway: schema check, cache, daily cap, retries, call log
-    enrich.py        Gemini song details (energy, style, year, occasion...) and clean title, film, singers
-    search.py        search by meaning: song descriptions embedded once, cosine similarity with numpy
-    talk.py          Talk to the DJ: words -> level, requests, skip, play, pause; rules fallback
-    mc.py            AI MC: when to speak, hype lines (Gemini once per party), text to speech, placement between sung lines
-    config.py  db.py  repository.py  storage.py  importer.py   settings, tables, data access, bucket, import
-    static/live.html (admin, guest and presenter views), static/ab.html (blind A/B page)
-  tools/             validate_tags, ab_harness, feature_study, explain_mix, make_test_track
-  tests/             check_live, test_server, test_db_mode, test_data, test_talk, ui/ui_test.js
-  lists/             the DJ tracklists the library was built from
-  library_100/       the library (not in git): audio, tags/, stems/, enrich/, _mixes/, _retired/
+    genai.py  enrich.py  search.py  talk.py  mc.py  art.py  review.py  analytics.py  filler.py  lyrics.py
+    config.py  db.py  repository.py  storage.py  importer.py
+    static/live.html (start page, host, guest, big screen), static/player.js (the browser's mixer), static/visuals.js, static/ab.html
+  tools/             validate_tags, ab_harness, feature_study, explain_mix, make_test_track (synthetic library), lyrics
+  tests/             test_recipe, test_web, test_feedback, test_pipeline, test_data, test_talk, ..., ui/ (Chromium, jsdom)
 ```
 
 ## 4. How it works
+
+### 4.0 The web app: who does what
+
+- **The server plans, the browser plays.** When a song goes on the air, the host's page asks `/advance`: the server
+  picks the next song (the planner, as before), renders the join with numpy and rubberband to check it (the same QA
+  as always: holes, bumps, two voices, other parts of the song auditioned) and answers with a **recipe**: one "play"
+  per source (song or vocal stem, a time map that sets its playback rate for the beat warp, a gain curve, a highpass
+  sweep for the bass swap). `player.js` schedules those plays with the Web Audio API, a minute or more ahead.
+- **The browser's join is the server's join.** `tests/test_recipe.py` (numpy) and `tests/ui/player_browser.py`
+  (Chromium) check it: the songs either side sample for sample, overlaps within 0.5 dB, the beats within 5 samples
+  through a 15 s blend, 0 samples between Chromium's and the server's decoding. One difference by design: the
+  browser changes a song's speed for a blend (the pitch moves with it, like a turntable, at most the 10% tempo gate)
+  where the server's check stretches without changing pitch.
+- **Every song and stem is one MP3 encoding** (`media.py`), so every decoder places every sample the same way: a stem
+  subtracts cleanly from its song in the browser, and the beat grids from the analysis hold.
+- **Stateless:** a party's whole session (vibe, queue, timeline with each join's recipe, requests, the MC) is a JSON
+  column; each request loads it under a row lock and saves it back. A slow join render does not hold the lock.
+- **Live updates:** each screen has a WebSocket; the server pushes the view on every change and once a second. The
+  host's player reports its playhead there; guests' screens follow it. Polling takes over while a socket is down.
+- **No sign-in:** whoever starts a party gets a host key (kept in that browser); guests have only the code. Votes and
+  reactions are rate limited in the database.
 
 ### 4.1 Analysis per song (no AI)
 `tagger.py`, schema **2.5**: tempo and beat grid, key (Camelot), loudness, energy, 16-beat phrases with energy, repetition and hook score, timbre, pitch-class profile, a `vibe` block, and per phrase: level, drums, steadiness and **vocal activity from the Demucs vocal track**. Measured caches per song: **rhythm feel** (straight vs swung), **beat-grid slip** per phrase, and **sung segments** at 20 ms (where the singer sings, with separate open and close thresholds so a held note is not a gap).
@@ -144,13 +172,25 @@ Plans the next 4 songs after the locked one. Levels low/medium/high/max = centre
 - Simulated audit: transitions cutting a lyric mid-line went from 15% to 3%.
 
 ### 4.8 API
-`GET / /guest /presenter /state /songs /healthz /docs`; `POST /vibe {level}`, `/request {file}`, `/feedback {guest, target: song|transition, value: up|down}` (guest page; one vote per guest per play, 10 a minute), `/transport {action: play|pause|restart|skip|bye|mc_on|mc_off}`, `/talk {text}`. Bound to 127.0.0.1 by default; JSON-only POSTs; Host header check; 4 KB bodies; the client never names a path outside the library list. **No sign-in yet.**
+Pages: `/`, `/p/CODE` (guest), `/p/CODE/host`, `/p/CODE/screen`. JSON under `/api` (see `/docs`): `POST /parties`;
+`GET /p/CODE/state`; host only (header `X-Host-Key`): `/p/CODE/advance {swap?}`, `/sync {playhead, status}`,
+`/transport {action: play|pause|resume|skip|restart|mc_on|mc_off}`, `/vibe {vibe|level}`, `/mood`, `/visuals`; anyone with
+the code: `/request {file, name?}`, `/feedback {guest, target, value}` (the join only for the host), `/react {guest, emoji}`,
+`/talk {text}` (guests: requests and mood only). `GET /api/songs`, `/api/search?q=`, `/media/<file>` (a signed bucket URL or
+the file), WebSocket `/ws/p/CODE[?key=]`. JSON-only POSTs, 4 KB bodies, only library files are served.
 
-### 4.9 Database (when `DATABASE_URL` is set)
-`songs`, `song_analysis` (the full tag), `song_ai` (Gemini answers), `song_features` (rhythm feel, grid slip, sung segments), `song_embeddings` (pgvector `vector` column on PostgreSQL when the `pgvector` package and extension are there, JSON otherwise), `parties`, `plays` (one row per song played, with its transition details and the planner's reasons), `song_requests`, `ai_cache`, `ai_calls`, `feedback` (guest votes), `transition_reviews` (Gemini's score of each join). Every join is also saved as a short FLAC (8 s either side of the overlap) in `_mixes/clips/<party>/<position>.flac`, noted on its play. A database write that fails is logged and never stops the music.
+### 4.9 Database
+`songs`, `song_analysis` (the full tag), `song_ai` (Gemini answers), `song_features` (rhythm feel, grid slip, sung
+segments), `song_embeddings`; `parties` (code, host key hash, the session as JSON), `plays` (one row per join with its
+details, the planner's reasons and a FLAC clip of the server's render), `song_requests`, `feedback`, `guest_actions`,
+`reactions`, `transition_reviews`, `assets` (MC lines, fills, art), `ai_cache`, `ai_calls`. Tables are created on first
+connect; a column added later is added by `db.add_missing_columns`.
 
 ## 5. Decisions the user made
-- 4 energy levels, held until changed. Laptop speakers. The user controls playback. No sign-in for now.
+- 4 energy levels, held until changed. The user controls playback. No sign-in for now.
+- A web app on Google Cloud: stateless server, Cloud SQL, the browser plays and mixes; WebSockets now, at most one
+  server instance; LISTEN/NOTIFY when it has to scale (2026-10-14).
+- Blends change speed in the browser (the pitch follows), rather than a pitch-keeping stretcher (2026-10-14).
 - Best bit of the next song first; every song reaches a proper verse; parts of 50 to 140 s.
 - Never two voices at once; never fade or cut a lyric.
 - Requests from the library only, 1 to 3 songs out. No downloader.
@@ -159,31 +199,37 @@ Plans the next 4 songs after the locked one. Levels low/medium/high/max = centre
 
 ## 6. Tests and checks
 
+The synthetic library (`python -m tools.make_test_track --library test_library --vocals`, then
+`python -m algo_rhythm.tagger test_library --jobs 3`) has 16 tracks, 14 with a sung line and its exact stem.
+
 | Command | Covers |
 |---|---|
-| `python -m tests.check_live library_100` | scripted sessions without speakers: level changes, requests 1-4 out, max reached and held, now-playing logic, vocal alignment |
-| `python -m tests.test_server library_100` | routes, guards (host, content type, body size), close-on-tab, Talk to the DJ wiring, guest and presenter pages |
-| `python -m tests.test_db_mode library_100` | import into a temp database, a short session, plays and requests recorded |
-| `python -m tests.test_feedback library_100` | clips of each join, guest votes (upsert, rate limit, song vs mix), Gemini review with a fake answer, analytics export |
-| `python -m tests.test_data` | database load equals file load for every song; storage round trip |
-| `python -m tests.test_mc` | AI MC: scheduling, line pool, Cloud TTS (fake HTTP), macOS `say`, placement and ducking |
-| `python -m tests.test_talk` | Talk to the DJ with fake Gemini answers, rules fallback, gateway cache, cap, schema checks |
-| `python -m tests.test_search` | ranking, level filter, embedding cache, talk shortlist (fake embedder); one real query check |
-| `python -m tools.validate_tags library_100` | every tag file matches the contract |
-| `python -m tools.ab_harness selftest library_100` | blind A/B page: blindness, order, loudness |
-| `NODE_PATH=<jsdom dir> node tests/ui/ui_test.js` | 47 page checks across admin, guest and presenter, including the search box |
+| `python -m tests.test_recipe` | a recipe is the join the server rendered (blend with vocal swap, blend 2:1 without stems, echo-out); rebuild exact |
+| `python -m tests.test_web` | the API end to end: party, host key, play, advance, sync, a request moved up, votes, reactions, talk, media rules, WebSockets, restart |
+| `python -m tests.test_feedback` | clips of each join, votes (upsert, rate limit, song vs mix), Gemini review with a fake answer, analytics export |
+| `python -m tests.test_pipeline` | the Cloud Run jobs on local folders (Demucs replaced by the true vocals), two tasks, a rerun, a party from the result |
+| `python -m tests.ui.player_browser` | Chromium: player.js renders a join like the reference; a live party (start, advance, skip through a join, pause, a guest) |
+| `NODE_PATH=<jsdom@22>/node_modules node tests/ui/ui_test.js` | 122 page checks on the party routes |
+| `python -m tests.check_live library_100` | scripted offline sessions on the real library (level changes, requests, vocal alignment) |
+| `python -m tests.test_data`, `test_mc`, `test_mood`, `test_filler`, `test_lyrics`, `test_art` | database/storage round trips, the MC, moods, fills, lyric links, art |
+| `python -m tests.test_talk`, `test_search` | Talk to the DJ and search; they expect the real library (100+ songs, real vectors) |
+| `python -m tools.validate_tags LIBRARY` | every tag file matches the contract |
 
 ## 7. Troubleshooting
 | Symptom | Fix |
 |---|---|
 | "Player was updated, reload" | Reload the page. |
-| New songs don't appear | Restart the server (when not playing). |
-| Talk to the DJ says it used simple rules | Gemini is unavailable or the daily cap is used up; it resets the next day. A 403 usually means the key does not match `GEMINI_BACKEND`. |
-| SSL certificate error | `truststore` is used; never disable verification. |
-| Segfault in `beat_track` | A copied venv; recreate `.venv` with python3.11. |
+| The host page says this browser did not start the party | Only the browser that pressed Start a party holds the host key. Start a new party there, or open the guest page. |
+| After a reload the music does not start | Browsers need a tap before sound: press **Play here**. It picks up where the party is. |
+| Talk to the DJ says it used simple rules | Gemini is unavailable or the daily cap is used up. A 403 usually means the key does not match `GEMINI_BACKEND`. |
+| Audio does not load on Cloud Run | Run `deploy/gcp.sh cors` after the first deploy (the bucket must allow the service's origin). |
+| New songs do not appear | Servers check the database every 5 minutes; a new deploy picks them up at once. |
+| Google sign-in errors locally | `GOOGLE_APPLICATION_CREDENTIALS` must point at a file that exists, or be unset. |
 
 ## 8. Known limits
-- Only about 8% of song pairs can blend; most joins are echo-outs. Next step: a shorter blend or a cut on the downbeat for pairs just outside the gates.
-- Not yet tested against a real Cloud SQL instance or a `gs://` bucket (SQLite and local folders were tested); the Docker image was not built here.
-- No sign-in: anyone who can reach the port can control the music.
-- The 25 duplicate audio files in the library are skipped by the importer.
+- Only about 8% of song pairs can blend; most joins are echo-outs. Next step: a shorter blend or a cut on the downbeat.
+- One server instance (the WebSocket hub is in-process): fine for a party or a few; `hub.py` says what changes for more.
+- The host's browser must stay open and awake: it is the speaker. Phones may sleep; a laptop is the safe host.
+- A decoded song takes about 85 MB in the browser; the player keeps only the songs its joins need (about 3).
+- No sign-in: anyone with a party code can request, vote and react; only the host's browser can steer.
+- A blend that was nudged by up to 25 ms jumps that much at its end (an old quirk of the join, in both players).

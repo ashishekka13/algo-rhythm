@@ -4,6 +4,9 @@
 library*
 test_library
 test_4
+tests
+lists
+docs
 *.wav
 *.flac
 *.mp3

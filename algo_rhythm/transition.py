@@ -346,10 +346,10 @@ def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None,
     b_w = warp(b, head, slots, sr)
     nudge = phase_offset(a_w, b_w, sr)
     b_w = shift(b_w, nudge)
-    info.update(type="blend",
-                overlap_s=round(float(slots[-1]), 1),
-                grid_slip_ms=_timed_slip(a_w, b_w, slots, sr),
-                phase_nudge_ms=round(nudge / sr * 1000, 1))
+    info.update(type="blend", overlap_s=round(float(slots[-1]), 1), phase_nudge_ms=round(nudge / sr * 1000, 1))
+    from algo_rhythm import dj
+    if dj.GRID_SLIP_GUARD:  # only the guard reads it: two cross-correlation sweeps, 30-40% of a blend's render
+        info["grid_slip_ms"] = _timed_slip(a_w, b_w, slots, sr)
     if a_voc is not None and b_voc is not None:
         av_w, bv_w = warp(a_voc[a0:], tail, slots, sr), shift(warp(b_voc, head, slots, sr), nudge)
         g_out, g_in, lines = line_swap_gains(av_w, bv_w, sr, ref_a=vocal_ref_db(a_voc, sr), ref_b=vocal_ref_db(b_voc, sr))

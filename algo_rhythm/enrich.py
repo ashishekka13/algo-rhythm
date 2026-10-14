@@ -18,7 +18,7 @@ from algo_rhythm.genai import QuotaError
 
 MODEL = genai.model_name()
 BATCH = 40  # the free tier allows only ~20 requests a day per model
-PROMPT_VERSION = "enrich-v3"
+PROMPT_VERSION = "enrich-v4"  # v4: rows numbered, answers carry the number (match)
 NAME_BATCH = 45
 
 PROMPT = """You are an experienced Bollywood DJ. For each song, judge how it feels on a dance floor.
@@ -38,7 +38,8 @@ lyric_mood: one or two words. confidence (0-1): how sure you are you know this e
  voice: male | female | duet | group
  year: release year (integer, best guess)
  moment: warmup | groove | peak | singalong | slow_dance | closing  (where a DJ would play it in a night)
-Songs (name is "Song - Movie"; file names may be long YouTube titles):
+Songs, numbered (name is "Song - Movie"; file names may be long YouTube titles). Give each answer the song's number as
+id, and its name exactly as given:
 """
 NAMES = """Also name each song the way fans know it:
  title: the song title only, in normal capitalisation (no film, "From ...", "Official Video", "Lyrical", YouTube id).
@@ -46,8 +47,8 @@ NAMES = """Also name each song the way fans know it:
 If you do not know the song, take the title from the file name and use "" and [].
 """
 PROMPT = PROMPT.replace("{names}", NAMES)
-NAMES_PROMPT = ("You are an experienced Bollywood DJ. For each song file below give name (exactly as given), title, "
-                "film and singers.\n" + NAMES + "Songs (file names; they may be long YouTube titles):\n")
+NAMES_PROMPT = ("You are an experienced Bollywood DJ. For each song file below give id (its number), name (exactly as "
+                "given), title, film and singers.\n" + NAMES + "Songs, numbered (file names; they may be long YouTube titles):\n")
 
 STYLES = ["ballad", "sufi", "punjabi", "dance_pop", "club_edm", "item_number", "folk", "qawwali", "rock", "hiphop",
           "indie_acoustic"]
@@ -56,11 +57,11 @@ MOMENTS = ["warmup", "groove", "peak", "singalong", "slow_dance", "closing"]
 FIELDS = ["style", "rhythm", "sound", "language", "voice", "year", "moment"]  # schema 2 answers; older files lack them
 NAME_FIELDS = ["title", "film", "singers"]  # enrich-v3
 NAME_PROPS = {"title": {"type": "STRING"}, "film": {"type": "STRING"}, "singers": {"type": "ARRAY", "items": {"type": "STRING"}}}
-NAMES_SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT", "required": ["name"] + NAME_FIELDS,
-                                           "properties": {"name": {"type": "STRING"}, **NAME_PROPS}}}
-SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT", "required": ["name", "energy", "familiarity", "occasion",
+NAMES_SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT", "required": ["id", "name"] + NAME_FIELDS,
+                                           "properties": {"id": {"type": "INTEGER"}, "name": {"type": "STRING"}, **NAME_PROPS}}}
+SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT", "required": ["id", "name", "energy", "familiarity", "occasion",
           "lyric_mood", "confidence"] + FIELDS + NAME_FIELDS, "properties": {
-    **NAME_PROPS, "name": {"type": "STRING"}, "energy": {"type": "INTEGER"}, "familiarity": {"type": "INTEGER"},
+    **NAME_PROPS, "id": {"type": "INTEGER"}, "name": {"type": "STRING"}, "energy": {"type": "INTEGER"}, "familiarity": {"type": "INTEGER"},
     "occasion": {"type": "ARRAY", "items": {"type": "STRING"}}, "lyric_mood": {"type": "STRING"},
     "confidence": {"type": "NUMBER"},
     "style": {"type": "STRING", "enum": STYLES}, "rhythm": {"type": "STRING", "enum": RHYTHMS},
@@ -72,12 +73,12 @@ SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT", "required": ["name", "ene
 
 def ask(model, rows):
     return genai.generate("enrich", PROMPT_VERSION,
-                          [{"text": PROMPT + "\n".join(f"{r['name']} ({r['bpm']:.0f} BPM)" for r in rows)}], SCHEMA,
+                          [{"text": PROMPT + "\n".join(f"{k}. {r['name']} ({r['bpm']:.0f} BPM)" for k, r in enumerate(rows, 1))}], SCHEMA,
                           timeout=300, model=model)
 
 
 def ask_names(model, rows):
-    return genai.generate("enrich-names", PROMPT_VERSION, [{"text": NAMES_PROMPT + "\n".join(r["name"] for r in rows)}],
+    return genai.generate("enrich-names", PROMPT_VERSION, [{"text": NAMES_PROMPT + "\n".join(f"{k}. {r['name']}" for k, r in enumerate(rows, 1))}],
                           NAMES_SCHEMA, timeout=300, model=model)
 
 
@@ -94,11 +95,25 @@ def clean(a):
 
 
 def match(rows, raw):
-    """Answers keyed by the lowercased name we sent. The model may reword a long file name; when the counts agree,
-    the order is still the order we sent."""
-    answers = {a["name"].strip().lower(): a for a in raw}
-    if len(raw) == len(rows):
-        answers = {**{r["name"].strip().lower(): a for r, a in zip(rows, raw)}, **answers}
+    """Answers keyed by the lowercased name we sent, found by the number each answer carries (the prompt numbers the
+    rows: the model may reword a long file name and reorder its reply, so neither the name nor the position is a
+    safe key). Dropped: an answer whose number is missing, out of range or given twice, and one whose name is
+    exactly another row's name (it was given the wrong number). A dropped song is asked about again next run."""
+    names = [r["name"].strip().lower() for r in rows]
+    by_id = {}
+    for a in raw:
+        k = a.get("id")
+        if not isinstance(k, int) or isinstance(k, bool) or not 1 <= k <= len(rows):
+            continue
+        by_id.setdefault(k, []).append(a)
+    answers = {}
+    for k, found in by_id.items():
+        if len(found) != 1:
+            continue
+        said = str(found[0].get("name", "")).strip().lower()
+        if said != names[k - 1] and said in names:
+            continue
+        answers[names[k - 1]] = found[0]
     return answers
 
 

@@ -21,6 +21,7 @@ import hashlib
 import json
 import logging
 import math
+import os
 import random
 import secrets
 import threading
@@ -37,6 +38,9 @@ CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I: read off a big s
 CODE_LEN = 6
 LOCK_WAIT_S = 20       # a request waits at most this long for the party's lock, then answers "busy, try again"
 RENDER_STALE_S = 120  # a join still "rendering" after this long was abandoned (the request died): render it again
+# Joins rendered at once on this server, whatever the party: each holds several song windows (100+ MB) and keeps a
+# CPU busy, and Cloud Run sends up to 40 requests at a time to the one instance. More wait their turn.
+RENDER_SLOTS = threading.BoundedSemaphore(int(os.environ.get("RENDER_SLOTS", "2")))
 SWAP_MARGIN_S = 4      # a moved-up request must be ready this long before the join it replaces starts
 REACTION_SHOW_S = 6
 VOTES_PER_MIN, REACTS_PER_MIN, REACTS_ALL_PER_MIN = 10, 20, 240
@@ -412,6 +416,15 @@ def _advance(code, swap, t):
     name = lib.songs[nxt_entry["song"]]["name"]
     planned = copy.deepcopy(nxt_entry)
     said = []
+    with t.stage("queue"):
+        RENDER_SLOTS.acquire()
+    try:
+        return _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, planned, said, party_id)
+    finally:
+        RENDER_SLOTS.release()
+
+
+def _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, planned, said, party_id):
     try:
         with t.stage("rebuild"):
             a = joins.rebuild(lib.root, lib.songs[base["entry"]["song"]], base["ex"])

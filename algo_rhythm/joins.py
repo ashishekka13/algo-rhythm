@@ -10,6 +10,9 @@ the previous request worked with (rebuild) instead of keeping it in memory betwe
     j.nxt, j.nxt_skip                                          the incoming song, and where it carries on after the join
     a2 = joins.rebuild(library, songs[i], j.nxt.p)            the same audio as j.nxt, from its description only
 """
+import copy
+import json
+
 import numpy as np
 
 from algo_rhythm import dj, filler, live, timing, transition
@@ -145,8 +148,18 @@ def render_join(library, songs, entry, a, skip, nxt_entry, alternatives=lambda l
     original = nxt_entry["window"]
     name = song["name"]
 
+    loaded = {}
+
     def load_in(w):
-        return prepare_incoming(load(library, song, w), seg)
+        """The incoming part for window w, ready to mix. Each window is decoded once per call: the echo-out fallback
+        auditions the same windows the blend tried. A fresh Excerpt each time (callers replace its fields), sharing
+        the arrays (nothing writes into them)."""
+        k = json.dumps(window_of(w), sort_keys=True)
+        if k not in loaded:
+            with timing.count("load_window"):
+                loaded[k] = prepare_incoming(load(library, song, w), seg)
+        ex = loaded[k]
+        return Excerpt(ex.audio, ex.beats.copy(), ex.voc, copy.deepcopy(ex.p))
 
     nxt = load_in(original)
     kind = nxt_entry["transition_in"]

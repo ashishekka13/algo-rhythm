@@ -290,6 +290,7 @@ def window_ease(per_beat, y_harm, y_perc, beats, first, n=32):
 
 
 VOCAL_HOP, VOCAL_SCALE = 1024, 0.3
+VOCAL_FLOOR_DB = (-55, -45)  # a vocal-stem frame under -55 dBFS is not singing; full weight from -45 dBFS
 
 
 def vocal_frames(y):
@@ -307,11 +308,16 @@ def vocal_frames_from_stem(vocals_path):
     """Per-frame 'is someone singing', 0..1, from the real vocals track (Demucs). Hindi film songs are vocal-forward,
     so 'vocals as a share of the mix' is high almost everywhere and says little. What matters is when the singing
     STOPS: so each frame is judged against the song's own loud-singing level (its 90th-percentile frame):
-    at that level or within 8 dB of it = singing (1.0), 24 dB below it or more = silent (0.0)."""
+    at that level or within 8 dB of it = singing (1.0), 24 dB below it or more = silent (0.0).
+    And against an absolute floor (VOCAL_FLOOR_DB): an instrumental's stem is only separation noise, and judged
+    against itself alone that noise read as confident singing. Real singing never comes near the floor (loud-singing
+    levels measured -21 to -10 dBFS on 20 library songs, so their silent point is at -45 dBFS or above)."""
     v, _ = librosa.load(vocals_path, sr=SR, mono=True)
     db = 20 * np.log10(librosa.feature.rms(y=v, frame_length=2048, hop_length=VOCAL_HOP)[0] + 1e-9)
     rel = db - np.percentile(db, 90)
-    return np.clip((rel + 24) / 16, 0, 1) * VOCAL_SCALE  # scaled so the shared /VOCAL_SCALE below gives 0..1
+    lo, hi = VOCAL_FLOOR_DB
+    sung = np.minimum(np.clip((rel + 24) / 16, 0, 1), np.clip((db - lo) / (hi - lo), 0, 1))
+    return sung * VOCAL_SCALE  # scaled so the shared /VOCAL_SCALE below gives 0..1
 
 
 def phrase_mix_tags(per_beat, y_harm, y_perc, beats, starts, vocal):

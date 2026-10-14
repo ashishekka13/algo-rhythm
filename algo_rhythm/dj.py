@@ -154,27 +154,31 @@ def finalize(songs):
                            + s["vectors"]["spectral_contrast"] for s in songs])
         timbre = (timbre - timbre.mean(axis=0)) / (timbre.std(axis=0) + 1e-6)
         timbre /= np.linalg.norm(timbre, axis=1, keepdims=True) + 1e-9
-        def pct(vals):  # rank within this library, 0..1
-            return np.array(vals).argsort(kind="stable").argsort() / max(1, len(songs) - 1)
+        # vibe ranks among the songs that have vibe data; a song without it gets neutral values and leaves the
+        # others alone (one such song used to send every song in the library to the defaults)
+        vibes = [s.get("vibe") or None for s in songs]
+        with_vibe = [i for i, v in enumerate(vibes) if v]
 
-        vibes = [s.get("vibe") for s in songs]
-        has_vibe = all(vibes)
-        if has_vibe:
-            val_pct = pct([v["valence"] for v in vibes])
-            dance_pct = pct([v["danceability"] for v in vibes])
-            acou_pct = pct([v["acousticness"] for v in vibes])
+        def pct(key):
+            out = np.full(len(songs), 0.5)
+            if with_vibe:
+                vals = np.array([vibes[i][key] for i in with_vibe])
+                out[with_vibe] = vals.argsort(kind="stable").argsort() / max(1, len(with_vibe) - 1)
+            return out
+        val_pct, dance_pct, acou_pct = pct("valence"), pct("danceability"), pct("acousticness")
         for i, s in enumerate(songs):
+            v = vibes[i]
             s["energy_pct"] = float(ranks[i] / max(1, len(songs) - 1))
-            s["valence_pct"] = float(val_pct[i]) if has_vibe else 0.5
-            s["dance_pct"] = float(dance_pct[i]) if has_vibe else 0.5
-            s["acoustic_pct"] = float(acou_pct[i]) if has_vibe else 0.5
-            s["pm"] = vibes[i].get("phrase_mix") if has_vibe else None
-            s["in_ease"] = vibes[i]["mix_in_ease"] if has_vibe else 0.5
-            s["out_ease"] = vibes[i]["mix_out_ease"] if has_vibe else 0.5
+            s["valence_pct"] = float(val_pct[i])
+            s["dance_pct"] = float(dance_pct[i])
+            s["acoustic_pct"] = float(acou_pct[i])
+            s["pm"] = v.get("phrase_mix") if v else None
+            s["in_ease"] = v["mix_in_ease"] if v else 0.5
+            s["out_ease"] = v["mix_out_ease"] if v else 0.5
             # DJ-style mood label: valence x arousal, each split at the library median
             warm = "bright" if s["valence_pct"] >= 0.5 else "moody"
             drive = "driving" if s["energy_pct"] >= 0.5 else "laid-back"
-            s["mood"] = mood_family(s.get("llm")) or (f"{warm}/{drive}" if has_vibe else "n/a")  # Gemini's family when known
+            s["mood"] = mood_family(s.get("llm")) or (f"{warm}/{drive}" if v else "n/a")  # Gemini's family when known
             s["timbre"] = timbre[i]
             # feature_study: blends with a flagged song drifted off the beat 73% of the time (30% otherwise)
             s["tempo_uncertain"] = "tempo_disagreement" in s["quality"]["flags"]
@@ -686,19 +690,27 @@ def load_excerpt(library, song, window):
 FADE_IN_S = 0.01  # every excerpt fades in over this long, so a cut into the middle of a song never clicks
 
 
+def _read_window(path, lo, hi):
+    """Samples lo:hi (at OUT_SR) of an audio file, stereo float64. A library file is already at OUT_SR: only the window
+    is decoded (an MP3 seek lands on the same samples as a full decode, within 2e-7; a join loads about ten windows,
+    and a whole song is ~300 MB as float64). Any other rate is decoded whole and resampled first."""
+    if sf.info(str(path)).samplerate == OUT_SR:
+        x, _ = sf.read(path, start=lo, stop=hi, always_2d=True, dtype="float64")
+    else:
+        x, sr = sf.read(path, always_2d=True, dtype="float64")
+        x = librosa.resample(x.T, orig_sr=sr, target_sr=OUT_SR).T[lo:hi]
+    if x.shape[1] == 1:
+        x = np.repeat(x, 2, axis=1)
+    return np.ascontiguousarray(x[:, :2])
+
+
 def load_excerpt_vocals(library, song, window, info=None):
     """(excerpt, beat times, vocals or None). The vocals are the same stretch of the song's Demucs vocals track,
     scaled exactly like the excerpt, so (excerpt - vocals) is the instrumental. None if the song has no stem yet.
     info: a dict that gets "gain" (the loudness gain applied to both) and "stem" (whether vocals were found)."""
-    audio, sr = sf.read(storage.local_path(song["file"], library), always_2d=True, dtype="float64")
-    if audio.shape[1] == 1:
-        audio = np.repeat(audio, 2, axis=1)
-    audio = audio[:, :2]
-    if sr != OUT_SR:
-        audio = librosa.resample(audio.T, orig_sr=sr, target_sr=OUT_SR).T
     start, end = window["start_s"], window["end_s"]
     lo, hi = int(start * OUT_SR), int(end * OUT_SR)
-    seg = audio[lo:hi].copy()
+    seg = _read_window(storage.local_path(song["file"], library), lo, hi)
     lufs = pyln.Meter(OUT_SR).integrated_loudness(seg)
     gain = min(10 ** ((TARGET_LUFS - lufs) / 20), 1.0 / (np.abs(seg).max() + 1e-9))  # never push a peak past full scale
     seg *= gain
@@ -713,11 +725,8 @@ def load_excerpt_vocals(library, song, window, info=None):
     stem, meta = media.stem_path(library, key, storage.local_path), storage.local_path(f"stems/{key}.json", library)
     try:
         if stem.exists() and json.loads(meta.read_text()).get("sha256") == song["sha256"]:
-            v, vsr = sf.read(stem, always_2d=True, dtype="float64")
-            if vsr != OUT_SR:
-                v = librosa.resample(v.T, orig_sr=vsr, target_sr=OUT_SR).T
             voc = np.zeros_like(seg)
-            part = v[lo:hi, :2] * gain
+            part = _read_window(stem, lo, hi) * gain
             voc[:len(part)] = part[:len(seg)]
             voc[:ramp] *= np.linspace(0, 1, ramp)[:, None]
     except (OSError, ValueError, KeyError):

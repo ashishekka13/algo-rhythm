@@ -231,6 +231,9 @@
   #v-presenter.has-trivia .p-bl .title { font-size:clamp(36px, min(4.5vw, 8vh), 96px); }
   #v-presenter.has-trivia .p-bl .sub, #v-presenter.has-trivia .p-bl .meta { display:none; }
   .coins { font-family:var(--mono); color:var(--acc); font-weight:700; }
+  .coinchip { gap:6px; color:var(--ink); }
+  .coinchip .coin { width:16px; height:16px; flex:none; }
+  .coinchip b { font-family:var(--mono); font-weight:700; }
   .locrow { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; margin-top:14px; }
   .locrow .hint { grid-column:1 / -1; }
   .locrow .btn { min-height:44px; }
@@ -835,6 +838,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
   <header class="top">
     <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
     <span class="grow"></span>
+    <span class="chip coinchip" id="hcoins" title="Your trivia coins in this party" hidden><svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#f5b942"/><circle cx="10" cy="10" r="6.2" fill="none" stroke="#b9781a" stroke-width="1.6"/></svg><b id="hcoinsn">0</b><span class="sr"> coins</span></span>
     <span class="chip"><span class="dot" aria-hidden="true"></span>Live</span>
   </header>
   <main>
@@ -1499,6 +1503,7 @@ function show(s) {
   safe("QR switch", () => ifEl("qrswitch", b => b.setAttribute("aria-checked", String(qrOn))));
   safe("trivia switch", () => ifEl("triviaswitch", b => b.setAttribute("aria-checked", String(!!s.trivia_on))));
   safe("trivia", () => drawTrivia(s.trivia));
+  safe("coins", () => ifEl("hcoins", e => { e.hidden = !(myCoinsN > 0 || s.trivia_on); }));   // a guest's coins, beside Live
   safe("MC location", () => ifEl("mcloc", inp => {     // host: where the party is, as the MC may say it
     const loc = s.location || {};
     if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = loc.text || "";
@@ -1695,10 +1700,14 @@ async function answerTrivia(round, choice) {
     $("gtnote").textContent = "Could not reach the party. Tap again.";
   }
 }
+let myCoinsN = 0;
 async function myCoins() {
   try {
     const d = await (await fetch(apiPath(`/coins?guest=${encodeURIComponent(guestId())}`))).json();
-    $("gtcoins").textContent = d.coins;
+    myCoinsN = Number(d.coins) || 0;
+    $("gtcoins").textContent = myCoinsN;
+    ifEl("hcoinsn", e => { e.textContent = myCoinsN; });
+    ifEl("hcoins", e => { e.hidden = !(myCoinsN > 0 || (last && last.trivia_on)); });
     const r = d.round;
     if (r && r.correct !== undefined) { triviaWon[r.round] = r.coins; if (last) drawTrivia(last.trivia); }
   } catch (e) {}

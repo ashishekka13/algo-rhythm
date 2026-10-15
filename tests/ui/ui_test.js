@@ -242,7 +242,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     const rb = [...g.D.querySelectorAll("#reacts button")], bursts = () => g.D.getElementById("bursts").children.length;
     check("reactions: five buttons, nothing rises for reactions sent before the page opened", rb.length === 5 && bursts() === 0, [rb.length, bursts()]);
     rb.find(b => b.textContent === "🎉").click(); await wait(50);
-    st = {...st, trivia: {round: 7, phase: "asking", left_s: 15, question: "Which year?", options: ["2001", "2005", "2009", "2013"], answered: 0}};
+    st = {...st, trivia_on: true, trivia: {round: 7, phase: "asking", left_s: 15, question: "Which year?", options: ["2001", "2005", "2009", "2013"], answered: 0}};
     await wait(1500);
     const gopts = [...g.D.querySelectorAll("#gtopts button")];
     const shown = !g.D.getElementById("gtrivia").hidden && gopts.length === 4 && gopts.every(b => !b.disabled);
@@ -250,6 +250,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     await wait(300);
     const posted = xposts.find(x => x.url === "/answer");
     const locked = [...g.D.querySelectorAll("#gtopts button")].every(b => b.disabled) && /Locked in: C/.test(g.D.getElementById("gtnote").textContent);
+    check("guest: the coins chip beside Live shows once trivia is on", !g.D.getElementById("hcoins").hidden, g.D.getElementById("hcoins").outerHTML);
     check("guest: the phone runs light: no light garden, no animations (the big screen keeps them)",
       g.D.documentElement.classList.contains("lowpower") && !g.D.getElementById("lowpower"), g.D.documentElement.className);
     check("guest: trivia buttons answer once with the guest id and round, then lock", shown && posted && posted.round === 7

@@ -117,7 +117,8 @@ commit `e985a13`). Changes since v1.0:
   - one answer per guest per question, and late answers are refused;
   - the right option never reaches a screen before the reveal, and a guest's coins don't show right or wrong until
     then;
-  - coins are per party, shown on each guest's phone.
+  - coins are per party, shown on each guest's phone: in the question sheet, and as a coin chip beside **Live** at the
+    top of the page (it appears once the host turns trivia on).
 - **Smooth on phones:**
   - the question is a sheet that slides up over the page, so nothing underneath moves;
   - its buttons are made once per question, so a tap can't land on a replaced button;

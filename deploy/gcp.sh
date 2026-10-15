@@ -6,6 +6,7 @@
 #   deploy/gcp.sh registry     Artifact Registry repository for the images (storage billed, cents)
 #   deploy/gcp.sh sql          Cloud SQL PostgreSQL 16 instance, database and user (billed: ~$10/month at db-f1-micro)
 #   deploy/gcp.sh account      service account for the server and jobs, and its roles (free; Gemini runs as it)
+#   deploy/gcp.sh edge-secret  the secret the Cloudflare Worker and both services share (deploy/cloudflare.sh; free)
 #   deploy/gcp.sh cors         let browsers fetch audio from the bucket (free)
 #   deploy/gcp.sh build        build both images in Cloud Build (billed per build minute, about 15 min)
 #   deploy/gcp.sh server       deploy the web server on Cloud Run (billed per request time; scales to zero)
@@ -36,7 +37,10 @@ LIBRARY_PREFIX=${LIBRARY_PREFIX:-web}            # what the browser plays: gs://
 SQL_INSTANCE=${SQL_INSTANCE:-algo-rhythm}            # existing instance (shared with the Oct 10 app)
 SQL_TIER=${SQL_TIER:-db-f1-micro}
 STAGE=${STAGE:-production}                     # production | staging
+DOMAIN=${DOMAIN:-algo-rhythm.in}               # through Cloudflare (deploy/cloudflare.sh)
+PUBLIC_URL=https://$DOMAIN
 if [ "$STAGE" = staging ]; then
+  PUBLIC_URL=https://staging.$DOMAIN
   DB_NAME=${DB_NAME:-algorhythm_web_staging}
   SERVICE=${SERVICE:-algorythm-web-staging}
   DB_SECRET=${DB_SECRET:-database-url-staging}
@@ -133,11 +137,20 @@ import json, sys
 d, b = json.loads(sys.argv[1]), json.loads(sys.argv[2])
 urls = json.loads(d["metadata"]["annotations"].get("run.googleapis.com/urls", "[]")) + [d["status"]["url"]]
 have = [o for rule in (b.get("cors_config") or []) for o in rule.get("origin", [])]
-print(json.dumps(sorted(set(have + urls + ["http://127.0.0.1:8765", "http://localhost:8765"]))))' "$SVC" "$OLD")
+print(json.dumps(sorted(set(have + urls + [sys.argv[3], "http://127.0.0.1:8765", "http://localhost:8765"]))))' "$SVC" "$OLD" "$PUBLIC_URL")
   printf '[{"origin": %s, "method": ["GET", "HEAD"], "responseHeader": ["Content-Type", "Content-Length", "Range"], "maxAgeSeconds": 3600}]' \
     "$ORIGINS" > /tmp/algo-cors.json
   gcloud storage buckets update "gs://$BUCKET" --cors-file=/tmp/algo-cors.json
   echo "browsers at these origins may fetch audio from gs://$BUCKET: $ORIGINS"
+  ;;
+edge-secret)
+  # one random value for the Worker (deploy/cloudflare.sh worker) and both services; never printed
+  $G secrets describe edge-secret >/dev/null 2>&1 || \
+    python3 -c "import secrets; print(secrets.token_urlsafe(32), end='')" | \
+      $G secrets create edge-secret --data-file=- --replication-policy=automatic
+  $G secrets add-iam-policy-binding edge-secret --member="serviceAccount:$SA" \
+    --role=roles/secretmanager.secretAccessor >/dev/null
+  echo "edge-secret ready"
   ;;
 build)
   $G builds submit --config cloudbuild.yaml --substitutions="_API=$API_IMAGE,_JOBS=$JOBS_IMAGE" .
@@ -145,7 +158,7 @@ build)
 server)
   # Sized by CPU, MEMORY, CONCURRENCY and MAX_INSTANCES above.
   $G run deploy "$SERVICE" --image="$API_IMAGE" --region="$REGION" --service-account="$SA" \
-    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=$DB_SECRET:latest" \
+    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=$DB_SECRET:latest,EDGE_SECRET=edge-secret:latest" \
     --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT,MC_TTS=gemini,LOG_LEVEL=INFO,DB_POOL_SIZE=$DB_POOL_SIZE,DB_POOL_OVERFLOW=$DB_POOL_OVERFLOW,LOCAL_CACHE_MB=1000,RENDER_SLOTS=2" \
     --cpu="$CPU" --memory="$MEMORY" --concurrency="$CONCURRENCY" --min-instances=0 --max-instances="$MAX_INSTANCES" \
     --execution-environment=gen2 --timeout=3600 --session-affinity --cpu-boost --allow-unauthenticated

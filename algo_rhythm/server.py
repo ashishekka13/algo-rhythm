@@ -10,8 +10,10 @@ The host's actions carry its key (header X-Host-Key; ?key= on the WebSocket), re
 """
 import argparse
 import asyncio
+import hmac
 import json
 import logging
+import os
 import re
 import sys
 from pathlib import Path
@@ -64,6 +66,19 @@ def signed_url(rel):
     except Exception as e:
         log.warning("cannot sign a URL (%s): the server sends the file itself", type(e).__name__)
         return None
+
+
+def from_edge(request):
+    """True when the request came through the Cloudflare Worker in front of the domain (deploy/cloudflare/worker.js):
+    it carries EDGE_SECRET, which the Worker and the service share. Only then are its forwarded headers believed."""
+    secret = os.environ.get("EDGE_SECRET", "")
+    return bool(secret) and hmac.compare_digest(request.headers.get("x-edge-secret", ""), secret)
+
+
+def public_host(request):
+    """The address the visitor typed (algo-rhythm.in through the Worker, else the run.app one)."""
+    host = request.headers.get("x-forwarded-host") if from_edge(request) else None
+    return host or request.headers.get("host", request.url.netloc)
 
 
 def create_app():
@@ -171,7 +186,7 @@ def create_app():
         import segno
         scheme = request.headers.get("x-forwarded-proto") or request.url.scheme  # Cloud Run ends TLS in front
         buf = io.BytesIO()
-        segno.make(f"{scheme}://{request.headers.get('host', request.url.netloc)}/p/{code.upper()}", error="m").save(
+        segno.make(f"{scheme}://{public_host(request)}/p/{code.upper()}", error="m").save(
             buf, kind="svg", scale=8, border=2, dark="#09090B", light="#FFFFFF", xmldecl=False, svgns=True)
         return Response(buf.getvalue(), media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=3600"})
 
@@ -235,6 +250,9 @@ def create_app():
 
     # ---- host accounts: hosting needs one, joining does not
     def client_ip(request):
+        # Through the domain the caller is Cloudflare's Worker: the visitor's address is the one it passes on
+        if from_edge(request) and request.headers.get("x-client-ip"):
+            return request.headers["x-client-ip"][:64]
         # Cloud Run appends the caller's address to X-Forwarded-For: the last entry is the one a client cannot forge
         fwd = request.headers.get("x-forwarded-for", "")
         return (fwd.split(",")[-1].strip() if fwd else (request.client.host if request.client else "?"))[:64]

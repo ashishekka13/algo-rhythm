@@ -1,6 +1,7 @@
 """Host accounts: who may start a party. Guests never need one.
 
-A signup is saved inactive; someone turns it on by hand (below) before it can sign in. Passwords are kept as scrypt
+A signup is saved inactive and support is emailed an Approve link (algo_rhythm.notify; approval_token below), or
+someone turns it on by hand (below), before it can sign in. Passwords are kept as scrypt
 hashes (standard library, per-user salt); a sign-in gets a random session token, of which only the sha256 is stored,
 sent back as an HttpOnly cookie. Failed sign-ins and signups are rate limited per address and per name.
 
@@ -10,9 +11,11 @@ sent back as an HttpOnly cookie. Failed sign-ins and signups are rate limited pe
 (DATABASE_URL picks the database, as everywhere.)
 """
 import argparse
+import base64
 import datetime
 import hashlib
 import hmac
+import os
 import re
 import secrets
 import sys
@@ -30,6 +33,8 @@ SCRYPT = {"n": 2 ** 14, "r": 8, "p": 1, "dklen": 32}
 LOGIN_FAILS = 10       # failed sign-ins allowed per address, and per name, in RATE_WINDOW_MIN
 SIGNUPS = 5            # signups allowed per address in RATE_WINDOW_MIN
 RATE_WINDOW_MIN = 15
+APPROVE_DAYS = 14       # how long the Approve link in a signup email works
+WAITING = "Your account is waiting for approval. Our team will approve it soon."
 
 
 class AuthError(Exception):
@@ -123,7 +128,7 @@ def login(username, password, ip):
         _note(f"user:{username}", "login_fail")
         raise AuthError("Wrong username or password.")
     if not user.active:
-        raise AuthError("Your account is waiting for approval (up to 24 hours after signing up).")
+        raise AuthError(WAITING)
     token = secrets.token_urlsafe(32)
     with repository.session() as s:
         s.add(db.LoginSession(token_hash=_hash(token), user_id=user.id,
@@ -167,6 +172,64 @@ def set_active(username, active):
         user.active = active
         user.approved_at = db.now() if active else None
         s.commit()
+
+
+def signup(username):
+    """{"id", "username", "email", "active", "created_at"} of an account, for the signup email; None when unknown."""
+    with repository.session() as s:
+        u = s.scalar(select(db.User).where(db.User.username == username))
+        return u and {"id": u.id, "username": u.username, "email": u.email, "active": u.active,
+                      "created_at": u.created_at}
+
+
+def _approval_key():
+    # derived from EDGE_SECRET (only the services and the Cloudflare Worker hold it), kept apart from its other use
+    secret = os.environ.get("EDGE_SECRET", "")
+    if not secret:
+        raise AuthError("approval links need EDGE_SECRET")
+    return hmac.new(secret.encode(), b"algo-rhythm approve v1", hashlib.sha256).digest()
+
+
+def _b64(b):
+    return base64.urlsafe_b64encode(b).decode().rstrip("=")
+
+
+def approval_token(user_id, username, now=None):
+    """A link token that approves this one account for APPROVE_DAYS: id.username.expiry.signature."""
+    expires = int((now or db.now()).timestamp()) + APPROVE_DAYS * 86400
+    body = f"{user_id}.{username}.{expires}"
+    return body + "." + _b64(hmac.new(_approval_key(), body.encode(), hashlib.sha256).digest())
+
+
+def check_approval(token, now=None):
+    """The account a token names, as signup() gives it. AuthError when the token is forged, expired or the account
+    changed (deleted, or a new one with the same name)."""
+    try:
+        parts = str(token or "").split(".")  # a username may hold dots: the id is first, expiry and signature last
+        if len(parts) < 4:
+            raise ValueError
+        user_id, username, expires, sig = parts[0], ".".join(parts[1:-2]), parts[-2], parts[-1]
+        good = _b64(hmac.new(_approval_key(), f"{user_id}.{username}.{expires}".encode(), hashlib.sha256).digest())
+        if not sig or not hmac.compare_digest(sig, good):
+            raise ValueError
+        if int(expires) < int((now or db.now()).timestamp()):
+            raise AuthError("This approval link has expired. Approve the account with: "
+                            f"python -m algo_rhythm.accounts activate {username}")
+    except (ValueError, TypeError):
+        raise AuthError("This approval link is not valid.") from None
+    user = signup(username)
+    if not user or str(user["id"]) != user_id:
+        raise AuthError("That account no longer exists.")
+    return user
+
+
+def approve(token):
+    """Turn on the account a valid token names. Returns (account, approved now: False when it already was)."""
+    user = check_approval(token)
+    if user["active"]:
+        return user, False
+    set_active(user["username"], True)
+    return dict(user, active=True), True
 
 
 def main(argv=None):

@@ -11,6 +11,7 @@ The host's actions carry its key (header X-Host-Key; ?key= on the WebSocket), re
 import argparse
 import asyncio
 import hmac
+import html
 import json
 import logging
 import os
@@ -21,9 +22,11 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
+from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 
-from algo_rhythm import accounts, config, hub, library, live, live_plan, party, places, repository, storage
+from algo_rhythm import (accounts, config, hub, library, live, live_plan, notify, party, places, repository,
+                         storage)
 
 log = logging.getLogger("algo_rhythm.server")
 MAX_BODY = 4096
@@ -79,6 +82,47 @@ def public_host(request):
     """The address the visitor typed (algo-rhythm.in through the Worker, else the run.app one)."""
     host = request.headers.get("x-forwarded-host") if from_edge(request) else None
     return host or request.headers.get("host", request.url.netloc)
+
+
+def approve_html(user, err, token):
+    """The page the signup email's Approve button opens: the account's details and one button (or why it cannot)."""
+    esc = html.escape
+    if user:
+        when = user["created_at"].strftime("%d %b %Y, %H:%M UTC")
+        rows = "".join(f"<dt>{k}</dt><dd>{esc(str(v))}</dd>" for k, v in
+                       [("Username", user["username"]), ("Email", user["email"]), ("Signed up", when),
+                        ("Account id", user["id"])])
+        state = ('<p class="ok">Already approved. They can sign in and host.</p>' if user["active"] else
+                 '<button id="go">Approve account</button><p id="msg" role="status"></p>')
+        main = f"<h1>Approve {esc(user['username'])}?</h1><dl>{rows}</dl>{state}"
+    else:
+        main = f"<h1>Can't approve</h1><p class=\"err\">{esc(err)}</p>"
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve account · algo-rhythm</title>
+<style>
+body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#0e0e10;color:#f5f5f7;
+  font:16px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:16px;box-sizing:border-box}}
+main{{width:100%;max-width:440px;background:#18181b;border:1px solid #27272a;border-radius:16px;padding:28px}}
+h1{{font-size:22px;margin:0 0 16px}} dl{{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0 0 24px}}
+dt{{color:#a1a1aa}} dd{{margin:0;font-weight:600;word-break:break-all}}
+button{{width:100%;background:#e8679a;color:#fff;border:0;border-radius:999px;font:700 16px/1 inherit;padding:14px;cursor:pointer}}
+button:disabled{{opacity:.6;cursor:default}} .ok{{color:#2dd4bf;font-weight:600}} .err{{color:#fca5a5}}
+#msg{{min-height:1.5em;text-align:center}}
+</style></head><body><main>{main}</main>
+<script>
+const b = document.getElementById("go"), m = document.getElementById("msg");
+if (b) b.onclick = async () => {{
+  b.disabled = true; b.textContent = "Approving…"; m.textContent = ""; m.className = "";
+  try {{
+    const r = await fetch("/api/admin/approve", {{method: "POST", headers: {{"Content-Type": "application/json"}},
+                                                  body: JSON.stringify({{t: {json.dumps(token).replace('<', chr(92) + 'u003c')}}})}});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Could not approve");
+    b.remove(); m.className = "ok";
+    m.textContent = j.already ? "Already approved." : `Approved. ${{j.username}} can sign in and host now.`;
+  }} catch (e) {{ b.disabled = false; b.textContent = "Approve account"; m.className = "err"; m.textContent = e.message; }}
+}};
+</script></body></html>"""
 
 
 def create_app():
@@ -275,7 +319,9 @@ def create_app():
         except accounts.Limited as e:
             return JSONResponse({"error": str(e)}, 429)
         log.info("account %s signed up (waiting for approval)", name)
-        return JSONResponse({"ok": True, "username": name, "active": False}, 201)
+        # support gets an email with an Approve link, after the answer is sent: a slow email never holds up a signup
+        return JSONResponse({"ok": True, "username": name, "active": False}, 201,
+                            background=BackgroundTask(notify.new_signup, name, client_ip(request), public_host(request)))
 
     @app.post("/api/auth/login")
     async def login(request: Request):
@@ -292,6 +338,28 @@ def create_app():
         resp.set_cookie(accounts.COOKIE, token, max_age=accounts.SESSION_DAYS * 86400, httponly=True, samesite="lax",
                         secure=https, path="/")
         return resp
+
+    # ---- approving a signup from support's email (algo_rhythm.notify). The emailed link only shows this page: mail
+    # scanners open links, so nothing changes until a person presses Approve, which POSTs the same signed token.
+    @app.get("/admin/approve")
+    async def approve_page(t: str = ""):
+        try:
+            user, err = await run_in_threadpool(accounts.check_approval, t), None
+        except accounts.AuthError as e:
+            user, err = None, str(e)
+        return HTMLResponse(approve_html(user, err, t), headers={
+            "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex"})
+
+    @app.post("/api/admin/approve")
+    async def approve_account(request: Request):
+        data = await body(request)
+        try:
+            user, now = await run_in_threadpool(accounts.approve, data.get("t"))
+        except accounts.AuthError as e:
+            return JSONResponse({"error": str(e)}, 400)
+        if now:
+            log.info("account %s approved from the signup email", user["username"])
+        return JSONResponse({"ok": True, "username": user["username"], "already": not now})
 
     @app.post("/api/auth/logout")
     async def logout(request: Request):

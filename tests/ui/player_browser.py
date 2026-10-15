@@ -111,15 +111,15 @@ def live_check(browser, base):
     page.on("pageerror", lambda e: errors.append(f"host: {e}"))
     page.on("console", lambda m: m.type == "error" and errors.append(f"host console: {m.text}"))
     page.goto(base + "/")
-    # a signup gets the "approval within 24 hours" dialog and cannot sign in yet; the approved host signs in
+    # a signup gets the "our team will approve it soon" dialog and cannot sign in yet; the approved host signs in
     page.click("#toregister")
     page.fill("#rg-user", "fresh")
     page.fill("#rg-email", "fresh@example.com")
     page.fill("#rg-pass", "longenough1")
     page.click("#registerform button[type=submit]")
     page.wait_for_selector("dialog#created[open]")
-    if "24 hours" not in page.inner_text("dialog#created"):
-        problems.append("the signup dialog does not say approval takes 24 hours")
+    if "approve it soon" not in page.inner_text("dialog#created"):
+        problems.append("the signup dialog does not say the team will approve it soon")
     page.click("dialog#created button")
     page.fill("#li-pass", "longenough1")  # the username is filled in already
     page.click("#loginform button[type=submit]")

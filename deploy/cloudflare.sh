@@ -4,6 +4,7 @@
 #
 #   deploy/cloudflare.sh check     the zone, its DNS records and Worker routes (read-only)
 #   deploy/cloudflare.sh worker    upload the Worker, with EDGE_SECRET from Secret Manager (deploy/gcp.sh edge-secret)
+#                                  and the email binding (support's inbox must be a verified Email Routing address)
 #   deploy/cloudflare.sh routes    send the domain, www and staging through the Worker
 #   deploy/cloudflare.sh dns       a proxied record for each (the Worker answers them; no origin of their own)
 #
@@ -14,6 +15,7 @@ set -euo pipefail
 DOMAIN=${DOMAIN:-algo-rhythm.in}
 PROJECT=${PROJECT:-song-mixer-511123}
 SCRIPT=${SCRIPT:-algo-rhythm-edge}
+MAIL_TO=${MAIL_TO:-support.algo.rhythm@gmail.com}  # support@ forwards here (Email Routing); the Worker emails it
 HOSTS=("$DOMAIN" "www.$DOMAIN" "staging.$DOMAIN")
 HERE=$(cd "$(dirname "$0")" && pwd)
 TOKEN=${CLOUDFLARE_API_TOKEN:-$(cat ~/.config/cloudflare/token 2>/dev/null || true)}
@@ -49,7 +51,9 @@ worker)
   gcloud --project="$PROJECT" secrets versions access latest --secret=edge-secret 2>/dev/null |
     python3 -c 'import json, sys
 print(json.dumps({"main_module": "worker.js", "compatibility_date": "2026-10-01",
-                  "bindings": [{"type": "secret_text", "name": "EDGE_SECRET", "text": sys.stdin.read()}]}))' > "$META"
+                  "bindings": [{"type": "secret_text", "name": "EDGE_SECRET", "text": sys.stdin.read()},
+                               {"type": "send_email", "name": "SUPPORT_MAIL", "destination_address": sys.argv[1]},
+                               {"type": "plain_text", "name": "MAIL_TO", "text": sys.argv[1]}]}))' "$MAIL_TO" > "$META"
   python3 -c 'import json, sys; sys.exit(0 if json.load(open(sys.argv[1]))["bindings"][0]["text"] else "edge-secret is empty: run deploy/gcp.sh edge-secret")' "$META"
   api PUT "/accounts/$ACCOUNT/workers/scripts/$SCRIPT" \
     -F "metadata=@$META;type=application/json" \

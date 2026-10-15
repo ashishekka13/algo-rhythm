@@ -8,6 +8,7 @@ Only a shortlist goes out: songs named in the text plus the 20 closest in meanin
 when there are no vectors or the query cannot be embedded. When the gateway fails (quota, network, bad answer) simple
 keyword rules take over.
 """
+import concurrent.futures
 import difflib
 import re
 
@@ -19,6 +20,11 @@ MOOD_NAMES = ["auto"] + list(dj.MOOD_WORDS)  # live_plan.MOODS
 SHORTLIST = 20
 COMMANDS = ["none", "skip", "play", "pause"]
 MAX_REQUESTS = 3
+# A guest is waiting with the phone in their hand: past this many seconds the keyword rules answer instead (Gemini can
+# hold a request ~25 s before refusing it when the quota is used up). The call itself goes on, and its answer is cached.
+DEADLINE_S = 8
+_pool = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="talk")
+WHY = {"busy": "The AI is busy right now", "slow": "The AI took too long", "down": "The AI is unavailable"}
 SCHEMA = {"type": "OBJECT", "required": ["reply", "level", "songs", "command"], "properties": {
     "reply": {"type": "STRING"},
     "level": {"type": "STRING", "enum": ["none"] + LEVEL_NAMES},
@@ -80,9 +86,14 @@ def interpret(text, state, songs, *, generate=genai.generate, cache=None, on_cal
                            next=", ".join(state.get("next") or []) or "nothing", library=library_lines(songs, idx),
                            order="" if idx is None else ", closest to the listener's words first",
                            text=text.strip()[:300])
+    call = _pool.submit(generate, "talk", PROMPT_VERSION, [{"text": prompt}], SCHEMA, cache=cache,
+                        **({"on_call": on_call} if on_call else {}))
     try:
-        a = generate("talk", PROMPT_VERSION, [{"text": prompt}], SCHEMA, cache=cache,
-                     **({"on_call": on_call} if on_call else {}))
+        a = call.result(timeout=DEADLINE_S)
+    except concurrent.futures.TimeoutError:
+        return rules(text, state, songs, "slow")
+    except genai.QuotaError:
+        return rules(text, state, songs, "busy")
     except genai.GenAIError:
         return rules(text, state, songs)
     actions = []
@@ -130,8 +141,8 @@ def match_song(query, songs, cutoff=0.65):  # 0.6 let "romantic" match "Om Shant
     return best_i if best >= cutoff else None
 
 
-def rules(text, state, songs):
-    """Keyword fallback when the AI is unavailable."""
+def rules(text, state, songs, why="down"):
+    """Keyword fallback when the AI is unavailable (why: "down"), busy (quota) or too slow."""
     t = " " + text.lower().strip() + " "
     level, did, actions = state.get("level") or "medium", [], []
     cur = LEVEL_NAMES.index(level) if level in LEVEL_NAMES else 1
@@ -162,8 +173,11 @@ def rules(text, state, songs):
         elif state.get("status") != "playing":
             actions.append({"type": "play"})
             did.append("play")
-    what = ", ".join(did) if did else "nothing I could understand"
-    return {"reply": f"The AI is unavailable, so I used simple rules: {what}.", "actions": actions, "source": "rules"}
+    if did:
+        reply = f"{WHY[why]}, so I used simple rules: {', '.join(did)}."
+    else:
+        reply = f"{WHY[why]} and simple rules did not understand that. Try again in a minute, or say it simply (\"play Kesariya\", \"turn it up\")."
+    return {"reply": reply, "actions": actions, "source": "rules"}
 
 
 def apply(result, *, set_level, request, skip, play, pause, set_mood=None):

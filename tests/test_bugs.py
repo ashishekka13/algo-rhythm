@@ -106,12 +106,41 @@ def check_window_read(library):
     print(f"1. a window read on its own matches the whole file's samples to {worst:.1e} (decoder rounding)")
 
 
+def check_talk_deadline():
+    """A guest waits with the phone in hand: a slow or busy Gemini gets a quick rules answer that says why."""
+    import time
+    from algo_rhythm import genai, talk
+    songs = [{"file": "a.mp3", "name": "Party Song", "energy_pct": 0.9, "llm": None}]
+    state = {"level": "medium", "mood": None, "status": "playing", "now": None, "next": []}
+    talk.DEADLINE_S, real = 0.5, talk.DEADLINE_S
+    try:
+        def slow(*a, **k):
+            time.sleep(3)
+            raise genai.GenAIError("never answers in time")
+        t0 = time.time()
+        r = talk.interpret("party now", state, songs, generate=slow)
+        took = time.time() - t0
+        assert r["source"] == "rules" and took < 1.5 and r["reply"].startswith("The AI took too long"), (took, r)
+        def busy(*a, **k):
+            raise genai.RateLimited("Gemini quota used up")
+        r = talk.interpret("dedicate it to Ishan", state, songs, generate=busy)
+        assert r["reply"].startswith("The AI is busy right now and simple rules did not understand") and not r["actions"], r
+        def down(*a, **k):
+            raise genai.GenAIError("HTTP 500")
+        r = talk.interpret("party now", state, songs, generate=down)
+        assert r["reply"].startswith("The AI is unavailable, so I used simple rules") and r["actions"], r
+    finally:
+        talk.DEADLINE_S = real
+    print(f"8. talk: a hanging AI answered by the rules in {took:.1f} s; busy and unavailable said apart")
+
+
 def main(library="test_library"):
     library = Path(library).resolve()
     check_vibe(library)
     check_match()
     check_vocal_floor(library)
     check_window_read(library)
+    check_talk_deadline()
     print("BUGS PASS")
 
 

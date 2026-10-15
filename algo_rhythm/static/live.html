@@ -154,6 +154,7 @@
     background:linear-gradient(180deg, rgba(9,9,11,.15) 0%, rgba(9,9,11,.35) 45%, rgba(9,9,11,.82) 100%); pointer-events:none; }
   .over > * { pointer-events:auto; }
   .over .spacer { flex:1; pointer-events:none; min-height:24px; }
+  #nowsub, #nowinfo { min-height:1.3em; min-height:1lh; }   /* a line each even before a song plays: the controls below never jump */
   .nowhead { display:flex; align-items:center; gap:14px; }
   .title { font-weight:700; letter-spacing:-.035em; line-height:1.02; overflow-wrap:anywhere; text-wrap:balance; margin:0; }
   #v-admin .title { font-size:clamp(44px, 5vw, 68px); }
@@ -166,6 +167,16 @@
     background-size:200% 100%; animation:shimmer 1.6s linear infinite; }
 
   .controls { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  button { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  button:active:not(:disabled) { transform:scale(.96); filter:brightness(1.25); }
+  button:disabled { opacity:.6; cursor:progress; }
+  .btn.busy { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn.busy::before { content:""; width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent;
+    animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #talkmic[aria-pressed="true"] { border-color:var(--bad, #ff6b6b); color:var(--ink); display:inline-flex; align-items:center; gap:8px; }
+  #talkmic[aria-pressed="true"]::before { content:""; width:9px; height:9px; border-radius:50%; background:var(--bad, #ff6b6b); animation:pulse 1s ease-in-out infinite; }
+  .reserve { visibility:hidden; }   /* keeps its place, so the buttons beside it do not move or resize */
   .btn { padding:0 18px; border-radius:var(--radius-inner); border:1px solid var(--line); background:var(--glass); color:var(--ink); font-size:15px; font-weight:600;
     transition:background-color .2s ease, border-color .2s ease, color .2s ease, transform .16s var(--ease); }
   #transport { flex:1; min-width:140px; min-height:52px; display:flex; align-items:center; justify-content:center; gap:10px; border:0;
@@ -410,6 +421,13 @@
   .hint, .switch, .who { color:var(--ink-2); font-size:14px; margin:0; }
   .linkbtn { background:none; border:0; padding:4px 2px; color:var(--acc); font:inherit; font-weight:600; cursor:pointer; text-decoration:underline; }
   #signedin { display:grid; gap:12px; }
+  dialog#namedlg { max-width:min(420px, calc(100vw - 32px)); border:1px solid var(--line); border-radius:var(--radius-card);
+    background:var(--bg); color:var(--ink); padding:24px; }
+  dialog#namedlg::backdrop { background:rgba(0,0,0,.6); }
+  dialog#namedlg h2 { margin:0 0 6px; }
+  dialog#namedlg p { color:var(--ink-2); margin:0 0 14px; }
+  dialog#namedlg form { display:grid; gap:10px; }
+  dialog#namedlg .btn { min-height:48px; }
   dialog#created { max-width:min(420px, calc(100vw - 32px)); border:1px solid var(--line); border-radius:var(--radius-card);
     background:var(--bg); color:var(--ink); padding:24px; }
   dialog#created::backdrop { background:rgba(0,0,0,.6); }
@@ -531,8 +549,8 @@
           <div class="times"><span id="t0">0:00</span><span id="t1">0:00</span></div>
           <div class="controls">
             <button id="transport" type="button">Play</button>
-            <button id="skip" class="btn" type="button" hidden title="Jump to 10 seconds before the next transition">Skip to transition</button>
-            <button id="restart" class="btn" type="button" hidden>Start over</button>
+            <button id="skip" class="btn reserve" type="button" disabled aria-hidden="true" title="Jump to 10 seconds before the next transition">Skip to transition</button>
+            <button id="restart" class="btn reserve" type="button" disabled aria-hidden="true">Start over</button>
             <button id="mc" class="btn" type="button" role="switch" aria-checked="false" hidden>AI MC</button>
           </div>
         </div>
@@ -627,6 +645,15 @@
 
 <template id="t-guest">
 <div id="v-guest" class="shell">
+  <dialog id="namedlg" aria-labelledby="namedlg-h">
+    <h2 id="namedlg-h">Welcome to the party</h2>
+    <p>What should we call you? Your name shows on the big screen with the songs you request.</p>
+    <form id="nameform" method="dialog">
+      <label class="sr" for="guestname">Your name</label>
+      <input id="guestname" type="text" maxlength="24" placeholder="Your name" autocomplete="nickname" required>
+      <button class="btn primary" type="submit">Join the party</button>
+    </form>
+  </dialog>
   <header class="top">
     <div class="wordmark"><span>algo<b>-</b>rhythm</span></div>
     <span class="grow"></span>
@@ -985,12 +1012,16 @@ function drawMC(s) {
 function drawTransport(s) {
   const t = $("transport");
   if (!t) return;
-  t.textContent = s.status === "playing" ? "Pause" : s.status === "paused" ? "Resume" : "Play";
-  t.className = s.status === "playing" ? "pause" : "";
-  $("skip").hidden = s.status !== "playing";
+  const away = VIEW === "admin" && P && P.status === "idle" && s.status !== "idle";  // a reload mid-party: nothing plays here yet
+  t.textContent = away ? "Play here" : s.status === "playing" ? "Pause" : s.status === "paused" ? "Resume" : "Play";
+  t.className = !away && s.status === "playing" ? "pause" : "";
+  t.title = away ? "The party is on: tap to play it on this device from where it is now" : "";
+  // Skip and Start over keep their place when not offered, so Play/Pause never changes size or moves
+  const offer = (b, on) => { b.hidden = false; b.classList.toggle("reserve", !on); b.disabled = !on; b.setAttribute("aria-hidden", String(!on)); };
+  offer($("skip"), s.status === "playing" && !away);
   const r = $("restart");
-  r.hidden = s.status === "idle";
-  if (r.hidden) sure = false;
+  offer(r, s.status !== "idle");
+  if (s.status === "idle") sure = false;
   r.textContent = sure ? "Tap again to stop and start over" : "Start over";
   r.className = "btn" + (sure ? " sure" : "");
 }
@@ -1354,22 +1385,47 @@ function drawTimer() {
 }
 
 // ---- Ask the DJ: admin and guest (the server keeps a guest to requests and mood)
+// every guest has a name: asked once when they join (it shows with their requests), changeable in the request box
+function nameSetup() {
+  const d = $("namedlg");
+  $("byname").addEventListener("change", () => { const n = $("byname").value.trim(); if (n) store("algo-name", n); });
+  if ((store("algo-name") || "").trim()) return;
+  $("nameform").addEventListener("submit", ev => {
+    const n = $("guestname").value.trim().slice(0, 24);
+    if (!n) { ev.preventDefault(); return; }
+    store("algo-name", n); $("byname").value = n;
+  });
+  d.addEventListener("cancel", ev => ev.preventDefault());   // Escape does not skip it: every guest gets a name
+  if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+  $("guestname").focus();
+}
+
+let talkBusy = false;
 function talkSetup() {
   $("talkform").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const text = $("talk").value.trim();
-    if (!text) return;
-    $("talksend").disabled = true; $("talkreply").textContent = "Thinking…";
+    if (!text || talkBusy) return;                   // one message at a time: extra taps while it works do nothing
+    talkBusy = true;
+    const send = $("talksend");
+    send.disabled = true; send.classList.add("busy"); send.textContent = "Sending"; send.setAttribute("aria-busy", "true");
+    $("talk").readOnly = true; ifEl("talkmic", b => { b.disabled = true; });
+    $("talkreply").textContent = "The DJ is thinking…";
+    const stop = new AbortController(), late = setTimeout(() => stop.abort(), 20000);
     try {
-      const r = await fetch(apiPath("/talk"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify({text})});
+      const r = await fetch(apiPath("/talk"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify({text}), signal: stop.signal});
       const data = await r.json();
       if (!r.ok) { $("talkreply").textContent = data.error || "The DJ did not understand that."; return; }
-      $("talk").value = "";
-      $("talkreply").textContent = data.talk.reply + (data.talk.done.length || (data.talk.client_actions || []).length ? "" : " (nothing changed)");
+      if (data.talk.source !== "rules") $("talk").value = "";   // the AI was busy or slow: keep the words to send again
+      $("talkreply").textContent = data.talk.reply + (data.talk.source === "rules" || data.talk.done.length || (data.talk.client_actions || []).length ? "" : " (nothing changed)");
       show(data);
       for (const a of data.talk.client_actions || []) hostAction(a);   // play, pause and skip happen in this browser
-    } catch (e) { $("talkreply").textContent = "Could not reach the player."; }
-    finally { $("talksend").disabled = false; }
+    } catch (e) { $("talkreply").textContent = e.name === "AbortError" ? "The DJ is taking too long. Try again in a moment." : "Could not reach the player."; }
+    finally {
+      clearTimeout(late); talkBusy = false;
+      send.disabled = false; send.classList.remove("busy"); send.textContent = "Send"; send.removeAttribute("aria-busy");
+      $("talk").readOnly = false; ifEl("talkmic", b => { b.disabled = false; });
+    }
   });
   micSetup();
 }
@@ -1426,8 +1482,8 @@ function hostPlayer(s) {
     advancing = true;
     post("/advance", e.need_advance ? {} : {swap: true}).finally(() => { advancing = false; });
   }
-  // a reload mid-party (or another tab started it): the music can only start here after a tap
-  ifEl("resumehere", b => { b.hidden = !(s.status !== "idle" && P.status === "idle"); });
+  // a reload mid-party (or another tab started it): the music can only start here after a tap on Play here
+  drawTransport(s);
 }
 async function playHere(s) {
   P.unlock();
@@ -1572,15 +1628,17 @@ vis = visPrefs();
     });
     for (const a of document.querySelectorAll("nav.tabs a[data-to]"))
       if (a.dataset.to !== "screen") a.setAttribute("href", a.dataset.to === "host" ? `/p/${CODE}/host` : `/p/${CODE}`);
-    const rb = el("button", "btn", "Play here"); rb.id = "resumehere"; rb.type = "button"; rb.hidden = true;
-    rb.title = "The party is on: tap to play it on this device from where it is now";
-    $("transport").after(rb);
-    rb.onclick = async () => { rb.hidden = true; const s = await (await fetch(apiPath("/state"), {headers: headers()})).json(); await playHere(s); };
     $("restart").onclick = async () => {
       if (!sure) { sure = true; if (last) drawTransport(last); setTimeout(() => { sure = false; if (last) drawTransport(last); }, 4000); return; }
       sure = false; P.reset(); await post("/transport", {action: "restart"});
     };
     $("transport").onclick = async () => {
+      if (P.status === "idle" && last && last.status !== "idle") {   // Play here, after a reload: from where the party is
+        P.unlock();                                   // inside the tap: the browser allows sound from here on
+        const s = await (await fetch(apiPath("/state"), {headers: headers()})).json();
+        await playHere(s);
+        return drawTransport(s);
+      }
       if (status === "playing") { P.pause(); return post("/transport", {action: "pause"}); }
       if (status === "paused" && P.status === "paused") { await P.resume(); return post("/transport", {action: "resume"}); }
       P.unlock();                                     // inside the click: the browser allows sound from here on
@@ -1604,7 +1662,7 @@ vis = visPrefs();
   if (VIEW === "presenter") presenterChrome();
   if (VIEW !== "guest") addEventListener("storage", e => { if (e.key === "algo-visuals") { vis = visPrefs(); if (last) drawVisual(last); } });   // another tab changed the visuals
   for (const b of document.querySelectorAll(".fbb")) b.onclick = () => vote(b);
-  if (VIEW === "guest") { talkSetup(); reactSetup(); $("byname").value = store("algo-name") || ""; }
+  if (VIEW === "guest") { talkSetup(); reactSetup(); $("byname").value = store("algo-name") || ""; nameSetup(); }
   if ($("q")) {
     $("q").addEventListener("input", search);
     try { songs = await (await fetch(apiPath("/songs"))).json(); } catch (e) { songs = []; }

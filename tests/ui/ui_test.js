@@ -76,7 +76,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   check("normal: info line uses energy word (not 0%)", /energy low/.test(o.info), o.info);
   check("normal: 6 vibe buttons, none lit when the level+mood pair is not a vibe", o.levels.join() === "chill,sad,romantic,groove,party,peak", o.levels);
   check("normal: energy theme class and --beat from the BPM", /\be-low\b/.test(o.htmlClass) && o.beat === "0.619s" && !/loading/.test(o.htmlClass), [o.htmlClass, o.beat]);
-  check("normal: button says Pause while playing", o.transport === "Pause", o.transport);
+  // this page never started its audio (as after a reload mid-party): the main button offers to play here, not Pause
+  check("normal: on a host page that is not playing yet, the button says Play here", o.transport === "Play here", o.transport);
   check("normal: journey has 2 cards with a request and an echo-out tag", o.next.length === 2 && /request/.test(o.next[1]) && /echo-out/.test(o.next[1]) && /match 0.31/.test(o.next[1]), o.next);
   check("normal: locked song marked ready", /ready/.test(o.next[0]), o.next[0]);
   check("normal: blend bar counts down to the next song", /Behti Hawa.*Blend in ?0:31.*Kabira Encore/.test(o.blend), o.blend);
@@ -97,7 +98,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   check("idle: queue explains itself", /after you press Play/.test(o.next.join()), o.next);
 
   o = await load(() => ({...base, status: "paused"}));
-  check("paused: button says Resume", o.transport === "Resume", o.transport);
+  check("paused: on a host page that is not playing yet, the button says Play here", o.transport === "Play here", o.transport);
 
   // new page, OLD server (no api field, no history)
   const old = {...base}; delete old.api; delete old.history;

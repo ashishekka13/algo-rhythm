@@ -70,6 +70,8 @@ class Player {
   constructor({report = () => {}, onError = () => {}, log = () => {}} = {}) {
     this.report = report; this.onError = onError; this.log = log;
     this.ctx = null; this.epoch = null; this.status = "idle";
+    // the audio context exists only after a tap (unlock); songs fetched before that are decoded once it does
+    this.ready = new Promise(ok => { this.onReady = ok; });
     this.anchor = {ctx: 0, music: 0}; this.pausedAt = 0;
     this.items = new Map();       // index -> item (with rid)
     this.media = {};              // file -> {mix, vocals}
@@ -94,6 +96,7 @@ class Player {
   // the output chain on context c (an OfflineAudioContext in the tests)
   attach(c) {
     this.ctx = c;
+    this.onReady(c);
     this.music = c.createGain();                 // every song goes here; the MC's duck is on it
     this.voice = c.createGain();                 // the MC's line: not ducked
     const pre = c.createGain(); pre.gain.value = 0.5;
@@ -119,7 +122,7 @@ class Player {
     if (!b) {
       b = {buf: null, p: null};
       b.p = fetch(url).then(r => { if (!r.ok) throw new Error(`${r.status} for ${url}`); return r.arrayBuffer(); })
-        .then(data => new Promise((ok, bad) => this.ctx.decodeAudioData(data, ok, bad)))
+        .then(data => this.ready.then(c => new Promise((ok, bad) => c.decodeAudioData(data, ok, bad))))
         .then(buf => { b.buf = buf; return buf; })
         .catch(e => { this.buffers.delete(url); this.onError(`Could not load audio: ${e.message || e}`); return null; });
       this.buffers.set(url, b);

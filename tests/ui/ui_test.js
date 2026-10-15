@@ -254,6 +254,12 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     check("presenter: shows the QR guests scan to join, and the code", !P.D.getElementById("join").hidden
       && P.D.getElementById("joinqr").getAttribute("src") === `/qr/${CODE}.svg` && P.D.getElementById("joincodeshow").textContent === CODE
       && !P.errors.length, [P.D.getElementById("joinqr").getAttribute("src"), P.errors]);
+    ps = {...ps, screen: {qr: false}};
+    await wait(1500);
+    const qrHidden = P.D.getElementById("join").hidden;
+    ps = {...ps, screen: {qr: true}};
+    await wait(1500);
+    check("presenter: the join QR hides and comes back when the host says so", qrHidden && !P.D.getElementById("join").hidden, qrHidden);
     check("presenter: never in the host's low-power mode, even when this browser chose it", !P.D.documentElement.classList.contains("lowpower")
       && !P.D.getElementById("lowpower"), P.D.documentElement.className);
     P.dom.window.close();
@@ -410,6 +416,25 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
       const back = H.classList.contains("lowpower") && ls.getItem("algo-lowpower") === "true";
       check("host: low power is on by default; the switch turns the visuals on and off and is remembered", on && off && back && !A.errors.length,
         [on, off, back, A.errors]);
+    }
+    {
+      let hs = {...st, screen: {qr: true}};
+      const sent = [];
+      const Q = open("/", async (url, opt) => {
+        if (opt && opt.method === "POST") { const b = JSON.parse(opt.body); sent.push({url, ...b}); if (url === "/screen") hs = {...hs, screen: {qr: b.qr}}; }
+        return {ok: true, json: async () => (url === "/songs" ? [] : hs)};
+      }, stubs(false));
+      await wait(300);
+      const sw = Q.D.getElementById("qrswitch"), was = sw.getAttribute("aria-checked");
+      sw.click();
+      await wait(300);
+      const off = sw.getAttribute("aria-checked");
+      sw.click();
+      await wait(300);
+      check("host: the QR switch tells the server to hide, then show, the big screen's QR", was === "true" && off === "false"
+        && sw.getAttribute("aria-checked") === "true" && sent.filter(x => x.url === "/screen").map(x => x.qr).join() === "false,true"
+        && sent.every(x => x.url !== "/screen" || x.host) && !Q.errors.length, [was, off, sent, Q.errors]);
+      Q.dom.window.close();
     }
     const box = A.D.querySelector(".songart"), imgs = [...box.querySelectorAll("img")];
     const layer = u => imgs.find(i => i.getAttribute("src") === u), op = u => layer(u) ? Number(layer(u).style.opacity) : null;

@@ -68,7 +68,7 @@ def hash_key(key):
 def new_state(level):
     return {"v": 1, "level": level, "mood": None, "status": "idle", "epoch": 0, "playhead": 0.0, "reported_at": None,
             "seed": secrets.token_hex(8), "history": {}, "counts": {}, "played": [], "requests": [], "deadline": {}, "early": None, "queue": [], "timeline": [],
-            "log": [], "positions": 0, "logged": None, "visuals": {"world": "auto", "kaleido": False}, "requesters": {},
+            "log": [], "positions": 0, "logged": None, "visuals": {"world": "auto", "kaleido": False}, "screen": {"qr": True}, "requesters": {},
             "mc": {"enabled": True, "used": [], "level": None, "prev": None, "changed": False, "last_line": None,
                    "last_at": None}}
 
@@ -664,6 +664,13 @@ def set_visuals(code, world, kaleido):
     act(code, lambda sess, st: st.update(visuals={"world": world, "kaleido": kaleido}))
 
 
+def set_screen(code, qr):
+    """The host's choices for the big screen: qr = show the join QR code (and the code) or not."""
+    if not isinstance(qr, bool):
+        raise ValueError("qr must be true or false")
+    act(code, lambda sess, st: st.update(screen={"qr": qr}))
+
+
 # ---------------------------------------------------------------- what the pages show
 
 def _tallies(party_id, sess):
@@ -727,6 +734,7 @@ def view(code, host=False):
     v["playhead"] = round(playhead_now(st), 3)
     v["feedback"] = _tallies(party_id, sess)
     v["visuals"] = dict(st.get("visuals") or {"world": "auto", "kaleido": False})
+    v["screen"] = {"qr": (st.get("screen") or {}).get("qr", True)}  # parties from before this field show the QR
     for e in [v["now"], *v["next"]]:
         if e and e.get("request") and e["name"] in st["requesters"]:
             e["by"] = st["requesters"][e["name"]]

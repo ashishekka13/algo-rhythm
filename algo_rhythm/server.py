@@ -333,6 +333,12 @@ def create_app():
         data = await body(request)
         return await answer(code, lambda: party.set_visuals(code, data.get("world"), data.get("kaleido")), host=True)
 
+    @app.post("/api/p/{code}/screen")
+    async def screen_options(code: str, request: Request):
+        await host_of(request, code)
+        data = await body(request)
+        return await answer(code, lambda: party.set_screen(code, data.get("qr")), host=True)
+
     @app.post("/api/p/{code}/request")
     async def request_song(code: str, request: Request):
         check(code)

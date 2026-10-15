@@ -107,9 +107,9 @@
   html.lowpower #garden, html.lowpower .ambience, html.lowpower .veil { display:none !important; }
   html.lowpower .glass { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
   html.lowpower *, html.lowpower *::before, html.lowpower *::after { animation:none !important; }
-  #lowpower[aria-checked="true"] { color:var(--ink); border-color:var(--acc); }
-  #lowpower::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--ink-3); }
-  #lowpower[aria-checked="true"]::before { background:var(--acc); }
+  button.chip[role="switch"][aria-checked="true"] { color:var(--ink); border-color:var(--acc); }
+  button.chip[role="switch"]::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--ink-3); }
+  button.chip[role="switch"][aria-checked="true"]::before { background:var(--acc); }
   button.chip { font:inherit; font-size:13px; cursor:pointer; min-height:32px; }
   button.chip:hover { color:var(--ink); border-color:var(--acc); }
   .invite { position:absolute; right:0; top:calc(100% + 8px); z-index:20; width:min(280px, calc(100vw - 32px)); text-align:center;
@@ -508,6 +508,8 @@
       <div class="glass invite" id="invite" hidden><img class="qr" id="inviteqr" alt="QR code: scan to join the party">
         <div class="code" id="invitecode"></div><div class="hint">Guests scan this to join and request songs</div></div>
     </span>
+    <button type="button" class="chip" id="qrswitch" role="switch" aria-checked="true"
+      title="Show or hide the join QR code on the big screen">QR on big screen</button>
     <span class="chip num" id="timer">Session not started</span>
   </header>
 
@@ -1261,10 +1263,14 @@ function show(s) {
   safe("feedback", () => drawFeedback(s));
   safe("reactions", () => drawReactions(s));
   safe("my requests", () => drawMine(s));
+  const qrOn = !s.screen || s.screen.qr !== false;    // the host shows or hides it (the QR switch on the host page)
   safe("join link", () => ifEl("join", j => {         // presenter: a QR of the guest page (the server draws it), and the
-    if (!j.hidden) return;                            // code, for typing on the start page
-    $("joinqr").src = `/qr/${CODE}.svg`; $("joincodeshow").textContent = CODE; j.hidden = false;
+    if (qrOn && !$("joinqr").getAttribute("src")) {  // code, for typing on the start page
+      $("joinqr").src = `/qr/${CODE}.svg`; $("joincodeshow").textContent = CODE;
+    }
+    j.hidden = !qrOn;
   }));
+  safe("QR switch", () => ifEl("qrswitch", b => b.setAttribute("aria-checked", String(qrOn))));
   if (s.engine_error) $("err").textContent = "Player error: " + s.engine_error;
   if (VIEW === "admin" && s.engine) safe("player", () => hostPlayer(s));
 }
@@ -1549,6 +1555,12 @@ vis = visPrefs();
     $("partycode").textContent = "Invite · " + CODE;
     setLowPower(lowPowerPref());
     $("lowpower").onclick = () => setLowPower($("lowpower").getAttribute("aria-checked") !== "true");
+    $("qrswitch").onclick = async () => {             // the big screen hears it through the live updates
+      const b = $("qrswitch"), on = b.getAttribute("aria-checked") !== "true";
+      b.disabled = true;
+      await post("/screen", {qr: on});
+      b.disabled = false;
+    };
     $("invitecode").textContent = CODE;
     $("partycode").onclick = () => {                  // the guests' QR, on demand: the host page has no room to keep it up
       const inv = $("invite"), open = inv.hidden;

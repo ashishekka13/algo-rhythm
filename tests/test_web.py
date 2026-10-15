@@ -184,6 +184,14 @@ def main(library="test_library"):
     # start over
     s = c.post(f"/api/p/{code}/transport", json={"action": "restart"}, headers=H).json()
     assert s["status"] == "idle" and s["engine"]["epoch"] == 1 and not s["engine"]["items"], s["engine"]
+    # the host shows or hides the join QR on the big screen; guests cannot
+    assert c.get(f"/api/p/{code}/state").json()["screen"] == {"qr": True}
+    assert c.post(f"/api/p/{code}/screen", json={"qr": False}).status_code == 403
+    assert c.post(f"/api/p/{code}/screen", json={"qr": "no"}, headers=H).status_code == 400
+    assert c.post(f"/api/p/{code}/screen", json={"qr": False}, headers=H).json()["screen"] == {"qr": False}
+    assert c.get(f"/api/p/{code}/state").json()["screen"] == {"qr": False}
+    assert c.post(f"/api/p/{code}/screen", json={"qr": True}, headers=H).json()["screen"] == {"qr": True}
+
     # sign out; then failed sign-ins from one address are limited
     assert c.post("/api/auth/logout", json={}).status_code == 200 and c.get("/api/auth/me").json()["user"] is None
     assert c.post("/api/parties", json={"level": "medium"}).status_code == 401

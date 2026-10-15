@@ -58,6 +58,10 @@ CONN="$PROJECT:$REGION:$SQL_INSTANCE"
 # MAX_INSTANCES: parties share updates across instances (LISTEN/NOTIFY), but each instance holds up to
 # DB_POOL_SIZE + DB_POOL_OVERFLOW + 1 database connections: db-f1-micro allows 25 in all (production, staging and the
 # Oct 10 app share it), so keep 1 until the database tier is larger (db-g1-small: 50; db-custom-1-3840: 100).
+# Staging is for trying changes, not for load: one small instance. Production is sized for the parties.
+if [ "$STAGE" = staging ]; then
+  CPU=${CPU:-2}; MAX_INSTANCES=${MAX_INSTANCES:-1}
+fi
 CPU=${CPU:-4}
 MEMORY=${MEMORY:-4Gi}
 CONCURRENCY=${CONCURRENCY:-250}

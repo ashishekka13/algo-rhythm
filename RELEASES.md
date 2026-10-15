@@ -88,7 +88,9 @@ commit `e985a13`). Changes since v1.0:
   - When the planned part of a song fails its checks, the other parts are tried side by side, and the first that
     passes in order still wins. The audio is bit-identical to before.
   - Locally the 5-transition test set took 13.9 s instead of 19.1 s.
-- **Server:** gen2 runtime, 4 vCPU, 250 open connections per instance (was 40), two transitions prepared at once.
+- **Production server:** gen2 runtime, 4 vCPU, 250 open connections per instance (was 40), two transitions prepared
+  at once. Measured on 4 vCPU: median 7.2 s per transition, 90th percentile 18.6 s, worst 42 s (was 12.7, 43 and 71 s).
+  Staging stays small: one instance, 2 vCPU.
 - **Fewer database calls:** the host's and guests' live views are built from one read per second per party. The
   connection pool is sized for a database that production and staging share.
 - **Ready for more than one instance:** a change on one instance reaches screens on another at once through

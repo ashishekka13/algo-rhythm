@@ -357,9 +357,12 @@ def create_app():
             user, now = await run_in_threadpool(accounts.approve, data.get("t"))
         except accounts.AuthError as e:
             return JSONResponse({"error": str(e)}, 400)
-        if now:
-            log.info("account %s approved from the signup email", user["username"])
-        return JSONResponse({"ok": True, "username": user["username"], "already": not now})
+        if not now:
+            return JSONResponse({"ok": True, "username": user["username"], "already": True})
+        log.info("account %s approved from the signup email", user["username"])
+        # the user hears about it by email, with a link to the site they signed up on (this one)
+        return JSONResponse({"ok": True, "username": user["username"], "already": False},
+                            background=BackgroundTask(notify.account_approved, user["username"], public_host(request)))
 
     @app.post("/api/auth/logout")
     async def logout(request: Request):

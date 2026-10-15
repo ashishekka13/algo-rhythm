@@ -16,6 +16,8 @@ def main():
 
     sent = []
     notify.send = lambda subject, text, html_body: sent.append((subject, text, html_body)) or True
+    to_users = []
+    notify.send_user = lambda to, subject, text, html_body: to_users.append((to, subject, text, html_body)) or True
     c = TestClient(server.create_app())  # no `with`: the startup library load is not needed here
 
     r = c.post("/api/auth/register", json={"username": "dj.ravi", "email": "ravi@example.com", "password": "longenough1"})
@@ -37,7 +39,12 @@ def main():
 
     r = c.post("/api/admin/approve", json={"t": token})
     assert r.status_code == 200 and r.json() == {"ok": True, "username": "dj.ravi", "already": False}, r.text
+    assert len(to_users) == 1, "the user is emailed once, when approved"
+    to, subj, txt, body = to_users[0]
+    assert to == "ravi@example.com" and subj == "Your algo-rhythm account is approved"
+    assert "Start listening" in body and 'href="https://testserver/"' in body and "https://testserver/" in txt
     assert c.post("/api/admin/approve", json={"t": token}).json()["already"] is True
+    assert len(to_users) == 1, "approving again sends nothing"
     assert "Already approved" in c.get(f"/admin/approve?t={token}").text
     assert c.post("/api/auth/login", json={"username": "dj.ravi", "password": "longenough1"}).status_code == 200
 
@@ -68,6 +75,19 @@ def main():
     class R:
         status_code, text = 502, "not sent"
     assert n2.send("s", "t", "h", post=lambda *a, **k: R()) is False
+    os.environ.pop("RESEND_API_KEY", None)
+    assert n2.send_user("a@b.c", "s", "t", "h", post=lambda *a, **k: 1 / 0) is False, "no key: no call"
+    os.environ["RESEND_API_KEY"] = "re_test"
+    got = {}
+    class OK:
+        status_code, text = 200, "{}"
+    assert n2.send_user("a@b.c", "s", "t", "h", post=lambda url, **k: got.update(url=url, **k) or OK()) is True
+    assert got["url"] == n2.RESEND_URL and got["headers"]["Authorization"] == "Bearer re_test"
+    assert got["json"]["to"] == ["a@b.c"] and got["json"]["reply_to"] == "support@algo-rhythm.in"
+    assert n2.send_user("a@b.c", "s", "t", "h", post=lambda *a, **k: R()) is False
+    os.environ.pop("RESEND_API_KEY")
+    s2, _, h2 = n2.approved_email({"username": "a<b", "email": "x@y.z"}, "staging.algo-rhythm.in")
+    assert s2.startswith("[staging] ") and "a&lt;b" in h2 and 'href="https://staging.algo-rhythm.in/"' in h2
     os.environ.pop("EDGE_SECRET")
     assert n2.send("s", "t", "h", post=lambda *a, **k: 1 / 0) is False
     print("APPROVE PASS")

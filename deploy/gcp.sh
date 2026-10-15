@@ -157,8 +157,11 @@ build)
   ;;
 server)
   # Sized by CPU, MEMORY, CONCURRENCY and MAX_INSTANCES above.
+  # RESEND_API_KEY (email to users, algo_rhythm.notify) once deploy/resend.sh key has made it
+  SECRETS="DATABASE_URL=$DB_SECRET:latest,EDGE_SECRET=edge-secret:latest"
+  if $G secrets describe resend-api-key >/dev/null 2>&1; then SECRETS="$SECRETS,RESEND_API_KEY=resend-api-key:latest"; fi
   $G run deploy "$SERVICE" --image="$API_IMAGE" --region="$REGION" --service-account="$SA" \
-    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=$DB_SECRET:latest,EDGE_SECRET=edge-secret:latest" \
+    --add-cloudsql-instances="$CONN" --set-secrets="$SECRETS" \
     --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT,MC_TTS=gemini,LOG_LEVEL=INFO,DB_POOL_SIZE=$DB_POOL_SIZE,DB_POOL_OVERFLOW=$DB_POOL_OVERFLOW,LOCAL_CACHE_MB=1000,RENDER_SLOTS=2" \
     --cpu="$CPU" --memory="$MEMORY" --concurrency="$CONCURRENCY" --min-instances=0 --max-instances="$MAX_INSTANCES" \
     --execution-environment=gen2 --timeout=3600 --session-affinity --cpu-boost --allow-unauthenticated

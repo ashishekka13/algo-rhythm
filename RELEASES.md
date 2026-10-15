@@ -29,6 +29,9 @@ commit `e985a13`). Changes since v1.0:
   glass blur or other animations. Main-thread CPU while playing dropped from 72% to 2–5% of a core.
 - A **Low power** switch in the header turns the visuals back on; each browser remembers the choice. The big screen
   keeps its full visuals.
+- **Guest phones run light too, always:** no light-garden animation, blurred background, glass blur or moving art.
+  The page's CPU in Chromium at phone size dropped from 76% to 1% of a core, and the jitter is gone. The busy spinner
+  and the listening dot still animate.
 
 ### Song selection: nights no longer start alike
 - **The opening song varies:** a weighted pick among the good openers (within 0.25 of the best), not always the

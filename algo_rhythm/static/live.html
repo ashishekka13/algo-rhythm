@@ -101,12 +101,15 @@
 
   header.top { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:18px; }
   header.top .grow { flex:1; }
-  /* Host low-power mode (on unless the host turns it off): this screen plays the music, so it drops every decoration
-     that costs CPU or GPU every frame (the light garden, the blurred mood glow, glass blur, animations). The big
-     screen keeps them. */
+  /* Low-power mode: the host's page (on unless the host turns it off: it plays the music) and every guest's phone. No
+     decoration that costs CPU or GPU every frame (the light garden, the blurred mood glow, glass blur, animations).
+     The big screen keeps them. */
   html.lowpower #garden, html.lowpower .ambience, html.lowpower .veil { display:none !important; }
   html.lowpower .glass { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
   html.lowpower *, html.lowpower *::before, html.lowpower *::after { animation:none !important; }
+  /* ...except the two that say something is happening: a button at work, the microphone listening */
+  html.lowpower .btn.busy::before { animation:spin .8s linear infinite !important; }
+  html.lowpower #talkmic[aria-pressed="true"]::before { animation:pulse 1s ease-in-out infinite !important; }
   button.chip[role="switch"][aria-checked="true"] { color:var(--ink); border-color:var(--acc); }
   button.chip[role="switch"]::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--ink-3); }
   button.chip[role="switch"][aria-checked="true"]::before { background:var(--acc); }
@@ -852,7 +855,8 @@ const artBg = p => `linear-gradient(135deg, rgb(${p[0]}), rgb(${p[1]}) 55%, rgb(
 // ---- the visual: four living worlds, beat-locked blooms and the art kaleidoscope (static/visuals.js)
 // the host's low-power mode (on by default; the switch in the header): set before the garden starts, so it never draws
 const lowPowerPref = () => { try { return localStorage.getItem("algo-lowpower") !== "false"; } catch (e) { return true; } };
-if (VIEW === "admin" && lowPowerPref()) document.documentElement.classList.add("lowpower");
+// guests' phones always: the visuals are the big screen's job, and on a phone they made the page jittery
+if ((VIEW === "admin" && lowPowerPref()) || VIEW === "guest") document.documentElement.classList.add("lowpower");
 const G = $("garden") ? garden($("garden"), VIEW === "presenter", VIEW !== "presenter") : {set() {}, run() {}};
 if (document.documentElement.classList.contains("lowpower")) G.run(false);
 function setLowPower(on) {

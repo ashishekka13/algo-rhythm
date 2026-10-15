@@ -250,6 +250,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     await wait(300);
     const posted = xposts.find(x => x.url === "/answer");
     const locked = [...g.D.querySelectorAll("#gtopts button")].every(b => b.disabled) && /Locked in: C/.test(g.D.getElementById("gtnote").textContent);
+    check("guest: the phone runs light: no light garden, no animations (the big screen keeps them)",
+      g.D.documentElement.classList.contains("lowpower") && !g.D.getElementById("lowpower"), g.D.documentElement.className);
     check("guest: trivia buttons answer once with the guest id and round, then lock", shown && posted && posted.round === 7
       && posted.choice === 2 && posted.guest.length >= 8 && locked, [shown, posted, locked]);
     st = {...st, trivia: null};

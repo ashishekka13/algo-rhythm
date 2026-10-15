@@ -144,10 +144,14 @@ HOST_GONE_S = 20  # no report from the host's player for this long while playing
 
 def playhead_now(st):
     """Where the music is now (music time): the host's last report, moved on by the time since, unless paused. Not more
-    than HOST_GONE_S on: past that the host's player is gone and the music with it (the screens stop with it)."""
+    than HOST_GONE_S on: past that the host's player is gone and the music with it (the screens stop with it). When the
+    host's page closed its connection after that report (host_gone_at), the music stops there."""
     ph = st.get("playhead") or 0.0
-    if st.get("status") == "playing" and st.get("reported_at"):
-        ph += min(max(0.0, time.time() - st["reported_at"]), HOST_GONE_S)
+    rep = st.get("reported_at")
+    if st.get("status") == "playing" and rep:
+        gone = st.get("host_gone_at")
+        end = gone if gone and gone > rep else time.time()
+        ph += min(max(0.0, end - rep), HOST_GONE_S)
     return ph
 
 
@@ -159,19 +163,30 @@ def host_offline_s(st):
     return round(age) if age > HOST_GONE_S else 0
 
 
-def set_presence(code, instance, guests):
-    """This instance holds `guests` guests' screens for the party (algo_rhythm.hub)."""
+def set_presence(code, instance, guests, hosts=0):
+    """This instance holds `guests` guests' screens and `hosts` host pages for the party (algo_rhythm.hub)."""
     with repository.session() as s:
-        s.merge(db.PartyPresence(code=code, instance=instance, guests=int(guests), updated_at=db.now()))
+        s.merge(db.PartyPresence(code=code, instance=instance, guests=int(guests), hosts=int(hosts), updated_at=db.now()))
         s.commit()
 
 
-def guests_online(code):
-    """Guests with the party open, on every instance (rows refreshed in the last 45 s)."""
+def presence(code):
+    """(guests, host pages) with the party open, on every instance (rows refreshed in the last 45 s)."""
     since = db.now() - datetime.timedelta(seconds=45)
     with repository.session() as s:
-        return int(s.scalar(select(func.sum(db.PartyPresence.guests)).where(
-            db.PartyPresence.code == code, db.PartyPresence.updated_at >= since)) or 0)
+        g, h = s.execute(select(func.sum(db.PartyPresence.guests), func.sum(db.PartyPresence.hosts)).where(
+            db.PartyPresence.code == code, db.PartyPresence.updated_at >= since)).one()
+        return int(g or 0), int(h or 0)
+
+
+def host_left(code):
+    """The host's last page closed its connection (algo_rhythm.hub): the music stops where it is. A new report from the
+    host's player starts it again (playhead_now)."""
+    if presence(code)[1]:
+        return  # another host page is still open, here or on another instance
+    with locked(code) as (row, st):
+        if st["status"] == "playing":
+            st["host_gone_at"] = time.time()
 
 
 def session_from(st, lib):
@@ -978,8 +993,8 @@ def views(code, kinds=(False, True)):
     if v["screen"]["board"]:
         v["leaderboard"] = trivia.board(party_id, 8)
     v["host_offline_s"] = host_offline_s(st)
-    v["host_offline"] = v["host_offline_s"] > 0
-    v["guests_online"] = guests_online(code)
+    v["guests_online"], hosts = presence(code)
+    v["host_offline"] = v["host_offline_s"] > 0 or not hosts  # no report for a while, or no host page connected
     v["trivia_on"] = bool((st.get("trivia") or {}).get("on"))
     try:
         v["trivia"] = trivia_view(party_id, st, sess)

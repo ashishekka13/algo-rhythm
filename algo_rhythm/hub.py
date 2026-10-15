@@ -33,7 +33,7 @@ class _Party:
     def __init__(self, loop):
         self.screens = set()           # (websocket, host)
         self.guests = {}               # websocket -> guest id, for the guests' screens (the host's guest count)
-        self.presence = None           # (guest count, monotonic time) last written to party_presence
+        self.presence = None           # (guests, host pages, monotonic time) last written to party_presence
         self.wake = asyncio.Event()
         self.task = None
         self.loop = loop
@@ -73,18 +73,20 @@ def _wake_here(code):
 def _tick(view):
     """How long until the next view: TICK_S while the host plays; slower while the host is offline (nothing moves), so
     an abandoned party costs next to nothing."""
-    gone = (view or {}).get("host_offline_s") or 0
-    return TICK_S if not gone else 5.0 if gone < 300 else 30.0
+    view = view or {}
+    gone = view.get("host_offline_s") or 0
+    return 30.0 if gone >= 300 else 5.0 if gone or view.get("host_offline") else TICK_S
 
 
 async def _presence(code, p, force=False):
-    """Write this instance's guest count for the party when it changed, or every 15 s (rows older than 45 s expire)."""
-    n = len(set(p.guests.values()))
+    """Write this instance's guest and host-page counts for the party when they changed, or every 15 s (rows older than
+    45 s expire)."""
+    n, h = len(set(p.guests.values())), sum(1 for _, host in p.screens if host)
     now = asyncio.get_running_loop().time()
-    if force or p.presence is None or p.presence[0] != n or now - p.presence[1] > 15:
-        p.presence = (n, now)
+    if force or p.presence is None or p.presence[:2] != (n, h) or now - p.presence[2] > 15:
+        p.presence = (n, h, now)
         try:
-            await run_in_threadpool(party.set_presence, code, INSTANCE, n)
+            await run_in_threadpool(party.set_presence, code, INSTANCE, n, h)
         except Exception:
             log.exception("could not note the guests of party %s", code)
 
@@ -120,7 +122,7 @@ async def _pump(code, p):
             except Exception:
                 p.screens.discard((ws, host))
                 p.guests.pop(ws, None)
-    if p.presence and p.presence[0]:
+    if p.presence and (p.presence[0] or p.presence[1]):
         p.guests.clear()
         await _presence(code, p, force=True)  # nobody left here
     if _parties.get(code) is p:
@@ -166,6 +168,21 @@ async def serve(ws: WebSocket, code, host, guest=None):
         p.screens.discard(me)
         if p.guests.pop(ws, None):
             p.wake.set()  # the host's guest count drops now, not at the next tick
+        if host and not any(h for _, h in p.screens):  # the host's last page here left: the music stops for everyone
+            _host_tasks.add(t := loop.create_task(_host_gone(code, p)))  # its own task: this one may be cancelled
+            t.add_done_callback(_host_tasks.discard)
+
+
+_host_tasks = set()
+
+
+async def _host_gone(code, p):
+    try:
+        await _presence(code, p, force=True)
+        await run_in_threadpool(party.host_left, code)
+        publish(code)
+    except Exception:
+        log.exception("could not note that the host of party %s left", code)
 
 
 # ---------------------------------------------------------------- across instances: PostgreSQL NOTIFY / LISTEN

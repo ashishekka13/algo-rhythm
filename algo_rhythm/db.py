@@ -105,12 +105,13 @@ class AuthEvent(Base):
 
 
 class PartyPresence(Base):
-    """How many guests' screens one server instance holds for a party, refreshed while they are open (the host's guest
-    count sums the instances' rows that are fresh)."""
+    """How many guests' screens (and host pages) one server instance holds for a party, refreshed while they are open
+    (the host's guest count sums the instances' fresh rows; no host page on any of them: the host is offline)."""
     __tablename__ = "party_presence"
     code: Mapped[str] = mapped_column(String(16), primary_key=True)
     instance: Mapped[str] = mapped_column(String(32), primary_key=True)
     guests: Mapped[int] = mapped_column(Integer)
+    hosts: Mapped[int | None] = mapped_column(Integer, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 

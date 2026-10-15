@@ -15,7 +15,9 @@
 ## Unreleased (v1.2, on staging)
 
 ### Start page
-- The logo is much bigger, with **"Your AI DJ"** as a small tagline under it.
+- A laptop layout: the logo top left with **"Your AI DJ"** as a small tagline under it, "Start a party" and "Join a
+  party" side by side. Phones stack them.
+- The welcome animation plays only when a page first opens, no longer on the host's first Play or a guest's Join.
 
 ### Host
 - **Guest count in the header:** how many guests are connected right now ("3 guests"). Two tabs of one guest count
@@ -24,22 +26,28 @@
 - **Leaderboard switch:** shows the trivia leaderboard on the big screen, on the right side. On screens under 900 px
   it stays hidden so it doesn't cover the music.
 - **Ratings redesigned** as two cards: "This song" (👍 Love it / 👎 Not now) and "The last mix" (✨ Smooth / 🌀 Rough).
-- "System log" is now **"Behind the brains"**.
-- Removed: "Plays on this device", the **Skip to transition** button, and the **Kaleidoscope** visual.
+- "System log" is now **"Behind the brains"**, without the vote tally next to it.
+- "Skip to transition" is now **"Jump to the mix"**.
+- Removed: "Plays on this device" and the **Kaleidoscope** visual.
 
-### When the host goes offline
-- If the host's player stops reporting for 20 s, guests and the big screen show a small notice: "The host is offline
-  right now. The music picks up again when they reconnect." It clears when the host is back.
-- The server stops guessing where the song is (the playhead stops at 20 s past the last report) and slows its live
-  updates for that party to every 5 s, then to every 30 s after 5 minutes, so an abandoned party costs almost nothing.
+### When the host disconnects
+- **The host's page loses its connection:** after 8 s the music pauses on the host's device and a dialog blocks the
+  page ("Connection lost"). When the connection is back, the dialog closes and the music plays on from where it paused.
+- **Guests and the big screen:** as soon as no host page is connected (or the host's player stops reporting for 20 s),
+  the song's clock stops and, after 4 s (so a host reloading the page doesn't flash it), a dialog blocks the page:
+  "The host is offline". It closes by itself when the host is back. Escape doesn't close it.
+- The server slows its live updates for a party without its host to every 5 s, then every 30 s after 5 minutes, so an
+  abandoned party costs almost nothing.
 
 ### Guests
-- **Name and coins at the top:** tap the name to change it; the coins chip sits next to it.
+- **Name and coins at the top:** tap the name to change it; the coins chip sits next to it. The request form no longer
+  asks for a name.
 - **Trivia is a small popup** at the bottom instead of a full-screen sheet. It closes as soon as you answer, and a
   small card shows your pick ("Locked in B: 2023"), then the result and the "Did you know?" fact.
 
 ### Big screen
-- Removed: "Up next" at the top, the BPM, the energy meter, and the "Mixing now" text. The song details stay.
+- Only the song's name and film: no BPM, key, energy or mood. Removed "Up next" at the top, the energy meter, and
+  the "Mixing now" text.
 - With the leaderboard on, the trivia card moves left to make room for it.
 
 ---

@@ -209,15 +209,28 @@ def main(library="test_library"):
     v = c.post(f"/api/p/{code}/screen", json={"board": True}, headers=H).json()
     assert v["screen"] == {"qr": True, "board": True} and v["leaderboard"] == [], v["screen"]
     c.post(f"/api/p/{code}/screen", json={"board": False}, headers=H)
-    # the host goes offline: the screens say so, the clock stops 20 s on
+    # the host goes offline: no report for a while (the clock stops 20 s on), or no host page connected (it stops at once)
+    c.post(f"/api/p/{code}/transport", json={"action": "play"}, headers=H)
+    party.sync(code, 10.0, "playing")
     st = party.read(code)[1]
-    if st["status"] == "playing":
-        party.act(code, lambda sess, s_: s_.update(reported_at=s_["reported_at"] - 120))
-        v = c.get(f"/api/p/{code}/state").json()
-        assert v["host_offline"] and v["host_offline_s"] >= 100, (v["host_offline"], v["host_offline_s"])
-        assert v["playhead"] <= st["playhead"] + party.HOST_GONE_S + 1, (v["playhead"], st["playhead"])
-        party.sync(code, st["playhead"], "playing")
-        assert not c.get(f"/api/p/{code}/state").json()["host_offline"]
+    assert st["status"] == "playing", st["status"]
+    party.act(code, lambda sess, s_: s_.update(reported_at=s_["reported_at"] - 120))
+    v = c.get(f"/api/p/{code}/state").json()
+    assert v["host_offline"] and v["host_offline_s"] >= 100, (v["host_offline"], v["host_offline_s"])
+    assert v["playhead"] <= st["playhead"] + party.HOST_GONE_S + 1, (v["playhead"], st["playhead"])
+    with TestClient(server.create_app()) as cl:
+        with cl.websocket_connect(f"/ws/p/{code}?key={key}") as hw:
+            hw.receive_json()
+            hw.send_json({"type": "sync", "playhead": 30.0, "status": "playing"})
+            time.sleep(1.5)
+            v = cl.get(f"/api/p/{code}/state").json()
+            assert not v["host_offline"] and v["playhead"] >= 30.0, (v["host_offline"], v["playhead"])
+        time.sleep(0.5)  # the host's page closed
+        v1 = cl.get(f"/api/p/{code}/state").json()
+        time.sleep(1.2)
+        v2 = cl.get(f"/api/p/{code}/state").json()
+    assert v1["host_offline"] and v2["host_offline"] and v1["playhead"] == v2["playhead"] < 33, (v1["playhead"], v2["playhead"])
+    assert v2["status"] == "playing"  # the party is still on: the music picks up when the host is back
 
     # sign out; then failed sign-ins from one address are limited
     assert c.post("/api/auth/logout", json={}).status_code == 200 and c.get("/api/auth/me").json()["user"] is None

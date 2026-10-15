@@ -172,8 +172,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   {
     const a = open("/", async (url) => ({ok: true, json: async () => (url === "/songs" ? [] : fbState)}));
     await wait(300);
-    const tally = a.D.getElementById("fbtally").textContent;
-    check("admin: small guest tallies next to the system log, and the rating panel", /song: 2 up · 1 down \| last mix: 0 smooth · 0 rough/.test(tally) && !a.D.getElementById("fb").hidden, tally);
+    check("admin: nothing next to 'Behind the brains', the rating panel shows", !a.D.getElementById("fbtally")
+      && a.D.getElementById("h-log").textContent === "Behind the brains" && !a.D.getElementById("fb").hidden, a.D.getElementById("h-log").textContent);
     a.dom.window.close();
   }
 
@@ -327,7 +327,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   check("vibes: arrow key moves focus to the next vibe without posting", D.activeElement === lv[1] && posts.length === 0, posts);
   lv[5].click(); await wait(50);
   check("vibes: tapping peak posts /vibe peak", posts.length === 1 && posts[0].url === "/vibe" && posts[0].vibe === "peak", posts);
-  check("host: no Skip to transition, no Kaleidoscope, no 'Plays on this device'", !D.getElementById("skip") && !D.getElementById("kaleido")
+  check("host: 'Jump to the mix', no Kaleidoscope, no 'Plays on this device'", D.getElementById("skip").textContent === "Jump to the mix" && !D.getElementById("kaleido")
     && !D.getElementById("where") && /guests?$/.test(D.getElementById("guestcount").textContent), D.getElementById("guestcount").textContent);
   posts.length = 0;
   const T = D.getElementById("talk"); T.value = "build it up";

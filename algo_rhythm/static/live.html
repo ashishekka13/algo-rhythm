@@ -242,10 +242,15 @@
   #v-presenter.has-board .p-tr .join { margin-top:0; }
   @media (min-width:901px) { #v-presenter.has-board #ptrivia { left:4vw; transform:translateY(-50%); width:calc(92vw - min(24vw, 420px) - 2vw); } }
   @media (max-width:900px) { #v-presenter.has-board .pboard { display:none; } }
-  .offline { position:fixed; left:50%; top:calc(14px + env(safe-area-inset-top, 0px)); transform:translateX(-50%); z-index:60;
-    max-width:calc(100vw - 32px); padding:10px 16px; border-radius:999px; background:#2a1a10; border:1px solid #f5a524; color:#ffe2b0;
-    font-size:14px; box-shadow:0 8px 30px rgba(0,0,0,.45); text-align:center; }
-  @media (max-width:700px) { .offline { top:calc(64px + env(safe-area-inset-top, 0px)); width:calc(100vw - 32px); border-radius:14px; font-size:13.5px; } }
+  dialog#blocker { max-width:min(400px, calc(100vw - 48px)); border:1px solid var(--line); border-radius:var(--radius-card);
+    background:var(--bg); color:var(--ink); padding:28px 26px 24px; text-align:center; }
+  dialog#blocker::backdrop { background:rgba(0,0,0,.72); }
+  dialog#blocker:focus { outline:none; }
+  dialog#blocker h2 { margin:12px 0 6px; font-size:20px; }
+  dialog#blocker p { margin:0; color:var(--ink-2); line-height:1.5; }
+  dialog#blocker .spin { width:26px; height:26px; margin:0 auto; border-radius:50%; border:3px solid var(--line); border-top-color:var(--acc);
+    animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
   #gtoast { position:fixed; left:16px; right:16px; bottom:calc(16px + env(safe-area-inset-bottom, 0px)); z-index:41; max-width:460px;
     margin:0 auto; padding:12px 16px; border-radius:16px; background:var(--bg); border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,.5); }
   #gtoast b { color:var(--ink); } #gtoast p { margin:4px 0 0; color:var(--ink-2); font-size:14px; }
@@ -489,11 +494,13 @@
   @media (max-width:700px) { .p-bl { width:auto; right:4vw; bottom:30vh; } .p-br { left:4vw; width:auto; } }
 
   /* Landing: start a party (this device plays the music) or join one with its code */
-  #v-landing { max-width:720px; padding-top:max(8vh, 24px); }
-  #v-landing h1.brandhero { font-size:clamp(46px, 10vw, 92px); margin:18px 0 4px; line-height:1; }
+  #v-landing { max-width:none; margin:0; padding-inline:clamp(16px, 5vw, 72px); padding-top:max(28px, env(safe-area-inset-top)); }
+  #v-landing h1.brandhero { font-size:clamp(34px, 3.6vw, 48px); margin:0 0 4px; line-height:1; }
   #v-landing h1.brandhero .lw { font-size:1em; }
-  #v-landing .tagline { font-size:clamp(17px, 2.2vw, 22px); font-weight:600; color:var(--ink-2); letter-spacing:.01em; margin:0 0 18px; }
-  #v-landing .lead { font-size:18px; color:var(--ink-2); margin:0 0 28px; }
+  #v-landing .tagline { font-size:clamp(14px, 1.2vw, 16px); font-weight:600; color:var(--ink-2); letter-spacing:.02em; margin:0; }
+  #v-landing .lead { font-size:clamp(17px, 1.5vw, 20px); color:var(--ink-2); margin:clamp(32px, 7vh, 72px) 0 28px; max-width:640px; }
+  #v-landing .landgrid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:24px; align-items:start; max-width:1080px; }
+  @media (max-width:820px) { #v-landing .landgrid { grid-template-columns:1fr; gap:0; } }
   #v-landing .choice { display:grid; gap:12px; margin-bottom:20px; }
   #v-landing .row2 { display:flex; gap:10px; flex-wrap:wrap; }
   #v-landing .row2 > * { flex:1; min-width:180px; }
@@ -657,7 +664,11 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
   <div id="err" class="banner bad" role="alert"></div>
 </div>
 <div id="app"></div>
-<div class="offline" id="hostoff" role="status" hidden>The host is offline right now. The music picks up again when they reconnect.</div>
+<dialog id="blocker" aria-labelledby="blocker-h" aria-describedby="blocker-p">
+  <div class="spin" aria-hidden="true"></div>
+  <h2 id="blocker-h">The host is offline</h2>
+  <p id="blocker-p">The music is paused. It picks up again as soon as the host is back.</p>
+</dialog>
 <div class="bursts" id="bursts" aria-hidden="true"></div>
 <div id="sr-status" class="sr" aria-live="polite"></div>
 
@@ -666,6 +677,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
   <h1 class="brandhero"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></h1>
   <p class="tagline">Your AI DJ</p>
   <p class="lead">Start a party on the device connected to the speakers: it plays and mixes the music. Everyone else joins with the party code to request songs and vote.</p>
+  <div class="landgrid">
   <section class="glass choice" aria-labelledby="h-start">
     <h2 id="h-start">Start a party</h2>
     <div id="signedin" hidden>
@@ -702,6 +714,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
       <button class="btn" type="submit">Join</button>
     </form>
   </section>
+  </div>
   <div id="landmsg" role="alert"></div>
   <dialog id="created" aria-labelledby="created-h">
     <h2 id="created-h">Account created</h2>
@@ -755,6 +768,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
           <div class="times"><span id="t0">0:00</span><span id="t1">0:00</span></div>
           <div class="controls">
             <button id="transport" type="button">Play</button>
+            <button id="skip" class="btn reserve" type="button" disabled aria-hidden="true" title="Jump to 10 seconds before the next mix">Jump to the mix</button>
             <button id="restart" class="btn reserve" type="button" disabled aria-hidden="true">Start over</button>
             <button id="mc" class="btn" type="button" role="switch" aria-checked="false" hidden>AI MC</button>
           </div>
@@ -845,7 +859,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
         <div id="why"></div>
       </section>
       <section class="glass" aria-labelledby="h-log">
-        <h2 id="h-log">Behind the brains <small id="fbtally"></small></h2>
+        <h2 id="h-log">Behind the brains</h2>
         <div id="log"></div>
       </section>
     </div>
@@ -907,7 +921,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
       <ul id="results"></ul>
       <div id="reqmsg" aria-live="polite"></div>
       <div id="mine" aria-live="polite"></div>
-      <div id="who"><label class="sr" for="byname">Your name</label>
+      <div id="who" hidden><label class="sr" for="byname">Your name</label>
         <input id="byname" type="text" maxlength="24" placeholder="Your name for the big screen" autocomplete="nickname"></div>
     </section>
     <section class="glass row fb" id="fb" aria-labelledby="h-fb" hidden>
@@ -1006,7 +1020,7 @@ const short = name => split(name)[0];
 const kindWord = k => k === "echo" ? "echo-out" : k === "cut" ? "cut" : "blend";
 const kindLong = k => k === "echo" ? "echo-out" : k === "cut" ? "cut on the beat" : "blend";
 // "97 BPM · key 10B · energy low · mood": skips whatever an older server did not send
-const meta = e => [VIEW !== "presenter" && has(e.bpm) && `${e.bpm} BPM`, has(e.key) && `key ${e.key}`, has(e.energy) && `energy ${e.energy}`, has(e.mood) && `mood ${e.mood}`]
+const meta = e => VIEW === "presenter" ? "" : [has(e.bpm) && `${e.bpm} BPM`, has(e.key) && `key ${e.key}`, has(e.energy) && `energy ${e.energy}`, has(e.mood) && `mood ${e.mood}`]
   .filter(Boolean).join(" · ");
 const ifEl = (id, fn) => { const e = $(id); if (e) fn(e); };
 
@@ -1247,6 +1261,7 @@ function drawTransport(s) {
   t.title = away ? "The party is on: tap to play it on this device from where it is now" : "";
   // Skip and Start over keep their place when not offered, so Play/Pause never changes size or moves
   const offer = (b, on) => { b.hidden = false; b.classList.toggle("reserve", !on); b.disabled = !on; b.setAttribute("aria-hidden", String(!on)); };
+  offer($("skip"), s.status === "playing" && !away);
   const r = $("restart");
   offer(r, s.status !== "idle");
   if (s.status === "idle") sure = false;
@@ -1547,7 +1562,7 @@ function show(s) {
     $("pboardlist").replaceChildren(...rows.map(r => { const li = el("li", "", r.name + " "); li.append(el("b", "", String(r.coins))); return li; }));
     $("pboardempty").hidden = rows.length > 0;
   }));
-  safe("host offline", () => ifEl("hostoff", e => { e.hidden = !(s.host_offline && VIEW !== "admin"); }));
+  safe("host offline", () => { if (VIEW !== "admin") block("host", !!s.host_offline); });
   safe("MC location", () => ifEl("mcloc", inp => {     // host: where the party is, as the MC may say it
     const loc = s.location || {};
     if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = loc.text || "";
@@ -1662,7 +1677,6 @@ function nameSetup() {
     const n = $("guestname").value.trim().slice(0, 24);
     if (!n) { ev.preventDefault(); return; }
     store("algo-name", n); $("byname").value = n;
-    if (introOn()) algoIntro({sound: "new", volume: .45});   // inside the tap: the phone may play it
   });
   d.addEventListener("cancel", ev => ev.preventDefault());   // Escape does not skip it: every guest gets a name
   if (d.showModal) d.showModal(); else d.setAttribute("open", "");
@@ -1877,17 +1891,48 @@ function report(playhead, st) {
   if (sock && sock.readyState === 1) sock.send(JSON.stringify(m));
   else fetch(apiPath("/sync"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify(m)}).catch(() => {});
 }
+// The blocker: a dialog over everything while the party cannot go on. Guests and the big screen: the host is offline
+// (shown after 4 s, so a host reloading the page does not flash it). The host: this page lost its connection (after
+// 8 s the music pauses here; it plays on when the connection is back).
+const blockWhy = {};
+function block(why, on) {
+  const d = $("blocker");
+  if (!d) return;
+  if (on && !blockWhy[why]) blockWhy[why] = setTimeout(() => { blockWhy[why] = "shown"; drawBlock(); }, why === "host" ? 4000 : 8000);
+  if (!on && blockWhy[why]) { clearTimeout(blockWhy[why]); delete blockWhy[why]; drawBlock(); }
+}
+function drawBlock() {
+  const d = $("blocker"), why = Object.keys(blockWhy).find(k => blockWhy[k] === "shown");
+  if (why === "lost") {
+    $("blocker-h").textContent = "Connection lost";
+    $("blocker-p").textContent = "The music is paused while this device reconnects. It plays on as soon as the connection is back.";
+    if (P && P.status === "playing") { P.pause(); lostPaused = true; }
+  } else if (why) {
+    $("blocker-h").textContent = "The host is offline";
+    $("blocker-p").textContent = "The music is paused. It picks up again as soon as the host is back.";
+  }
+  d.oncancel = ev => ev.preventDefault();             // Escape does not close it: it goes when the reason does
+  if (why && !d.open) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+  if (!why && d.open) d.close();
+}
+let lostPaused = false;
 // live updates: the server pushes the state on every change and once a second; polling takes over while it is down
 function connect() {
   const k = VIEW === "admin" ? hostKey() : null;
   const who = k ? "key=" + encodeURIComponent(k) : VIEW === "guest" ? "role=guest&g=" + encodeURIComponent(guestId()) : "role=screen";
   const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/p/${CODE}?${who}`;
   try { sock = new WebSocket(url); } catch (e) { sock = null; return; }
-  sock.onopen = () => { sockTries = 0; $("conn").hidden = true; };
+  sock.onopen = async () => {
+    sockTries = 0; $("conn").hidden = true;
+    if (VIEW !== "admin") return;
+    block("lost", false);
+    if (lostPaused && P && P.status === "paused") { lostPaused = false; await P.resume(); }
+  };
   sock.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m.type === "state") show(m.state); };
   sock.onclose = ev => {
     sock = null;
     if (ev.code === 4404) { $("err").textContent = "There is no party with this code."; return; }
+    if (VIEW === "admin" && P && P.status !== "idle") block("lost", true);
     setTimeout(connect, Math.min(30000, 1000 * 2 ** sockTries++));     // back off: 1, 2, 4 ... 30 s
   };
 }
@@ -2038,10 +2083,10 @@ vis = visPrefs();
       if (status === "playing") { P.pause(); return post("/transport", {action: "pause"}); }
       if (status === "paused" && P.status === "paused") { await P.resume(); return post("/transport", {action: "resume"}); }
       P.unlock();                                     // inside the click: the browser allows sound from here on
-      if (status === "idle" && introOn()) await algoIntro({sound: P.ctx, volume: .9});   // the night opens with the reveal
       const s = await post("/transport", {action: "play"});
       if (s && P.status === "idle") await playHere(s);
     };
+    $("skip").onclick = () => hostAction("skip");
     $("levels").addEventListener("keydown", ev => {     // arrow keys move between levels; Enter or Space picks one
       const d = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[ev.key];
       const bs = [...$("levels").children], i = bs.indexOf(document.activeElement);

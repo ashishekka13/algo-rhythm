@@ -26,6 +26,12 @@ commit `e985a13`). Changes since v1.0:
 - **A welcome animation when the app opens,** about 1.6 s, once per browser session:
   - the record spins in, the beat line draws across, and "rhythm" lands on the downbeat;
   - a tap skips it, Reduce Motion gets a still fade, and the page loads underneath meanwhile.
+- **A "ta-dum" with the reveal,** made in the browser with no audio file: a soft "ta" as the record lands, then a deep
+  "DUM" with a warm chord and a reverb tail as "rhythm" lands. Browsers allow sound only after a tap, so:
+  - on the host's **first Play** of a party, the reveal and the "ta-dum" play through the party's speakers, then the
+    music starts;
+  - when a guest taps **Join the party**, the reveal plays on their phone with a softer "ta-dum";
+  - when a page first opens, the reveal makes a sound only where the browser already allows it.
 
 ### New: staging environment
 - A separate Cloud Run service, `algorythm-web-staging`, deployed from the `staging` branch.

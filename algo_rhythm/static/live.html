@@ -524,35 +524,103 @@
     fill="none" stroke="#2dd4bf" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ir">rhythm</span></div>
 </div>
 <script>
-// The welcome: about 1.6 s, once per browser session; a tap skips it; Reduce Motion gets a still fade. The page loads
-// underneath meanwhile. Played with the Web Animations API, so the phones' low-power mode (no CSS animations) keeps it.
-(function () {
+// The welcome: the logo reveal (about 1.6 s) with a "ta-dum". algoIntro() plays it; a tap skips it; Reduce Motion gets
+// a still fade. Web Animations, so the phones' low-power mode (no CSS animations) keeps it.
+// Sound: browsers allow it only after a tap on the page. So on opening a page it sounds only where the browser already
+// allows it; the host's first Play (through the party's speakers) and a guest's "Join the party" are taps, so they do.
+const INTRO = document.getElementById("intro").outerHTML;
+
+// "ta-dum", made here (no file): a soft thump as the record lands ("ta"), then a deep hit with a warm chord and a
+// reverb tail as "rhythm" lands ("DUM"). t0: the context time the animation started.
+function algoSting(ctx, t0, volume) {
+  try {
+    const master = ctx.createGain(); master.gain.value = volume; master.connect(ctx.destination);
+    const n = Math.floor(ctx.sampleRate * 2.4), ir = ctx.createBuffer(2, n, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
+    const room = ctx.createConvolver(); room.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = .32; room.connect(wet); wet.connect(master);
+    const send = node => { node.connect(master); node.connect(room); };
+    const thump = (t, f0, f1, dur, level) => {                       // a pitched-down sine: the body of a hit
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * .6);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(level, t + .006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); send(g); o.start(t); o.stop(t + dur + .05);
+    };
+    const click = (t, dur, level, hz) => {                           // a short filtered noise: the attack
+      const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = b; f.type = "bandpass"; f.frequency.value = hz; f.Q.value = .8; g.gain.value = level;
+      src.connect(f); f.connect(g); send(g); src.start(t);
+    };
+    const ta = t0 + .55, dum = t0 + .93;
+    thump(ta, 150, 60, .28, .55); click(ta, .05, .35, 2200);
+    thump(dum, 120, 38, 1.7, .95); click(dum, .1, .45, 900);
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass";                 // the chord, opening up then settling
+    lp.frequency.setValueAtTime(220, dum); lp.frequency.exponentialRampToValueAtTime(1400, dum + .12); lp.frequency.exponentialRampToValueAtTime(380, dum + 2.2);
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.0001, dum); cg.gain.exponentialRampToValueAtTime(.22, dum + .03); cg.gain.exponentialRampToValueAtTime(0.0001, dum + 2.6);
+    lp.connect(cg); send(cg);
+    for (const [hz, det] of [[58.27, 0], [116.54, -6], [138.59, 5], [174.61, -4], [233.08, 7]]) {   // B-flat minor, wide
+      const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = hz; o.detune.value = det;
+      o.connect(lp); o.start(dum); o.stop(dum + 2.7);
+    }
+  } catch (e) {}
+}
+
+// Play the reveal. sound: an AudioContext to play the "ta-dum" in, "new" (make one: call inside a tap), "try" (only if
+// the browser already allows sound), or null. Resolves as it starts to fade (about 1.5 s), at once if skipped.
+window.algoIntro = function ({sound = null, volume = .8} = {}) {
+  return new Promise(resolve => {
+    let box = document.getElementById("intro");
+    if (!box) { document.body.insertAdjacentHTML("afterbegin", INTRO); box = document.getElementById("intro"); }
+    if (!box.animate) { box.remove(); return resolve(); }
+    box.hidden = false;
+    let ctx = null;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (sound && typeof sound === "object") ctx = sound;
+      else if ((sound === "new" || sound === "try") && AC) {
+        ctx = new AC();
+        if (sound === "try" && ctx.state !== "running") { ctx.close(); ctx = null; }   // not allowed yet: a silent reveal
+        else if (ctx.state === "suspended") ctx.resume();
+      }
+    } catch (e) { ctx = null; }
+    if (ctx) algoSting(ctx, ctx.currentTime + .02, volume);
+    let settled = false;
+    const done = () => { if (box.isConnected) box.remove(); if (!settled) { settled = true; resolve(); } };
+    const q = sel => box.querySelector(sel), out = [{opacity: 1}, {opacity: 0}];
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      box.animate([{opacity: 1}, {opacity: 1, offset: .7}, {opacity: 0}], {duration: 1000, fill: "forwards"}).onfinish = done;
+      return;
+    }
+    const ease = "cubic-bezier(.23,1,.32,1)", pop = "cubic-bezier(.34,1.56,.64,1)";
+    q(".io").animate([{transform: "scale(.35) rotate(-320deg)", opacity: 0}, {transform: "scale(1) rotate(0deg)", opacity: 1}],
+                     {duration: 620, easing: ease, fill: "both"});                     // the record spins in ("ta")
+    q(".ia").animate([{opacity: 0, transform: "translateX(14px)"}, {opacity: 1, transform: "none"}],
+                     {duration: 380, delay: 260, easing: ease, fill: "both"});
+    const beat = q(".ib path"), len = beat.getTotalLength();
+    beat.style.strokeDasharray = len;
+    beat.animate([{strokeDashoffset: len}, {strokeDashoffset: 0}], {duration: 360, delay: 600, easing: "ease-in-out", fill: "both"});
+    q(".ir").animate([{opacity: 0, transform: "translateX(-16px) scale(.94)"}, {opacity: 1, transform: "none"}],
+                     {duration: 340, delay: 930, easing: pop, fill: "both"});        // "rhythm" on the downbeat ("DUM")
+    q(".iw").animate([{transform: "scale(1)"}, {transform: "scale(1.045)"}, {transform: "scale(1)"}], {duration: 280, delay: 950});
+    const leave = box.animate(out, {duration: 360, delay: 1500, easing: "ease", fill: "forwards"});
+    leave.onfinish = done;
+    setTimeout(() => { if (!settled) { settled = true; resolve(); } }, 1500);
+    box.addEventListener("pointerdown", () => { leave.cancel(); box.animate(out, {duration: 160, fill: "forwards"}).onfinish = done; }, {once: true});
+  });
+};
+// automated browsers (the tests) skip it unless the address asks for it: ?intro=1
+window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.search);
+
+(function () {                                       // on opening a page: once per browser session
   const box = document.getElementById("intro");
   let seen = false;
   try { seen = sessionStorage.getItem("algo-intro") === "1"; } catch (e) {}
-  if ((seen || navigator.webdriver) && !/[?&]intro=1/.test(location.search)) return box.remove();
+  if (seen && !/[?&]intro=1/.test(location.search) || !introOn()) return box.remove();
   try { sessionStorage.setItem("algo-intro", "1"); } catch (e) {}
-  if (!box.animate) return box.remove();
-  box.hidden = false;
-  const done = () => box.remove(), q = sel => box.querySelector(sel), out = [{opacity: 1}, {opacity: 0}];
-  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    box.animate([{opacity: 1}, {opacity: 1, offset: .7}, {opacity: 0}], {duration: 1000, fill: "forwards"}).onfinish = done;
-    return;
-  }
-  const ease = "cubic-bezier(.23,1,.32,1)", pop = "cubic-bezier(.34,1.56,.64,1)";
-  q(".io").animate([{transform: "scale(.35) rotate(-320deg)", opacity: 0}, {transform: "scale(1) rotate(0deg)", opacity: 1}],
-                   {duration: 620, easing: ease, fill: "both"});                       // the record spins in
-  q(".ia").animate([{opacity: 0, transform: "translateX(14px)"}, {opacity: 1, transform: "none"}],
-                   {duration: 380, delay: 260, easing: ease, fill: "both"});
-  const beat = q(".ib path"), len = beat.getTotalLength();
-  beat.style.strokeDasharray = len;
-  beat.animate([{strokeDashoffset: len}, {strokeDashoffset: 0}], {duration: 360, delay: 600, easing: "ease-in-out", fill: "both"});
-  q(".ir").animate([{opacity: 0, transform: "translateX(-16px) scale(.94)"}, {opacity: 1, transform: "none"}],
-                   {duration: 340, delay: 930, easing: pop, fill: "both"});          // "rhythm" on the downbeat
-  q(".iw").animate([{transform: "scale(1)"}, {transform: "scale(1.045)"}, {transform: "scale(1)"}], {duration: 280, delay: 950});
-  const leave = box.animate(out, {duration: 360, delay: 1500, easing: "ease", fill: "forwards"});
-  leave.onfinish = done;
-  box.addEventListener("pointerdown", () => { leave.cancel(); box.animate(out, {duration: 160, fill: "forwards"}).onfinish = done; }, {once: true});
+  algoIntro({sound: "try"});
 })();
 </script>
 <div class="ambience" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1534,6 +1602,7 @@ function nameSetup() {
     const n = $("guestname").value.trim().slice(0, 24);
     if (!n) { ev.preventDefault(); return; }
     store("algo-name", n); $("byname").value = n;
+    if (introOn()) algoIntro({sound: "new", volume: .45});   // inside the tap: the phone may play it
   });
   d.addEventListener("cancel", ev => ev.preventDefault());   // Escape does not skip it: every guest gets a name
   if (d.showModal) d.showModal(); else d.setAttribute("open", "");
@@ -1896,6 +1965,7 @@ vis = visPrefs();
       if (status === "playing") { P.pause(); return post("/transport", {action: "pause"}); }
       if (status === "paused" && P.status === "paused") { await P.resume(); return post("/transport", {action: "resume"}); }
       P.unlock();                                     // inside the click: the browser allows sound from here on
+      if (status === "idle" && introOn()) await algoIntro({sound: P.ctx, volume: .9});   // the night opens with the reveal
       const s = await post("/transport", {action: "play"});
       if (s && P.status === "idle") await playHere(s);
     };

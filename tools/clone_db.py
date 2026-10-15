@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, delete, func, select, text
 
 from algo_rhythm import db
 
-LIBRARY = ["songs", "song_analysis", "song_ai", "song_features", "song_embeddings", "assets", "ai_cache"]
+LIBRARY = ["songs", "song_analysis", "song_ai", "song_features", "song_embeddings", "song_trivia", "assets", "ai_cache"]
 ACCOUNTS = ["users"]
 
 

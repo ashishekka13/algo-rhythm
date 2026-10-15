@@ -242,6 +242,17 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     const rb = [...g.D.querySelectorAll("#reacts button")], bursts = () => g.D.getElementById("bursts").children.length;
     check("reactions: five buttons, nothing rises for reactions sent before the page opened", rb.length === 5 && bursts() === 0, [rb.length, bursts()]);
     rb.find(b => b.textContent === "🎉").click(); await wait(50);
+    st = {...st, trivia: {round: 7, phase: "asking", left_s: 15, question: "Which year?", options: ["2001", "2005", "2009", "2013"], answered: 0}};
+    await wait(1500);
+    const gopts = [...g.D.querySelectorAll("#gtopts button")];
+    const shown = !g.D.getElementById("gtrivia").hidden && gopts.length === 4 && gopts.every(b => !b.disabled);
+    gopts[2].click();
+    await wait(300);
+    const posted = xposts.find(x => x.url === "/answer");
+    const locked = [...g.D.querySelectorAll("#gtopts button")].every(b => b.disabled) && /Locked in: C/.test(g.D.getElementById("gtnote").textContent);
+    check("guest: trivia buttons answer once with the guest id and round, then lock", shown && posted && posted.round === 7
+      && posted.choice === 2 && posted.guest.length >= 8 && locked, [shown, posted, locked]);
+    st = {...st, trivia: null};
     check("reactions: a tap posts /react with the guest id and the emoji rises", xposts[0] && xposts[0].url === "/react" && xposts[0].emoji === "🎉"
       && xposts[0].guest.length >= 8 && bursts() === 1, [xposts, bursts()]);
     g.dom.window.close();
@@ -261,6 +272,21 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     ps = {...ps, screen: {qr: true}};
     await wait(1500);
     check("presenter: the join QR hides and comes back when the host says so", qrHidden && !P.D.getElementById("join").hidden, qrHidden);
+    const tq = {round: 3, phase: "asking", left_s: 12, question: "Who composed it?", options: ["W", "X", "Y", "Z"], answered: 4};
+    ps = {...ps, trivia: tq};
+    await wait(1500);
+    const pt = P.D.getElementById("ptrivia"), optsAsk = [...P.D.querySelectorAll("#ptopts .opt")];
+    const asking = !pt.hidden && P.D.getElementById("ptq").textContent === "Who composed it?" && optsAsk.length === 4
+      && !optsAsk.some(o => o.classList.contains("right")) && /4 answered/.test(P.D.getElementById("ptcount").textContent);
+    ps = {...ps, trivia: {...tq, phase: "reveal", answer: 2, fact: "Recorded in one night.", right: 3, board: [{name: "Priya", coins: 15}]}};
+    await wait(1500);
+    const optsRev = [...P.D.querySelectorAll("#ptopts .opt")];
+    const revealed = optsRev[2].classList.contains("right") && /Recorded in one night/.test(P.D.getElementById("ptfact").textContent)
+      && /Priya · 15 coins/.test(P.D.getElementById("ptboard").textContent) && /3 of 4 got it right/.test(P.D.getElementById("ptcount").textContent);
+    ps = {...ps, trivia: null};
+    await wait(1500);
+    check("presenter: a trivia question (no answer shown), then the reveal with the fact and the leaderboard; gone after",
+      asking && revealed && pt.hidden, [asking, revealed, pt.hidden]);
     check("presenter: never in the host's low-power mode, even when this browser chose it", !P.D.documentElement.classList.contains("lowpower")
       && !P.D.getElementById("lowpower"), P.D.documentElement.className);
     P.dom.window.close();

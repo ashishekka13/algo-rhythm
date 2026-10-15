@@ -104,6 +104,39 @@ class AuthEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 
+class SongTrivia(Base):
+    """A multiple-choice question about a song (algo_rhythm.trivia): kind "data" (from our song data) or "fact" (Gemini's,
+    checked). options: 4 strings; answer: the right one's index."""
+    __tablename__ = "song_trivia"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    song_id: Mapped[int] = mapped_column(ForeignKey("songs.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    question: Mapped[str] = mapped_column(Text)
+    options: Mapped[list] = mapped_column(Json)
+    answer: Mapped[int] = mapped_column(Integer)
+    fact: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(16))
+    prompt_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class TriviaAnswer(Base):
+    """A guest's answer in a party's round (round = the song's position in the party): one per guest per round."""
+    __tablename__ = "trivia_answers"
+    __table_args__ = (UniqueConstraint("party_id", "round", "guest"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    party_id: Mapped[int] = mapped_column(ForeignKey("parties.id"), index=True)
+    round: Mapped[int] = mapped_column(Integer)
+    trivia_id: Mapped[int] = mapped_column(Integer)
+    guest: Mapped[str] = mapped_column(String(64))
+    name: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    choice: Mapped[int] = mapped_column(Integer)
+    correct: Mapped[bool] = mapped_column(Boolean)
+    coins: Mapped[int] = mapped_column(Integer)
+    seconds: Mapped[float] = mapped_column(Float)   # after the question opened
+    answered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class MCLine(Base):
     """One spoken MC line and its voice, kept for reuse (algo_rhythm.mc_lines). scope: generic (any party), location
     (parties at `place`, e.g. "bengaluru"), personal (a dedication: its own party only, never offered again)."""

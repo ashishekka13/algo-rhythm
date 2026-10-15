@@ -342,6 +342,26 @@ def create_app():
         data = await body(request)
         return await answer(code, lambda: party.set_location(code, data.get("text", "")), host=True)
 
+    @app.post("/api/p/{code}/trivia")
+    async def trivia_switch(code: str, request: Request):
+        await host_of(request, code)
+        data = await body(request)
+        return await answer(code, lambda: party.set_trivia(code, data.get("on")), host=True)
+
+    @app.post("/api/p/{code}/answer")
+    async def trivia_answer(code: str, request: Request):
+        check(code)
+        data = await body(request)
+        got = await run_in_threadpool(party.trivia_answer, code, data.get("guest"), data.get("name"), data.get("round"),
+                                      data.get("choice"))
+        hub.publish(code)  # the screens' "N answered"
+        return got
+
+    @app.get("/api/p/{code}/coins")
+    async def trivia_coins(code: str, guest: str = ""):
+        check(code)
+        return JSONResponse(await run_in_threadpool(party.trivia_me, code, guest), headers={"Cache-Control": "no-store"})
+
     @app.post("/api/p/{code}/screen")
     async def screen_options(code: str, request: Request):
         await host_of(request, code)

@@ -177,6 +177,30 @@
   #talkmic[aria-pressed="true"] { border-color:var(--bad, #ff6b6b); color:var(--ink); display:inline-flex; align-items:center; gap:8px; }
   #talkmic[aria-pressed="true"]::before { content:""; width:9px; height:9px; border-radius:50%; background:var(--bad, #ff6b6b); animation:pulse 1s ease-in-out infinite; }
   .reserve { visibility:hidden; }
+  /* Song trivia: the question card on the big screen, the answer buttons on a guest's phone */
+  .trivia h2.q { font-size:clamp(20px, 2.6vw, 56px); line-height:1.15; margin:0; text-wrap:balance; }
+  .trivia .opts { display:grid; grid-template-columns:1fr 1fr; gap:clamp(8px, 1vw, 20px); margin:clamp(10px, 1.6vh, 28px) 0; }
+  .trivia .opt { display:flex; gap:12px; align-items:baseline; padding:clamp(10px, 1.2vw, 24px); border:1px solid var(--line);
+    border-radius:var(--radius-inner); font-size:clamp(15px, 1.5vw, 34px); background:rgba(0,0,0,.25); text-align:left; color:var(--ink); }
+  .trivia .opt b { color:var(--acc); font-family:var(--mono); }
+  .trivia .opt.right { border-color:var(--acc); background:color-mix(in srgb, var(--acc) 22%, transparent); }
+  .trivia .opt.mine { outline:2px solid var(--ink-2); outline-offset:2px; }
+  .trivia .opt.dim { opacity:.45; }
+  .trivia .row3 { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; color:var(--ink-2); font-size:clamp(13px, 1.1vw, 26px); }
+  .trivia .left { font-family:var(--mono); color:var(--acc); font-weight:700; }
+  .trivia .fact { margin:10px 0 0; font-size:clamp(14px, 1.3vw, 30px); }
+  .trivia ol.board { margin:10px 0 0; padding-left:1.4em; display:grid; gap:2px; font-size:clamp(13px, 1.1vw, 26px); }
+  #ptrivia { position:absolute; z-index:3; left:50%; top:46%; transform:translate(-50%, -50%); width:min(72vw, 1150px);
+    background:rgba(8,9,14,.82); border:1px solid var(--line); border-radius:var(--radius-card); padding:clamp(16px, 2vw, 44px); }
+  @media (max-width:700px) { #ptrivia { width:calc(100vw - 32px); top:40%; } .trivia .opts { grid-template-columns:1fr; } }
+  #gtrivia .opts { grid-template-columns:1fr; }
+  #gtrivia .opt { min-height:52px; font-size:17px; }
+  #gtrivia .opt:disabled { cursor:default; opacity:1; }
+  #gtrivia .opt.dim { opacity:.45; }
+  /* while a question is up the big screen makes room for it: the song's name smaller, its details hidden */
+  #v-presenter.has-trivia .p-bl .title { font-size:clamp(36px, min(4.5vw, 8vh), 96px); }
+  #v-presenter.has-trivia .p-bl .sub, #v-presenter.has-trivia .p-bl .meta { display:none; }
+  .coins { font-family:var(--mono); color:var(--acc); font-weight:700; }
   .locrow { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; margin-top:14px; }
   .locrow .hint { grid-column:1 / -1; }
   .locrow .btn { min-height:44px; }
@@ -530,6 +554,8 @@
       <div class="glass invite" id="invite" hidden><img class="qr" id="inviteqr" alt="QR code: scan to join the party">
         <div class="code" id="invitecode"></div><div class="hint">Guests scan this to join and request songs</div></div>
     </span>
+    <button type="button" class="chip" id="triviaswitch" role="switch" aria-checked="false"
+      title="Song trivia: a question per song on the big screen, guests answer on their phones for coins">Trivia</button>
     <button type="button" class="chip" id="qrswitch" role="switch" aria-checked="true"
       title="Show or hide the join QR code on the big screen">QR on big screen</button>
     <span class="chip num" id="timer">Session not started</span>
@@ -690,6 +716,14 @@
         <div class="reacts" id="reacts" role="group" aria-label="Send a reaction to the big screen"></div>
       </div>
     </section>
+    <section class="glass row trivia" id="gtrivia" aria-labelledby="h-trivia" aria-live="polite" hidden>
+      <div class="row3"><h2 id="h-trivia">Song trivia</h2><span class="left" id="gtleft"></span></div>
+      <p class="q" id="gtq"></p>
+      <div class="opts" id="gtopts" role="group" aria-label="Your answer"></div>
+      <p class="hint" id="gtnote"></p>
+      <p class="fact" id="gtfact" hidden></p>
+      <p class="hint">Your coins: <span class="coins" id="gtcoins">0</span></p>
+    </section>
     <section class="glass row" aria-labelledby="h-req">
       <h2 id="h-req">Request a song</h2>
       <label class="sr" for="q">Search songs</label>
@@ -745,6 +779,14 @@
     <div class="meta" id="nowinfo">Loading</div>
     <div class="track"><i id="prog"></i></div>
   </div>
+  <section class="trivia" id="ptrivia" aria-live="polite" hidden>
+    <div class="row3"><span class="label">Song trivia · answer on your phone</span><span class="left" id="ptleft"></span></div>
+    <h2 class="q" id="ptq"></h2>
+    <div class="opts" id="ptopts"></div>
+    <div class="row3"><span id="ptcount"></span></div>
+    <p class="fact" id="ptfact" hidden></p>
+    <ol class="board" id="ptboard" hidden></ol>
+  </section>
   <div class="p-br" id="upnext" hidden>
     <div class="glass">
       <div class="label">Up next <span id="upkind"></span></div>
@@ -1312,6 +1354,8 @@ function show(s) {
     j.hidden = !qrOn;
   }));
   safe("QR switch", () => ifEl("qrswitch", b => b.setAttribute("aria-checked", String(qrOn))));
+  safe("trivia switch", () => ifEl("triviaswitch", b => b.setAttribute("aria-checked", String(!!s.trivia_on))));
+  safe("trivia", () => drawTrivia(s.trivia));
   safe("MC location", () => ifEl("mcloc", inp => {     // host: where the party is, as the MC may say it
     const loc = s.location || {};
     if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = loc.text || "";
@@ -1415,6 +1459,73 @@ function nameSetup() {
   d.addEventListener("cancel", ev => ev.preventDefault());   // Escape does not skip it: every guest gets a name
   if (d.showModal) d.showModal(); else d.setAttribute("open", "");
   $("guestname").focus();
+}
+
+// ---- song trivia: the big screen shows the round, a guest answers (the right option comes only with the reveal)
+const LETTERS = ["A", "B", "C", "D"];
+let triviaMine = {}, triviaShown = null, coinsAsked = null, triviaWon = {};
+function drawTrivia(t) {
+  ifEl("ptrivia", box => {                          // big screen
+    box.hidden = !t;
+    ifEl("v-presenter", v => v.classList.toggle("has-trivia", !!t));
+    if (!t) return;
+    $("ptq").textContent = t.question;
+    $("ptleft").textContent = t.phase === "asking" ? `0:${String(Math.ceil(t.left_s)).padStart(2, "0")}` : "Answer";
+    $("ptopts").replaceChildren(...t.options.map((o, k) => {
+      const d = el("div", "opt" + (t.phase === "reveal" ? (k === t.answer ? " right" : " dim") : ""));
+      d.append(el("b", "", LETTERS[k]), el("span", "", o));
+      return d;
+    }));
+    $("ptcount").textContent = t.phase === "reveal" ? `${t.right} of ${t.answered} got it right` : `${t.answered} answered`;
+    $("ptfact").hidden = t.phase !== "reveal"; $("ptfact").textContent = t.phase === "reveal" ? "Did you know? " + t.fact : "";
+    const board = t.phase === "reveal" ? (t.board || []) : [];
+    $("ptboard").hidden = !board.length;
+    $("ptboard").replaceChildren(...board.map(r => el("li", "", `${r.name} · ${r.coins} coins`)));
+  });
+  ifEl("gtrivia", box => {                          // a guest's phone
+    box.hidden = !t;
+    if (!t) { triviaShown = null; return; }
+    const key = `algo-trivia-${CODE}-${t.round}`;
+    const mine = triviaMine[t.round] ?? store(key);
+    $("gtq").textContent = t.question;
+    $("gtleft").textContent = t.phase === "asking" ? `0:${String(Math.ceil(t.left_s)).padStart(2, "0")}` : "";
+    $("gtopts").replaceChildren(...t.options.map((o, k) => {
+      const b = el("button", "opt btn" + (mine === k ? " mine" : "") + (t.phase === "reveal" ? (k === t.answer ? " right" : " dim") : ""));
+      b.type = "button";
+      b.append(el("b", "", LETTERS[k]), el("span", "", o));
+      b.disabled = t.phase !== "asking" || mine !== undefined && mine !== null;
+      b.onclick = () => answerTrivia(t.round, k);
+      return b;
+    }));
+    const note = $("gtnote");
+    if (t.phase === "asking") note.textContent = mine != null ? `Locked in: ${LETTERS[mine]}. The answer comes in a moment.` : "Tap your answer. Quick answers earn a bonus.";
+    else note.textContent = mine == null ? `The answer was ${LETTERS[t.answer]}.`
+      : mine === t.answer ? `Right!${triviaWon[t.round] ? ` +${triviaWon[t.round]} coins` : ""}` : `Not this time: it was ${LETTERS[t.answer]}.`;
+    $("gtfact").hidden = t.phase !== "reveal"; $("gtfact").textContent = t.phase === "reveal" ? "Did you know? " + t.fact : "";
+    if (t.phase === "reveal" && coinsAsked !== t.round) { coinsAsked = t.round; myCoins(); }   // what this round earned
+    triviaShown = t.round;
+  });
+}
+async function answerTrivia(round, choice) {
+  triviaMine[round] = choice; store(`algo-trivia-${CODE}-${round}`, choice);
+  if (last) drawTrivia(last.trivia);
+  try {
+    const r = await fetch(apiPath("/answer"), {method: "POST", headers: headers({"Content-Type": "application/json"}),
+      body: JSON.stringify({guest: guestId(), name: store("algo-name") || "", round, choice})});
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      if (r.status !== 409 || !/already/.test(d.error || "")) { delete triviaMine[round]; store(`algo-trivia-${CODE}-${round}`, null); }
+      $("gtnote").textContent = d.error || "That answer did not go through.";
+    }
+  } catch (e) { delete triviaMine[round]; $("gtnote").textContent = "Could not reach the party. Try again."; }
+}
+async function myCoins() {
+  try {
+    const d = await (await fetch(apiPath(`/coins?guest=${encodeURIComponent(guestId())}`))).json();
+    $("gtcoins").textContent = d.coins;
+    const r = d.round;
+    if (r && r.correct !== undefined) { triviaWon[r.round] = r.coins; if (last) drawTrivia(last.trivia); }
+  } catch (e) {}
 }
 
 let talkBusy = false;
@@ -1637,6 +1748,12 @@ vis = visPrefs();
       b.disabled = false; b.classList.remove("busy");
       if (r) { delete $("mcloc").dataset.dirty; $("mcloc").blur(); }
     });
+    $("triviaswitch").onclick = async () => {
+      const b = $("triviaswitch"), on = b.getAttribute("aria-checked") !== "true";
+      b.disabled = true;
+      await post("/trivia", {on});
+      b.disabled = false;
+    };
     $("qrswitch").onclick = async () => {             // the big screen hears it through the live updates
       const b = $("qrswitch"), on = b.getAttribute("aria-checked") !== "true";
       b.disabled = true;
@@ -1688,7 +1805,7 @@ vis = visPrefs();
   if (VIEW === "presenter") presenterChrome();
   if (VIEW !== "guest") addEventListener("storage", e => { if (e.key === "algo-visuals") { vis = visPrefs(); if (last) drawVisual(last); } });   // another tab changed the visuals
   for (const b of document.querySelectorAll(".fbb")) b.onclick = () => vote(b);
-  if (VIEW === "guest") { talkSetup(); reactSetup(); $("byname").value = store("algo-name") || ""; nameSetup(); }
+  if (VIEW === "guest") { talkSetup(); reactSetup(); $("byname").value = store("algo-name") || ""; nameSetup(); myCoins(); }
   if ($("q")) {
     $("q").addEventListener("input", search);
     try { songs = await (await fetch(apiPath("/songs"))).json(); } catch (e) { songs = []; }

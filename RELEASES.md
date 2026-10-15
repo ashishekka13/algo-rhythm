@@ -78,6 +78,26 @@ commit `e985a13`). Changes since v1.0:
 - **Fix:** one failed speech request no longer silences the MC until the next deploy; the voice is tried again
   after 5 minutes.
 
+### New: song trivia
+- **One multiple-choice question per song on the big screen; guests answer on their phones for coins.** The host
+  turns it on with the **Trivia** switch (off by default).
+- **The round:**
+  - the question opens 30 s into the song and takes answers for 20 s;
+  - a 10 s reveal shows the right option, how many got it, a "Did you know?" fact and the top-5 leaderboard;
+  - it follows the playhead, so pausing pauses the round;
+  - songs whose part is too short get no round.
+- **Questions:** about 1 in 4 from our own song data (who sings it, the year), 3 in 4 lesser-known facts from
+  Gemini, written ahead of time by the `trivia` job. No AI runs during a party. Gemini's questions are checked and
+  dropped if Gemini isn't sure, if the answer is on screen, or if the question gives it away.
+- **Scoring on the server:**
+  - 10 coins for a right answer, +5 within the first 5 s;
+  - one answer per guest per question, and late answers are refused;
+  - the right option never reaches a screen before the reveal, and a guest's coins don't show right or wrong until
+    then;
+  - coins are per party, shown on each guest's phone.
+- New tables `song_trivia` and `trivia_answers`; a `trivia` job (production, plus a staging copy); endpoints
+  `POST /api/p/CODE/trivia` (host switch), `POST /api/p/CODE/answer` and `GET /api/p/CODE/coins`.
+
 ### Performance and capacity
 - **No more slow memory growth:**
   - Files the server makes (transition clips, MC voices, overlap audio) are deleted locally once uploaded.
@@ -101,7 +121,7 @@ commit `e985a13`). Changes since v1.0:
 - New tables `mc_lines` and `mc_plays`.
 - New endpoints: `POST /api/p/CODE/location` and `POST /api/p/CODE/screen`. `/talk` takes the guest's `name`.
 - Gemini prompt versions `talk-v4` (dedications) and `mc-line-v1`.
-- New tests: `test_variety`, `test_mc_lines`, `test_instances`, plus additions to `test_bugs`, `test_web`, `test_mc` and the jsdom
+- New tests: `test_variety`, `test_mc_lines`, `test_instances`, `test_trivia`, plus additions to `test_bugs`, `test_web`, `test_mc` and the jsdom
   and Chromium UI tests.
 
 ---

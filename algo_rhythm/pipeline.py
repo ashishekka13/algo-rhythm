@@ -5,6 +5,7 @@ a laptop; the web server only reads what these write.
                                               analysis, features -> songs, song_analysis, song_features + the bucket
     python -m algo_rhythm.pipeline details    Gemini song details (song_ai, display names) and search vectors
     python -m algo_rhythm.pipeline art [--limit N]   one image per song (costs about $0.04 each; see algo_rhythm.art)
+    python -m algo_rhythm.pipeline trivia      questions for songs without them: our data and Gemini's facts
 
 Environment: DATABASE_URL (Cloud SQL), SOURCE_URL (gs://bucket/prefix of the originals: any folders of .mp3, .wav,
 .flac, .ogg), STORAGE_URL (gs://bucket/prefix of the library the browser plays), GEMINI_API_KEY or the service account (details, art).
@@ -171,7 +172,7 @@ def run_art(limit=None):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("step", choices=("songs", "details", "art"))
+    ap.add_argument("step", choices=("songs", "details", "art", "trivia"))
     ap.add_argument("--limit", type=int, help="at most this many songs (per task, for songs)")
     args = ap.parse_args(argv)
     from algo_rhythm.server import setup_logging
@@ -180,6 +181,10 @@ def main(argv=None):
         return run_songs(args.limit)
     if args.step == "details":
         return run_details()
+    if args.step == "trivia":  # questions for every song without them (algo_rhythm.trivia)
+        from algo_rhythm import repository, trivia
+        log.info("trivia: %d questions stored", trivia.run(args.limit, on_call=repository.log_ai_call))
+        return 0
     return run_art(args.limit)
 
 

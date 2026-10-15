@@ -32,7 +32,7 @@ import uuid
 import numpy as np
 from sqlalchemy import func, select, text
 
-from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, mc_lines, places, recipe, repository, storage, timing
+from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, mc_lines, places, recipe, repository, storage, timing, trivia
 
 log = logging.getLogger("algo_rhythm.party")
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I: read off a big screen
@@ -70,7 +70,7 @@ def new_state(level):
     return {"v": 1, "level": level, "mood": None, "status": "idle", "epoch": 0, "playhead": 0.0, "reported_at": None,
             "seed": secrets.token_hex(8), "history": {}, "counts": {}, "played": [], "requests": [], "deadline": {}, "early": None, "queue": [], "timeline": [],
             "log": [], "positions": 0, "logged": None, "visuals": {"world": "auto", "kaleido": False}, "screen": {"qr": True}, "requesters": {},
-            "location": None,
+            "location": None, "trivia": {"on": False, "asked": []},
             "mc": {"enabled": True, "used": [], "level": None, "prev": None, "changed": False, "last_line": None, "dedications": [],
                    "last_at": None}}
 
@@ -281,6 +281,7 @@ def start(code):
         sess.on_play = lambda entry, info: _record_play(row.id, sess, entry, info)
         sess.played_hook(e, None)
         sess.timeline[0].update(item=recipe.start_item(ex), ex=ex.p, body_start=0, skip=0, rid=uuid.uuid4().hex[:12])
+        _pick_trivia(st, sess.timeline[0], lib.songs[e["song"]]["file"])
         dump(sess, st)
         st.update(status="playing", playhead=0.0, reported_at=time.time())
 
@@ -573,6 +574,7 @@ def _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, p
         e.update(window=nxt_entry["window"], transition_in=nxt_entry["transition_in"], transition_info=_plain(j.info))
         last.update(start_s=J, overlap_s=item["overlap_s"], item=item, ex=j.nxt.p, skip=j.nxt_skip,
                     body_start=body_start, rid=token)
+        _pick_trivia(st, last, lib.songs[nxt_entry["song"]]["file"])
         for m in said:
             sess._say(m)
         mc_st = _mc_state(st)  # the MC noticed the level (and may have spoken): keep that, whatever changed meanwhile
@@ -754,6 +756,111 @@ def location_view(st):
     return {"text": places.label(loc), "say": say, "source": (loc or {}).get("source")}
 
 
+# ---------------------------------------------------------------- song trivia (algo_rhythm.trivia)
+
+def _pick_trivia(st, t, file):
+    """The question this song's round will ask, chosen once (when the song is ready), not asked before in the party."""
+    tv = st.setdefault("trivia", {"on": False, "asked": []})
+    try:
+        with repository.session() as s:
+            song_id = s.scalar(select(db.Song.id).where(db.Song.file == file))
+        qid = trivia.pick(song_id, tv["asked"], random.Random(f"{st.get('seed')}:{file}:{len(tv['asked'])}")) if song_id else None
+    except Exception:
+        log.exception("no trivia question for %s", file)
+        qid = None
+    t["trivia"] = qid
+    if qid:
+        tv["asked"] = (tv["asked"] + [qid])[-200:]
+
+
+def set_trivia(code, on):
+    if not isinstance(on, bool):
+        raise ValueError("on must be true or false")
+    act(code, lambda sess, st: st.setdefault("trivia", {"on": False, "asked": []}).update(on=on))
+
+
+def _round(st, sess):
+    """(round number, question id, phase) of the song on air when trivia is on and it has a round, else None."""
+    if not (st.get("trivia") or {}).get("on"):
+        return None
+    ph = playhead_now(st)
+    i = sess._now_index(ph)
+    if i is None:
+        return None
+    t = sess.timeline[i]
+    qid, pos = t.get("trivia"), t["entry"].get("position")
+    if not qid or pos is None:
+        return None
+    nxt = sess.timeline[i + 1]["start_s"] if i + 1 < len(sess.timeline) else float("inf")
+    end = nxt if math.isfinite(nxt) else ((t.get("item") or {}).get("body") or {}).get("end")
+    ph_ = trivia.phase(t["start_s"], end, ph)
+    return (pos, qid, ph_) if ph_ else None
+
+
+def trivia_view(party_id, st, sess):
+    """What every screen shows of the round: the question while it is open; the answer, the fact, how many got it and
+    the leaderboard at the reveal. Never the answer before the reveal."""
+    r = _round(st, sess)
+    if not r or r[2][0] not in ("asking", "reveal"):
+        return None
+    pos, qid, (stage, left, _) = r
+    q = trivia.question(qid)
+    if q is None:
+        return None
+    answered, right = trivia.counts(party_id, pos)
+    v = {"round": pos, "phase": stage, "left_s": round(left, 1), "question": q.question, "options": list(q.options),
+         "answered": answered}
+    if stage == "reveal":
+        v.update(answer=q.answer, fact=q.fact, right=right, board=trivia.board(party_id))
+    return v
+
+
+def trivia_answer(code, guest, name, round_, choice):
+    """A guest's answer to the open question: scored now (the right option stays on the server until the reveal)."""
+    if not isinstance(guest, str) or not live_guest_id(guest):
+        raise ValueError("bad guest id")
+    if not isinstance(choice, int) or isinstance(choice, bool) or not 0 <= choice <= 3:
+        raise ValueError("choice is 0 to 3")
+    party_id, st = read(code)
+    r = _round(st, session_from(st, library.get()))
+    if not r or r[2][0] != "asking" or r[0] != round_:
+        raise Conflict("this question is closed")
+    pos, qid, (_, _, opens) = r
+    q = trivia.question(qid)
+    took = max(0.0, playhead_now(st) - opens)
+    right = choice == q.answer
+    coins = (trivia.COINS + (trivia.FAST_BONUS if took <= trivia.FAST_S else 0)) if right else 0
+    by = re.sub(r"[^\w .'-]", "", str(name or ""), flags=re.UNICODE).strip()[:24] or None
+    from sqlalchemy.exc import IntegrityError
+    try:
+        with repository.session() as s:
+            s.add(db.TriviaAnswer(party_id=party_id, round=pos, trivia_id=qid, guest=guest, name=by, choice=choice,
+                                  correct=right, coins=coins, seconds=round(took, 2)))
+            s.commit()
+    except IntegrityError:
+        raise Conflict("you already answered this one")
+    return {"round": pos, "choice": choice}
+
+
+def trivia_me(code, guest):
+    """A guest's coins in this party, and their answer to the current round (right or wrong only once revealed)."""
+    if not isinstance(guest, str) or not live_guest_id(guest):
+        raise ValueError("bad guest id")
+    party_id, st = read(code)
+    r = _round(st, session_from(st, library.get()))
+    with repository.session() as s:
+        total = s.scalar(select(func.sum(db.TriviaAnswer.coins)).where(
+            db.TriviaAnswer.party_id == party_id, db.TriviaAnswer.guest == guest)) or 0
+        mine = s.scalar(select(db.TriviaAnswer).where(db.TriviaAnswer.party_id == party_id,
+                                                      db.TriviaAnswer.round == r[0], db.TriviaAnswer.guest == guest)) if r else None
+    out = {"coins": int(total) if r is None or r[2][0] != "asking" else int(total) - (mine.coins if mine else 0), "round": None}
+    if mine:
+        out["round"] = {"round": mine.round, "choice": mine.choice}
+        if r[2][0] != "asking":  # revealed: right or wrong, and what it earned
+            out["round"].update(correct=mine.correct, coins=mine.coins)
+    return out
+
+
 def set_screen(code, qr):
     """The host's choices for the big screen: qr = show the join QR code (and the code) or not."""
     if not isinstance(qr, bool):
@@ -831,6 +938,12 @@ def views(code, kinds=(False, True)):
     v["feedback"] = _tallies(party_id, sess)
     v["visuals"] = dict(st.get("visuals") or {"world": "auto", "kaleido": False})
     v["screen"] = {"qr": (st.get("screen") or {}).get("qr", True)}  # parties from before this field show the QR
+    v["trivia_on"] = bool((st.get("trivia") or {}).get("on"))
+    try:
+        v["trivia"] = trivia_view(party_id, st, sess)
+    except Exception:
+        log.exception("could not show the trivia round of %s", code)
+        v["trivia"] = None
     for e in [v["now"], *v["next"]]:
         if e and e.get("request") and e["name"] in st["requesters"]:
             e["by"] = st["requesters"][e["name"]]

@@ -13,6 +13,7 @@
 #   deploy/gcp.sh run-songs    analyse every original not yet in the library (25 tasks, 4 at a time; about 3 hours for 100 songs)
 #   deploy/gcp.sh run-details  Gemini song details and search vectors
 #   deploy/gcp.sh run-art      song images (about $0.04 each)
+#   deploy/gcp.sh run-trivia   trivia questions for songs without them (Gemini, ~10 requests per 100 songs)
 #
 # Staging: STAGE=staging deploy/gcp.sh <step> works on the staging service (algorythm-web-staging) and its own database
 # (algorhythm_web_staging, secret database-url-staging) on the same instance; it shares the bucket's audio.
@@ -21,7 +22,8 @@
 #                                            cloud-sql-proxy and psql on this machine)
 #   STAGE=staging deploy/gcp.sh server       deploy the server to staging (build first; TAG = the commit)
 #   STAGE=staging deploy/gcp.sh cors         add staging's addresses to the bucket's CORS (keeps the others)
-# The jobs (songs, details, art) belong to production only.
+# The jobs (songs, details, art, trivia) are production's; staging has only its own trivia job:
+#   STAGE=staging deploy/gcp.sh jobs && STAGE=staging deploy/gcp.sh run-trivia
 #
 # Settings below; override any of them in the environment.
 set -euo pipefail
@@ -171,22 +173,27 @@ staging-db)
   echo "staging database $DB_NAME is a copy of production's library and host accounts (secret $DB_SECRET)"
   ;;
 jobs)
-  [ "$STAGE" = production ] || { echo "the jobs belong to production only" >&2; exit 1; }
+  # production: songs, details, art and trivia. Staging: only its own trivia job (algo-rhythm-trivia-staging), so its
+  # database (a copy of the library) gets questions too; the songs and their analysis come from production.
   COMMON=(--image="$JOBS_IMAGE" --region="$REGION" --service-account="$SA" --set-cloudsql-instances="$CONN"
-          --set-secrets="DATABASE_URL=database-url:latest"
+          --set-secrets="DATABASE_URL=$DB_SECRET:latest"
           --set-env-vars="SOURCE_URL=gs://$BUCKET/$SOURCE_PREFIX,STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT")
   # songs: 25 tasks of about 4 songs (Demucs on 4 vCPU takes ~6 min a song; a task has 60 min), 4 at a time
   # (4 x 4 vCPU: the project's 20 vCPU per region leaves room for the server)
-  for spec in "songs:25:4:4:8Gi:3600" "details:1:1:1:2Gi:1800" "art:1:1:1:2Gi:3600"; do
+  SPECS=("songs:25:4:4:8Gi:3600" "details:1:1:1:2Gi:1800" "art:1:1:1:2Gi:3600" "trivia:1:1:1:2Gi:1800")
+  SUFFIX=""
+  if [ "$STAGE" = staging ]; then SPECS=("trivia:1:1:1:2Gi:1800"); SUFFIX="-staging"; fi
+  for spec in "${SPECS[@]}"; do
     IFS=: read -r name tasks parallel cpu mem timeout <<< "$spec"
-    verb=create; $G run jobs describe "algo-rhythm-$name" --region="$REGION" >/dev/null 2>&1 && verb=update
-    $G run jobs "$verb" "algo-rhythm-$name" "${COMMON[@]}" --args="$name" --tasks="$tasks" --parallelism="$parallel" \
+    verb=create; $G run jobs describe "algo-rhythm-$name$SUFFIX" --region="$REGION" >/dev/null 2>&1 && verb=update
+    $G run jobs "$verb" "algo-rhythm-$name$SUFFIX" "${COMMON[@]}" --args="$name" --tasks="$tasks" --parallelism="$parallel" \
       --cpu="$cpu" --memory="$mem" --task-timeout="${timeout}s" --max-retries=1
   done
   ;;
 run-songs)   $G run jobs execute algo-rhythm-songs --region="$REGION" --wait ;;
 run-details) $G run jobs execute algo-rhythm-details --region="$REGION" --wait ;;
 run-art)     $G run jobs execute algo-rhythm-art --region="$REGION" --wait ;;
+run-trivia)  $G run jobs execute "algo-rhythm-trivia$([ "$STAGE" = staging ] && echo -staging)" --region="$REGION" --wait ;;
 *)
   sed -n '2,20p' "$0"; exit 1 ;;
 esac

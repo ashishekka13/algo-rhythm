@@ -12,10 +12,9 @@
 
 ---
 
-## v1.1 (Unreleased, on staging)
+## v1.1 (2026-10-16)
 
-Staging: https://algorythm-web-staging-685886597239.asia-south1.run.app (revision `algorythm-web-staging-00006`,
-commit `e985a13`). Changes since v1.0:
+Production: https://algo-rhythm.in (the commit tagged `v1.1`). Changes since v1.0:
 
 ### New: logo and welcome animation
 - **The logo:** "alg", a **rose record** for the o, a **teal beat line** for the hyphen, "rhythm" (rose `#e8679a`,
@@ -146,6 +145,16 @@ commit `e985a13`). Changes since v1.0:
 - **Ready for more than one instance:** a change on one instance reaches screens on another at once through
   PostgreSQL `LISTEN/NOTIFY` (0.02 s in the two-process test). The instance limit stays at 1 until the database tier
   is raised (`db-f1-micro` allows 25 connections, about 22 already in use).
+
+### New: algo-rhythm.in
+- **The app has its own address:** https://algo-rhythm.in (production) and https://staging.algo-rhythm.in (staging).
+  `www.algo-rhythm.in` redirects to the root. The `run.app` addresses still work.
+- Cloud Run has no custom domains in `asia-south1`, so a Cloudflare Worker (`deploy/cloudflare/worker.js`, set up by
+  `deploy/cloudflare.sh`) forwards each request to the service, WebSockets included. GoDaddy is the registrar;
+  Cloudflare runs DNS.
+- The server believes the Worker's visitor address and public host only when they come with `EDGE_SECRET`, a secret
+  the Worker and both services share. So sign-in rate limits see real visitors, and QR codes show `algo-rhythm.in`.
+- Both addresses are allowed in the bucket's CORS, so audio loads from either.
 
 ### Under the hood
 - New tables `mc_lines` and `mc_plays`.

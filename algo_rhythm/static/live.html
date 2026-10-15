@@ -324,12 +324,9 @@
   .tag.echo { color:#F0A98F; }
   .empty { color:var(--ink-3); font-size:14px; }
 
-  /* Journey: next 3, joined by a moving path */
+  /* Journey: the next 3 songs */
   .journey { position:relative; display:grid; gap:14px; }
-  @media (min-width:760px) { .journey { grid-template-columns:repeat(3, minmax(0,1fr)); }
-    .journey::before { content:""; position:absolute; left:6%; right:6%; top:52px; height:2px; z-index:0;
-      background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--acc) 60%, transparent) 0 10px, transparent 10px 22px); background-size:44px 2px;
-      animation:path calc(var(--beat) * 2) linear infinite; } }
+  @media (min-width:760px) { .journey { grid-template-columns:repeat(3, minmax(0,1fr)); } }
   .jcard { position:relative; z-index:1; display:flex; flex-direction:column; gap:8px; padding:18px; }
   .jcard .art { width:64px; }
   .jcard .jt { font-weight:650; font-size:19px; letter-spacing:-.02em; line-height:1.15; overflow-wrap:anywhere; }
@@ -497,7 +494,6 @@
   @keyframes pulse { 50% { opacity:.4; transform:scale(.8); } }
   @keyframes glow { 50% { box-shadow:0 0 20px -10px var(--c); } }
   @keyframes liquid { to { background-position:-200% 0; } }
-  @keyframes path { to { background-position:44px 0; } }
   @keyframes shimmer { to { background-position:-200% 0; } }
   /* Reduced motion: keep colour and opacity fades, drop movement and loops. */
   @media (prefers-reduced-motion:reduce) {

@@ -523,6 +523,7 @@ function mandala(img) {
 function garden(canvas, big, touch) {
   const g = {energy: "medium", mood: null, pal: null, bpm: 0, clear: false, playing: true, pulse: null, kaleido: false, scene: null, mix: null,
     stats: {frames: 0, stills: 0, beats: 0, downbeats: 0, events: [], climax: "", world: null, mode: "bpm", pos: null, q: 1, motes: 0, mixKind: null},
+    run() {},                                                         // replaced below once the canvas draws
     set(o) {
       const arrived = "pulse" in o && o.pulse !== g.pulse;            // the same object again (a redraw) is not a new reading
       Object.assign(g, o);
@@ -785,11 +786,12 @@ function garden(canvas, big, touch) {
     const r = canvas.getBoundingClientRect();
     (nxt ? nxt.w : cur).tap(e.clientX - r.left, e.clientY - r.top);
   }
-  document.addEventListener("visibilitychange", () => {               // pause when the tab is hidden
-    cancelAnimationFrame(raf); raf = 0;
-    if (!document.hidden && !calm()) { prev = 0; raf = requestAnimationFrame(loop); }
-  });
-  if (!calm()) raf = requestAnimationFrame(loop);
+  let running = true;                                                 // g.run(false): the host's low-power mode
+  const start = () => { if (running && !raf && !document.hidden && !calm()) { prev = 0; raf = requestAnimationFrame(loop); } };
+  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+  document.addEventListener("visibilitychange", () => { stop(); start(); });   // pause when the tab is hidden
+  start();
+  g.run = on => { running = !!on; if (running) start(); else stop(); };
   return g;
 }
 Object.assign(window, {garden, LEVEL_WORLD, WORLD_LEVEL});

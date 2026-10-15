@@ -254,6 +254,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     check("presenter: shows the QR guests scan to join, and the code", !P.D.getElementById("join").hidden
       && P.D.getElementById("joinqr").getAttribute("src") === `/qr/${CODE}.svg` && P.D.getElementById("joincodeshow").textContent === CODE
       && !P.errors.length, [P.D.getElementById("joinqr").getAttribute("src"), P.errors]);
+    check("presenter: never in the host's low-power mode, even when this browser chose it", !P.D.documentElement.classList.contains("lowpower")
+      && !P.D.getElementById("lowpower"), P.D.documentElement.className);
     P.dom.window.close();
     const A2 = open("/", async (url) => ({ok: true, json: async () => (url === "/songs" ? [] : {...base, reactions: [{id: 1, emoji: "🔥"}], next: [entry("Tum Hi Ho", {request: true, by: "Priya"})]})}));
     await wait(1500);
@@ -397,6 +399,17 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
       A.D.body.click();
       check("host: the code chip opens the guests' QR and a click elsewhere closes it", /TESTAB/.test(chip.textContent) && closed && shown && inv.hidden,
         [chip.textContent, closed, shown, inv.hidden]);
+    }
+    {
+      const H = A.D.documentElement, sw = A.D.getElementById("lowpower"), ls = A.dom.window.localStorage;
+      const on = H.classList.contains("lowpower") && sw.getAttribute("aria-checked") === "true";
+      sw.click();
+      const off = !H.classList.contains("lowpower") && sw.getAttribute("aria-checked") === "false" && ls.getItem("algo-lowpower") === "false"
+        && sw.textContent === "Visuals on";
+      sw.click();
+      const back = H.classList.contains("lowpower") && ls.getItem("algo-lowpower") === "true";
+      check("host: low power is on by default; the switch turns the visuals on and off and is remembered", on && off && back && !A.errors.length,
+        [on, off, back, A.errors]);
     }
     const box = A.D.querySelector(".songart"), imgs = [...box.querySelectorAll("img")];
     const layer = u => imgs.find(i => i.getAttribute("src") === u), op = u => layer(u) ? Number(layer(u).style.opacity) : null;

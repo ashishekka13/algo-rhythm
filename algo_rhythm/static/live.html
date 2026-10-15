@@ -101,6 +101,15 @@
 
   header.top { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:18px; }
   header.top .grow { flex:1; }
+  /* Host low-power mode (on unless the host turns it off): this screen plays the music, so it drops every decoration
+     that costs CPU or GPU every frame (the light garden, the blurred mood glow, glass blur, animations). The big
+     screen keeps them. */
+  html.lowpower #garden, html.lowpower .ambience, html.lowpower .veil { display:none !important; }
+  html.lowpower .glass { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+  html.lowpower *, html.lowpower *::before, html.lowpower *::after { animation:none !important; }
+  #lowpower[aria-checked="true"] { color:var(--ink); border-color:var(--acc); }
+  #lowpower::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--ink-3); }
+  #lowpower[aria-checked="true"]::before { background:var(--acc); }
   button.chip { font:inherit; font-size:13px; cursor:pointer; min-height:32px; }
   button.chip:hover { color:var(--ink); border-color:var(--acc); }
   .invite { position:absolute; right:0; top:calc(100% + 8px); z-index:20; width:min(280px, calc(100vw - 32px)); text-align:center;
@@ -492,6 +501,8 @@
     </nav>
     <span class="grow"></span>
     <span class="chip" id="where">Plays on this device</span>
+    <button type="button" class="chip" id="lowpower" role="switch" aria-checked="true"
+      title="Low power: no visuals on this screen, so the music plays smoothly. The big screen keeps them.">Low power</button>
     <span class="invitewrap">
       <button type="button" class="chip mono" id="partycode" aria-expanded="false" aria-controls="invite" title="Show the QR code guests scan to join"></button>
       <div class="glass invite" id="invite" hidden><img class="qr" id="inviteqr" alt="QR code: scan to join the party">
@@ -758,7 +769,17 @@ function palette(name) {
 const artBg = p => `linear-gradient(135deg, rgb(${p[0]}), rgb(${p[1]}) 55%, rgb(${p[2]}))`;
 
 // ---- the visual: four living worlds, beat-locked blooms and the art kaleidoscope (static/visuals.js)
-const G = $("garden") ? garden($("garden"), VIEW === "presenter", VIEW !== "presenter") : {set() {}};
+// the host's low-power mode (on by default; the switch in the header): set before the garden starts, so it never draws
+const lowPowerPref = () => { try { return localStorage.getItem("algo-lowpower") !== "false"; } catch (e) { return true; } };
+if (VIEW === "admin" && lowPowerPref()) document.documentElement.classList.add("lowpower");
+const G = $("garden") ? garden($("garden"), VIEW === "presenter", VIEW !== "presenter") : {set() {}, run() {}};
+if (document.documentElement.classList.contains("lowpower")) G.run(false);
+function setLowPower(on) {
+  document.documentElement.classList.toggle("lowpower", on);
+  G.run(!on);
+  ifEl("lowpower", b => { b.setAttribute("aria-checked", String(on)); b.textContent = on ? "Low power" : "Visuals on"; });
+  try { localStorage.setItem("algo-lowpower", String(on)); } catch (e) {}
+}
 
 // ---- song art: "art": "/art/<id>.jpg" or null on now, next and mixing (from_art, to_art). An older server sends none.
 // Each image is loaded once and sampled once for a palette; a failed load counts as no art, so the page looks as before.
@@ -1526,6 +1547,8 @@ vis = visPrefs();
     }
     P = new Player({report, onError: m => { $("err").textContent = m; }});
     $("partycode").textContent = "Invite · " + CODE;
+    setLowPower(lowPowerPref());
+    $("lowpower").onclick = () => setLowPower($("lowpower").getAttribute("aria-checked") !== "true");
     $("invitecode").textContent = CODE;
     $("partycode").onclick = () => {                  // the guests' QR, on demand: the host page has no room to keep it up
       const inv = $("invite"), open = inv.hidden;

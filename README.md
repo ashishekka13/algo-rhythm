@@ -41,12 +41,24 @@ and `LIBRARY/stems` (see Offline jobs), or the synthetic one for trying it out:
 |---|---|
 | Cloud Storage `gs://song-mixer-511123-algo-rhythm` | `library/` the originals (input); `web/` the library the browser plays: canonical MP3s, vocal stems, art, MC lines |
 | Cloud SQL (PostgreSQL 16) | songs, analyses, Gemini details, features, embeddings (shared by every party); parties and their whole session state; plays, requests, votes, reactions, AI cache |
-| Cloud Run service `algo-rhythm` | the web server, stateless (at most one instance for now: the WebSocket hub is in-process) |
+| Cloud Run service `algo-rhythm-web` | production: the web server, stateless (at most one instance for now: the WebSocket hub is in-process) |
+| Cloud Run service `algorythm-web-staging` | staging: the same server from the `staging` branch, on its own database `algorhythm_web_staging` (a copy of the library and host accounts), sharing the bucket's audio |
 | Cloud Run Jobs `algo-rhythm-songs / -details / -art` | build the library from the originals: analysis + Demucs on CPU (10 tasks), Gemini details + search vectors, images |
-| Secret Manager | `database-url`, `gemini-api-key` |
+| Secret Manager | `database-url`, `database-url-staging` |
 
 `deploy/gcp.sh` does it step by step (`check`, `apis`, `registry`, `sql`, `secrets`, `account`, `build`, `server`, `cors`,
 `jobs`, `run-songs`, `run-details`, `run-art`); each step is safe to run again and the billed ones say so.
+
+**Branches and environments.** `main` is what production runs (tagged releases, `v1.0` first). New work goes on
+`staging` and is deployed to the staging service first:
+
+    STAGE=staging deploy/gcp.sh staging-db     once (or to refresh): staging's database from production's library
+    deploy/gcp.sh build                         then, with TAG = the commit:
+    STAGE=staging TAG=<commit> deploy/gcp.sh server
+    STAGE=staging deploy/gcp.sh cors            once: lets staging's pages fetch audio from the bucket
+
+When staging is good, merge it into `main` and deploy production (`TAG=<commit> deploy/gcp.sh server`). The jobs
+(songs, details, art) run against production only.
 
 ### Configuration (environment, see `.env.example`)
 

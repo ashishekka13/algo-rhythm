@@ -14,6 +14,15 @@
 #   deploy/gcp.sh run-details  Gemini song details and search vectors
 #   deploy/gcp.sh run-art      song images (about $0.04 each)
 #
+# Staging: STAGE=staging deploy/gcp.sh <step> works on the staging service (algorythm-web-staging) and its own database
+# (algorhythm_web_staging, secret database-url-staging) on the same instance; it shares the bucket's audio.
+#   STAGE=staging deploy/gcp.sh staging-db   create staging's database and copy the library and host accounts into it
+#                                            from production (tools/clone_db.py; run again to refresh; needs
+#                                            cloud-sql-proxy and psql on this machine)
+#   STAGE=staging deploy/gcp.sh server       deploy the server to staging (build first; TAG = the commit)
+#   STAGE=staging deploy/gcp.sh cors         add staging's addresses to the bucket's CORS (keeps the others)
+# The jobs (songs, details, art) belong to production only.
+#
 # Settings below; override any of them in the environment.
 set -euo pipefail
 
@@ -24,7 +33,16 @@ SOURCE_PREFIX=${SOURCE_PREFIX:-library}          # the originals: gs://$BUCKET/$
 LIBRARY_PREFIX=${LIBRARY_PREFIX:-web}            # what the browser plays: gs://$BUCKET/$LIBRARY_PREFIX/...
 SQL_INSTANCE=${SQL_INSTANCE:-algo-rhythm}            # existing instance (shared with the Oct 10 app)
 SQL_TIER=${SQL_TIER:-db-f1-micro}
+STAGE=${STAGE:-production}                     # production | staging
+if [ "$STAGE" = staging ]; then
+  DB_NAME=${DB_NAME:-algorhythm_web_staging}
+  SERVICE=${SERVICE:-algorythm-web-staging}
+  DB_SECRET=${DB_SECRET:-database-url-staging}
+elif [ "$STAGE" != production ]; then
+  echo "STAGE must be production or staging, not $STAGE" >&2; exit 1
+fi
 DB_NAME=${DB_NAME:-algorhythm_web}           # its own database: the Oct 10 app keeps "algorhythm"
+DB_SECRET=${DB_SECRET:-database-url}
 DB_USER=${DB_USER:-algorhythm_web}
 REPO=${REPO:-algo-rhythm}
 SERVICE=${SERVICE:-algo-rhythm-web}           # alongside the Oct 10 service "algo-rhythm"
@@ -89,18 +107,20 @@ account)
   echo "service account $SA ready (AI as $AI_SA)"
   ;;
 cors)
-  # every address of the service (Cloud Run gives two), plus a laptop's
-  URLS=$($G run services describe "$SERVICE" --region="$REGION" --format=json 2>/dev/null | python3 -c '
+  # every address of the service (Cloud Run gives two) and a laptop's, added to the origins the bucket already allows
+  # (production, staging and the Oct 10 app share the bucket: replacing the list would lock the others out)
+  SVC=$($G run services describe "$SERVICE" --region="$REGION" --format=json)
+  OLD=$(gcloud storage buckets describe "gs://$BUCKET" --format=json)
+  ORIGINS=$(python3 -c '
 import json, sys
-d = json.load(sys.stdin)
+d, b = json.loads(sys.argv[1]), json.loads(sys.argv[2])
 urls = json.loads(d["metadata"]["annotations"].get("run.googleapis.com/urls", "[]")) + [d["status"]["url"]]
-print(json.dumps(sorted(set(urls)) + ["http://127.0.0.1:8765", "http://localhost:8765"]))' || echo '["*"]')
-  ORIGINS="$URLS"
-  URL="$URLS"
+have = [o for rule in (b.get("cors_config") or []) for o in rule.get("origin", [])]
+print(json.dumps(sorted(set(have + urls + ["http://127.0.0.1:8765", "http://localhost:8765"]))))' "$SVC" "$OLD")
   printf '[{"origin": %s, "method": ["GET", "HEAD"], "responseHeader": ["Content-Type", "Content-Length", "Range"], "maxAgeSeconds": 3600}]' \
     "$ORIGINS" > /tmp/algo-cors.json
   gcloud storage buckets update "gs://$BUCKET" --cors-file=/tmp/algo-cors.json
-  echo "browsers at ${URL:-any origin} may fetch audio from gs://$BUCKET"
+  echo "browsers at these origins may fetch audio from gs://$BUCKET: $ORIGINS"
   ;;
 build)
   $G builds submit --config cloudbuild.yaml --substitutions="_API=$API_IMAGE,_JOBS=$JOBS_IMAGE" .
@@ -108,13 +128,35 @@ build)
 server)
   # One instance at most for now: the WebSocket hub is in-process (algo_rhythm/hub.py says how to lift this).
   $G run deploy "$SERVICE" --image="$API_IMAGE" --region="$REGION" --service-account="$SA" \
-    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=database-url:latest" \
+    --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=$DB_SECRET:latest" \
     --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT,MC_TTS=gemini,LOG_LEVEL=INFO" \
     --cpu=2 --memory=4Gi --concurrency=40 --min-instances=0 --max-instances=1 --timeout=3600 \
     --session-affinity --cpu-boost --allow-unauthenticated
   $G run services describe "$SERVICE" --region="$REGION" --format="value(status.url)"
   ;;
+staging-db)
+  [ "$STAGE" = staging ] || { echo "run as STAGE=staging deploy/gcp.sh staging-db" >&2; exit 1; }
+  PORT=54329
+  cloud-sql-proxy --token "$(gcloud auth print-access-token)" --port $PORT "$CONN" > /tmp/algo-proxy.log 2>&1 &
+  PROXY=$!
+  trap 'kill $PROXY 2>/dev/null' EXIT
+  for _ in $(seq 1 30); do nc -z 127.0.0.1 $PORT 2>/dev/null && break; sleep 1; done
+  PROD_URL=$($G secrets versions access latest --secret=database-url)
+  # the secret's URL reaches the instance through Cloud Run's socket; here it goes through the proxy instead
+  via_proxy() { python3 -c 'import re, sys; print(re.sub(r"@/[^?]+\?host=.*$", "@127.0.0.1:" + sys.argv[2] + "/" + sys.argv[3], sys.argv[1]))' "$PROD_URL" $PORT "$1"; }
+  PSQL_URL=$(via_proxy postgres | sed 's#^postgresql+psycopg://#postgresql://#')
+  if ! psql "$PSQL_URL" -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1; then
+    psql "$PSQL_URL" -qc "CREATE DATABASE $DB_NAME"      # owned by $DB_USER, who then creates its tables
+  fi
+  if ! $G secrets describe "$DB_SECRET" >/dev/null 2>&1; then
+    python3 -c 'import re, sys; print(re.sub(r"@/[^?]+\?", "@/" + sys.argv[2] + "?", sys.argv[1]), end="")' "$PROD_URL" "$DB_NAME" | \
+      $G secrets create "$DB_SECRET" --data-file=- --replication-policy=automatic
+  fi
+  "${PYTHON:-.venv/bin/python}" -m tools.clone_db "$(via_proxy "${PROD_DB:-algorhythm_web}")" "$(via_proxy "$DB_NAME")"
+  echo "staging database $DB_NAME is a copy of production's library and host accounts (secret $DB_SECRET)"
+  ;;
 jobs)
+  [ "$STAGE" = production ] || { echo "the jobs belong to production only" >&2; exit 1; }
   COMMON=(--image="$JOBS_IMAGE" --region="$REGION" --service-account="$SA" --set-cloudsql-instances="$CONN"
           --set-secrets="DATABASE_URL=database-url:latest"
           --set-env-vars="SOURCE_URL=gs://$BUCKET/$SOURCE_PREFIX,STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT")

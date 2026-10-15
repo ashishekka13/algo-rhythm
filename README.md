@@ -57,7 +57,8 @@ and `LIBRARY/stems` (see Offline jobs), or the synthetic one for trying it out:
     STAGE=staging TAG=<commit> deploy/gcp.sh server
     STAGE=staging deploy/gcp.sh cors            once: lets staging's pages fetch audio from the bucket
 
-When staging is good, merge it into `main` and deploy production (`TAG=<commit> deploy/gcp.sh server`). The jobs
+When staging is good, merge it into `main`, tag the next version (`RELEASES.md` says how: v1.1, v1.2, …) and deploy
+production (`TAG=<commit> deploy/gcp.sh server`). Each change's notes go under **Unreleased** in `RELEASES.md` as it lands. The jobs
 (songs, details, art) run against production only.
 
 ### Configuration (environment, see `.env.example`)

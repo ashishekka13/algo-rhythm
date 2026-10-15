@@ -14,6 +14,7 @@ import argparse
 import collections
 import json
 import logging
+import random
 import sys
 import threading
 import time
@@ -148,6 +149,8 @@ class Session:
         self.songs, self.planner, self.level = songs, planner, level
         self.library, self.history_path = library, history_path
         self.counts = self._load_history()       # file -> times played, kept across restarts so songs stay fresh
+        self.history = {}  # file -> plays in the host's earlier parties (the web app; counts holds this party's own)
+        self.seed = None   # the party's random seed: varies the opener and near-tie picks (None: always the best)
         self.by_file = {s["file"]: i for i, s in enumerate(songs)}
         self.queue, self.timeline, self.played, self.requests = [], [], [], []
         self.deadline, self._logged = {}, None   # request song -> last timeline index it may play at
@@ -189,7 +192,7 @@ class Session:
         recent = set(self.played[-30:])
         pen = {}
         for i, s in enumerate(self.songs):
-            n = self.counts.get(s["file"], 0)
+            n = self.counts.get(s["file"], 0) + self.history.get(s["file"], 0)
             if n:
                 pen[i] = min(3.0, 1.5 + 0.5 * (n - 1)) + (0.5 if i in recent else 0.0)
         return pen
@@ -231,6 +234,9 @@ class Session:
         req = self.requests[0] if self.requests else None
         slots = [p for p in live_plan.REQUEST_SLOTS if len(self.timeline) + p - 1 <= self.deadline.get(req, 0)] or [1]
         self.planner.recent = [t["entry"]["song"] for t in self.timeline]
+        # the same inputs give the same pick, so re-planning does not reshuffle what the page shows as next
+        self.planner.rng = random.Random(f"{self.seed}:{len(self.timeline)}:{last['song']}:{self.level}:{self.planner.mood}") \
+            if self.seed else None
         self.queue = self.planner.plan(last["song"], last["window"], avoid, live_plan.LEVELS[self.level], req, slots,
                                        penalty=self._penalties())
         if not self.queue:  # every song that could follow was heard lately: only the last two are off limits now
@@ -248,6 +254,7 @@ class Session:
     # -- engine side
     def start(self, start_name):
         with self.lock:
+            self.planner.rng = random.Random(f"{self.seed}:open:{self.level}:{self.planner.mood}") if self.seed else None
             e = self.planner.first_song(live_plan.LEVELS[self.level], start_name, self._penalties())
             self.timeline.append({"entry": e, "start_s": 0.0})
             self._played(e["song"])

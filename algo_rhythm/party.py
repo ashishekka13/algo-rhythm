@@ -37,6 +37,7 @@ log = logging.getLogger("algo_rhythm.party")
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I: read off a big screen
 CODE_LEN = 6
 LOCK_WAIT_S = 20       # a request waits at most this long for the party's lock, then answers "busy, try again"
+HISTORY_DAYS = 7      # a new party knows what the same host played in the last week: songs heard lately lose points
 RENDER_STALE_S = 120  # a join still "rendering" after this long was abandoned (the request died): render it again
 # Joins rendered at once on this server, whatever the party: each holds several song windows (100+ MB) and keeps a
 # CPU busy, and Cloud Run sends up to 40 requests at a time to the one instance. More wait their turn.
@@ -66,7 +67,7 @@ def hash_key(key):
 
 def new_state(level):
     return {"v": 1, "level": level, "mood": None, "status": "idle", "epoch": 0, "playhead": 0.0, "reported_at": None,
-            "counts": {}, "played": [], "requests": [], "deadline": {}, "early": None, "queue": [], "timeline": [],
+            "seed": secrets.token_hex(8), "history": {}, "counts": {}, "played": [], "requests": [], "deadline": {}, "early": None, "queue": [], "timeline": [],
             "log": [], "positions": 0, "logged": None, "visuals": {"world": "auto", "kaleido": False}, "requesters": {},
             "mc": {"enabled": True, "used": [], "level": None, "prev": None, "changed": False, "last_line": None,
                    "last_at": None}}
@@ -147,6 +148,8 @@ def session_from(st, lib):
     sess.planner.mood = st["mood"]
     idx = lambda f: lib.by_file.get(f)
     sess.counts = dict(st["counts"])
+    sess.history = dict(st.get("history") or {})
+    sess.seed = st.setdefault("seed", secrets.token_hex(8))  # parties made before seeds get one now
     sess.played = [i for i in map(idx, st["played"]) if i is not None]
     sess.requests = [i for i in map(idx, st["requests"]) if i is not None]
     sess.deadline = {idx(f): n for f, n in st["deadline"].items() if idx(f) is not None}
@@ -174,7 +177,7 @@ def dump(sess, st):
               requests=[f(i) for i in sess.requests], deadline={f(i): n for i, n in sess.deadline.items()},
               early=_entry_out(sess.early, songs), queue=[_entry_out(e, songs) for e in sess.queue],
               timeline=[_plain({**t, "entry": _entry_out(t["entry"], songs)}) for t in sess.timeline],
-              log=list(sess.log), positions=sess.positions,
+              log=list(sess.log), positions=sess.positions, seed=sess.seed, history=dict(sess.history),
               logged=[f(sess._logged[0]), sess._logged[1], sess._logged[2]] if sess._logged else None)
 
 
@@ -244,6 +247,19 @@ def _record_play(party_id, sess, e, info):
         log.exception("could not record the play")
 
 
+def recent_plays(owner_id, party_id):
+    """{file: plays} in the host's other parties over the last HISTORY_DAYS (none for a party without a host)."""
+    if owner_id is None:
+        return {}
+    since = db.now() - datetime.timedelta(days=HISTORY_DAYS)
+    with repository.session() as s:
+        rows = s.execute(select(db.Song.file, func.count()).join(db.Play, db.Play.song_id == db.Song.id)
+                         .join(db.Party, db.Party.id == db.Play.party_id)
+                         .where(db.Party.owner_id == owner_id, db.Party.id != party_id, db.Play.played_at >= since)
+                         .group_by(db.Song.file))
+        return {f: int(n) for f, n in rows}
+
+
 def start(code):
     """First Play: pick the opening song and make it ready for the browser. Idempotent while it is on."""
     lib = library.get()
@@ -253,6 +269,7 @@ def start(code):
                 st["status"], st["reported_at"] = "playing", time.time()
             return
         sess = session_from(st, lib)
+        sess.history = recent_plays(row.owner_id, row.id)
         e = sess.start(None)
         ex = joins.load(lib.root, lib.songs[e["song"]], e["window"])
         sess.on_play = lambda entry, info: _record_play(row.id, sess, entry, info)

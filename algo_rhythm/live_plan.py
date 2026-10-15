@@ -54,6 +54,19 @@ def ramp(a, b, k, n):
     return a + (b - a) * min(1.0, k / n)
 
 
+# Variety (only when the planner has an rng: the web app, one seed per party). The opener is a weighted pick among the
+# songs scoring within OPEN_MARGIN of the best (OPEN_TOP at most); the next song among plans within NEXT_MARGIN of the
+# best total. Weights exp((score - best) / temperature): the best stays the likeliest, a clearly better choice wins.
+OPEN_MARGIN, OPEN_TOP, OPEN_TEMP = 0.25, 8, 0.08
+NEXT_MARGIN, NEXT_TEMP = 0.12, 0.05
+
+
+def weighted_pick(rng, options, temp):
+    """One of options [(score, item), ...] (best first), the higher scores likelier."""
+    top = options[0][0]
+    return rng.choices([o[1] for o in options], weights=[math.exp((o[0] - top) / temp) for o in options])[0]
+
+
 class Planner:
     def __init__(self, songs, excerpt_s):
         self.songs = songs
@@ -63,6 +76,7 @@ class Planner:
         self._level_e, self._penalty = 0.375, {}
         self.recent = []  # the songs played so far, in order (Session._plan): spaces out the international songs
         self.mood = None  # a mood family the listener picked (MOODS); None = auto. Held like the energy level.
+        self.rng = None   # random.Random: vary the opener and near-tie next songs; None = always the best (offline, tests)
 
     def add_song(self, i):
         """A song was appended to `songs` (and the library ranks recomputed): give it windows, drop stale caches."""
@@ -97,7 +111,7 @@ class Planner:
     def first_song(self, level_e, start=None, penalty=None):
         """Opening song: right energy for the level, played from its own beginning (longer, so it builds up
         before any mixing starts), preferring a calm start with little singing over it."""
-        best = None
+        best, per_song = None, {}
         for i, s in enumerate(self.songs):
             if start and start.lower() not in s["file"].lower():
                 continue
@@ -111,8 +125,15 @@ class Planner:
                 sc += 0.0 if self.mood is None else self.picked(i)  # and the night opens in the mood picked
                 if best is None or (sc, -i) > best[0]:
                     best = ((sc, -i), i, w)
+                if i not in per_song or sc > per_song[i][0]:
+                    per_song[i] = (sc, w)
         if best is None:
             raise ValueError(f"no song matches --start {start!r}")
+        if self.rng is not None and not start:  # a different good opener each night, not always the single best
+            ranked = sorted(((sc, (i, w)) for i, (sc, w) in per_song.items()), key=lambda o: (-o[0], o[1][0]))
+            ranked = [o for o in ranked if o[0] >= ranked[0][0] - OPEN_MARGIN][:OPEN_TOP]
+            i, w = weighted_pick(self.rng, ranked, OPEN_TEMP)
+            return self.entry(i, w, {}, "start", "opening track", 1.0, 0.0)
         return self.entry(best[1], best[2], {}, "start", "opening track", 1.0, 0.0)
 
     def entry(self, i, w, terms, kind, why, match, score, request=False):
@@ -233,6 +254,14 @@ class Planner:
             best = self._beam(init, [ramp(cur_e, level_e, k, 1) for k in range(1, h + 1)], played)  # aim at the level from the next song on
             if not best or not best[0]["chain"]:  # no song left that may follow (a small library, all heard lately)
                 return []
+            if self.rng is not None:  # near-ties for the next song: a weighted pick, so nights do not repeat
+                firsts, near = set(), []
+                for st in best:
+                    if st["chain"] and st["chain"][0]["song"] not in firsts and st["total"] >= best[0]["total"] - NEXT_MARGIN:
+                        firsts.add(st["chain"][0]["song"])
+                        near.append((st["total"], st))
+                pick = weighted_pick(self.rng, near, NEXT_TEMP)
+                best = [pick] + [st for st in best if st is not pick]
             chain, seen, alts = best[0]["chain"], {best[0]["chain"][0]["song"]}, []
             for st in best[1:]:  # runners-up for the next slot, for the "under the hood" view
                 if st["chain"][0]["song"] not in seen:

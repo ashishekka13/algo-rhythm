@@ -197,6 +197,21 @@ details, the planner's reasons and a FLAC clip of the server's render), `song_re
 `reactions`, `transition_reviews`, `assets` (MC lines, fills, art), `ai_cache`, `ai_calls`. Tables are created on first
 connect; a column added later is added by `db.add_missing_columns`.
 
+### 4.11 The AI MC's lines (`mc_lines.py`, `places.py`)
+When the MC may speak (its timing rules, `mc.py`: not in the first 2 minutes, at most every 10 minutes, after a vibe
+change or else every 20 minutes, only over an instrumental stretch), the line comes from a library in the database
+(`mc_lines`, with `mc_plays` saying who heard what). Each line is tagged when it is written: **generic** (any party),
+**location** (names the party's place: only parties there) or **personal** (a dedication: its own party only), with
+its level (or "build"), mood and voice. For a moment the MC takes a stored line that fits and that neither this
+party nor, for 7 days, its host heard, least used first; a fresh one from Gemini (location, vibe, recent lines) when
+fewer than 5 fit or about one time in 3. Gemini gets 8 s; else a stored line, else the built-in lines.
+
+The place: the host's IP address, looked up when the party starts in the free DB-IP City Lite database (CC BY 4.0,
+[IP geolocation by DB-IP](https://db-ip.com), fetched into the image by `tools/fetch_geoip.py`); city and country
+only, the address is not kept. The MC says the city when it is a well-known one (`places.POPULAR`), else the country.
+The host can change it ("MC location" on the host page). A guest's "dedicate it to Ishan" (Talk to the DJ) becomes a
+personal line said over that song's join (it waits up to 5 joins for room).
+
 ### 4.10 Host accounts (`accounts.py`)
 Starting a party needs a signed-in, approved account; guests join with the code and no account. The start page
 (`/`, or `/login`) signs in or registers. A signup (username, email, password) is saved with `active = false` and the

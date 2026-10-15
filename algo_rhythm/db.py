@@ -104,6 +104,37 @@ class AuthEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 
+class MCLine(Base):
+    """One spoken MC line and its voice, kept for reuse (algo_rhythm.mc_lines). scope: generic (any party), location
+    (parties at `place`, e.g. "bengaluru"), personal (a dedication: its own party only, never offered again)."""
+    __tablename__ = "mc_lines"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    text: Mapped[str] = mapped_column(String(120))
+    scope: Mapped[str] = mapped_column(String(16), index=True)
+    place: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    level: Mapped[str] = mapped_column(String(16))
+    mood: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    build: Mapped[bool] = mapped_column(Boolean, default=False)
+    voice: Mapped[str] = mapped_column(String(120), index=True)
+    audio: Mapped[str | None] = mapped_column(Text, nullable=True)   # the asset's path in the library (bucket)
+    seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(16))                  # gemini | templates
+    party_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # personal lines: the party they were for
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    uses: Mapped[int] = mapped_column(Integer, default=0)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MCPlay(Base):
+    """A party heard an MC line: lines are not offered again to the same party, or to its host for a week."""
+    __tablename__ = "mc_plays"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    line_id: Mapped[int] = mapped_column(ForeignKey("mc_lines.id"), index=True)
+    party_id: Mapped[int] = mapped_column(Integer, index=True)
+    owner_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    played_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
 class Play(Base):
     __tablename__ = "plays"
     id: Mapped[int] = mapped_column(primary_key=True)

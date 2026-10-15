@@ -176,7 +176,11 @@
   @keyframes spin { to { transform:rotate(360deg); } }
   #talkmic[aria-pressed="true"] { border-color:var(--bad, #ff6b6b); color:var(--ink); display:inline-flex; align-items:center; gap:8px; }
   #talkmic[aria-pressed="true"]::before { content:""; width:9px; height:9px; border-radius:50%; background:var(--bad, #ff6b6b); animation:pulse 1s ease-in-out infinite; }
-  .reserve { visibility:hidden; }   /* keeps its place, so the buttons beside it do not move or resize */
+  .reserve { visibility:hidden; }
+  .locrow { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; margin-top:14px; }
+  .locrow .hint { grid-column:1 / -1; }
+  .locrow .btn { min-height:44px; }
+  @media (max-width:440px) { .locrow { grid-template-columns:1fr auto; } .locrow .label { grid-column:1 / -1; } }   /* keeps its place, so the buttons beside it do not move or resize */
   .btn { padding:0 18px; border-radius:var(--radius-inner); border:1px solid var(--line); background:var(--glass); color:var(--ink); font-size:15px; font-weight:600;
     transition:background-color .2s ease, border-color .2s ease, color .2s ease, transform .16s var(--ease); }
   #transport { flex:1; min-width:140px; min-height:52px; display:flex; align-items:center; justify-content:center; gap:10px; border:0;
@@ -568,6 +572,12 @@
             </select>
             <button id="kaleido" class="btn" type="button" role="switch" aria-checked="false" title="Mirror the song's art into a slowly turning mandala">Kaleidoscope</button>
           </div>
+          <form id="locform" class="locrow">
+            <label class="label" for="mcloc">MC location</label>
+            <input id="mcloc" type="text" maxlength="120" placeholder="City, Country" autocomplete="off">
+            <button class="btn" type="submit">Save</button>
+            <p class="hint" id="lochint"></p>
+          </form>
         </section>
         <section class="glass" aria-labelledby="h-played">
           <h2 id="h-played">Played so far</h2>
@@ -1302,6 +1312,13 @@ function show(s) {
     j.hidden = !qrOn;
   }));
   safe("QR switch", () => ifEl("qrswitch", b => b.setAttribute("aria-checked", String(qrOn))));
+  safe("MC location", () => ifEl("mcloc", inp => {     // host: where the party is, as the MC may say it
+    const loc = s.location || {};
+    if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = loc.text || "";
+    $("lochint").textContent = loc.say
+      ? `The MC may greet the room as "${loc.say}"` + (loc.source === "ip" ? " (guessed from your connection with DB-IP.com; change it if it is wrong)." : ".")
+      : "No place set: the MC will not name one.";
+  }));
   if (s.engine_error) $("err").textContent = "Player error: " + s.engine_error;
   if (VIEW === "admin" && s.engine) safe("player", () => hostPlayer(s));
 }
@@ -1413,7 +1430,7 @@ function talkSetup() {
     $("talkreply").textContent = "The DJ is thinking…";
     const stop = new AbortController(), late = setTimeout(() => stop.abort(), 20000);
     try {
-      const r = await fetch(apiPath("/talk"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify({text}), signal: stop.signal});
+      const r = await fetch(apiPath("/talk"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: JSON.stringify({text, name: VIEW === "guest" ? (store("algo-name") || "") : ""}), signal: stop.signal});
       const data = await r.json();
       if (!r.ok) { $("talkreply").textContent = data.error || "The DJ did not understand that."; return; }
       if (data.talk.source !== "rules") $("talk").value = "";   // the AI was busy or slow: keep the words to send again
@@ -1611,6 +1628,15 @@ vis = visPrefs();
     $("partycode").textContent = "Invite · " + CODE;
     setLowPower(lowPowerPref());
     $("lowpower").onclick = () => setLowPower($("lowpower").getAttribute("aria-checked") !== "true");
+    $("mcloc").addEventListener("input", () => { $("mcloc").dataset.dirty = "1"; });
+    $("locform").addEventListener("submit", async ev => {
+      ev.preventDefault();
+      const b = $("locform").querySelector("button");
+      b.disabled = true; b.classList.add("busy");
+      const r = await post("/location", {text: $("mcloc").value.trim()});
+      b.disabled = false; b.classList.remove("busy");
+      if (r) { delete $("mcloc").dataset.dirty; $("mcloc").blur(); }
+    });
     $("qrswitch").onclick = async () => {             // the big screen hears it through the live updates
       const b = $("qrswitch"), on = b.getAttribute("aria-checked") !== "true";
       b.disabled = true;

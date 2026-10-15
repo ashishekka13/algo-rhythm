@@ -20,7 +20,7 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from algo_rhythm import accounts, config, hub, library, live, live_plan, party, repository, storage
+from algo_rhythm import accounts, config, hub, library, live, live_plan, party, places, repository, storage
 
 log = logging.getLogger("algo_rhythm.server")
 MAX_BODY = 4096
@@ -277,7 +277,8 @@ def create_app():
         user = await signed_in(request)
         if not user:
             return JSONResponse({"error": "Sign in to host a party.", "login": True}, 401)
-        code, key = await run_in_threadpool(party.create, data.get("level", "medium"), user["id"])
+        where = await run_in_threadpool(places.lookup, client_ip(request))  # city and country only; the IP is not kept
+        code, key = await run_in_threadpool(party.create, data.get("level", "medium"), user["id"], where)
         log.info("party %s created by %s", code, user["username"])
         return {"code": code, "host_key": key, "host": f"/p/{code}/host", "guest": f"/p/{code}", "screen": f"/p/{code}/screen"}
 
@@ -333,6 +334,12 @@ def create_app():
         data = await body(request)
         return await answer(code, lambda: party.set_visuals(code, data.get("world"), data.get("kaleido")), host=True)
 
+    @app.post("/api/p/{code}/location")
+    async def location(code: str, request: Request):
+        await host_of(request, code)
+        data = await body(request)
+        return await answer(code, lambda: party.set_location(code, data.get("text", "")), host=True)
+
     @app.post("/api/p/{code}/screen")
     async def screen_options(code: str, request: Request):
         await host_of(request, code)
@@ -364,7 +371,7 @@ def create_app():
         check(code)
         data = await body(request)
         host = await is_host(request, code)
-        said = await run_in_threadpool(party.talk, code, data.get("text"), not host)
+        said = await run_in_threadpool(party.talk, code, data.get("text"), not host, data.get("name"))
         hub.publish(code)
         return {**await run_in_threadpool(party.view, code, host), "talk": said}
 

@@ -419,7 +419,7 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
         [on, off, back, A.errors]);
     }
     {
-      let hs = {...st, screen: {qr: true}};
+      let hs = {...st, screen: {qr: true}, location: {text: "Bengaluru, India", say: "Bengaluru", source: "ip"}};
       const sent = [];
       const Q = open("/", async (url, opt) => {
         if (opt && opt.method === "POST") { const b = JSON.parse(opt.body); sent.push({url, ...b}); if (url === "/screen") hs = {...hs, screen: {qr: b.qr}}; }
@@ -435,6 +435,14 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
       check("host: the QR switch tells the server to hide, then show, the big screen's QR", was === "true" && off === "false"
         && sw.getAttribute("aria-checked") === "true" && sent.filter(x => x.url === "/screen").map(x => x.qr).join() === "false,true"
         && sent.every(x => x.url !== "/screen" || x.host) && !Q.errors.length, [was, off, sent, Q.errors]);
+      const loc = Q.D.getElementById("mcloc"), hint = Q.D.getElementById("lochint").textContent;
+      const shown = loc.value === "Bengaluru, India" && /greet the room as "Bengaluru"/.test(hint) && /guessed/.test(hint);
+      loc.value = "Goa"; loc.dispatchEvent(new Q.dom.window.Event("input"));
+      Q.D.getElementById("locform").dispatchEvent(new Q.dom.window.Event("submit", {cancelable: true}));
+      await wait(300);
+      const sentLoc = sent.filter(x => x.url === "/location");
+      check("host: the MC location shows the guessed place and saves the host's own", shown && sentLoc.length === 1
+        && sentLoc[0].text === "Goa" && sentLoc[0].host, [loc.value, hint, sentLoc]);
       Q.dom.window.close();
     }
     const box = A.D.querySelector(".songart"), imgs = [...box.querySelectorAll("img")];

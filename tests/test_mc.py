@@ -81,7 +81,8 @@ def check_cloud():
         raise AssertionError("HTTP 403 must raise")
     except RuntimeError:
         pass
-    # speak(): a Cloud failure falls back to the local voice, and Cloud stays off for the run
+    # speak(): a Cloud or Gemini failure falls back to the local voice, and that engine rests for VOICE_RETRY_S, then is
+    # tried again (it used to stay off until the server restarted: one failed request silenced the MC for good)
     real = mc.cloud_headers, mc.cloud_tts, mc.say_tts
     used = []
     mc.cloud_headers, mc.say_tts = (lambda: {"x": "y"}), (lambda t: used.append(t) or fake_voice(t))
@@ -89,22 +90,27 @@ def check_cloud():
     import os
     real_gem = mc.gemini_tts
     try:
-        for engine in ("cloud", "gemini"):  # either engine failing falls back to the local voice, and stays off
+        for engine in ("cloud", "gemini"):  # either engine failing falls back to the local voice, and rests
             os.environ["MC_TTS"], used[:] = engine, []
             mc.gemini_tts = lambda t: (_ for _ in ()).throw(RuntimeError("HTTP 403"))
             mc.speak.cache_clear()
-            mc._cloud["off"] = False
-            assert mc.speak("fallback line") is not None and used == ["fallback line"] and mc._cloud["off"], engine
+            mc._cloud["off_until"] = 0.0
+            assert mc.speak("fallback line") is not None and used == ["fallback line"] and mc._voice_off(), engine
             assert mc.speak("fallback line") is not None and used == ["fallback line"], "rendered audio is cached per line"
-        os.environ["MC_TTS"] = "gemini"  # and a working Gemini voice is used, not the local one
-        mc.gemini_tts, used[:] = (lambda t: fake_voice(t)), []
+        os.environ["MC_TTS"] = "gemini"  # resting: the local voice, without trying Gemini again
+        tried = []
+        mc.gemini_tts, used[:] = (lambda t: tried.append(t) or fake_voice(t)), []
+        assert mc.speak("while resting") is not None and used == ["while resting"] and not tried
+        mc._cloud["off_until"] = 0.0  # the rest is over: Gemini is tried again and used
+        assert mc.speak("gemini line") is not None and tried == ["gemini line"] and used == ["while resting"]
+        mc.gemini_tts = lambda t: None  # nothing came back: not cached, so a later call tries again
         mc.speak.cache_clear()
-        mc._cloud["off"] = False
-        assert mc.speak("gemini line") is not None and used == [], used
+        mc.say_tts = lambda t: None
+        assert mc.speak("silent once") is None and "silent once" not in mc._voices
     finally:
         mc.cloud_headers, mc.cloud_tts, mc.say_tts, mc.gemini_tts = *real, real_gem
         os.environ.pop("MC_TTS", None)
-        mc._cloud["off"] = False
+        mc._cloud["off_until"] = 0.0
         mc.speak.cache_clear()
     import os
     os.environ["GOOGLE_TTS_API_KEY"] = "test-key"

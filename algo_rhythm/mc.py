@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 import numpy as np
@@ -274,7 +275,16 @@ def say_tts(text):
     return to_out(audio, sr)
 
 
-_cloud = {"off": False}
+_cloud = {"off_until": 0.0}
+VOICE_RETRY_S = 300  # after a failure, the engine is left alone this long (a server must not stay silent until redeployed)
+
+
+def _voice_off():
+    return time.monotonic() < _cloud["off_until"]
+
+
+def _voice_failed():
+    _cloud["off_until"] = time.monotonic() + VOICE_RETRY_S
 
 
 GEMINI_TTS_MODEL = "gemini-2.5-flash-tts"
@@ -292,25 +302,41 @@ def gemini_tts(text):
     return to_out(np.frombuffer(base64.b64decode(data), "<i2").astype(np.float32) / 32768, 24000)
 
 
-@functools.lru_cache(maxsize=128)
+_voices = {}  # text -> audio: recordings made in this process (a failure is not kept, so it is tried again later)
+
+
 def speak(text):
     """text -> float32 stereo audio at dj.OUT_SR, or None (MC silent). Engine: env MC_TTS = gemini (default) | cloud |
-    say. Gemini or Cloud first; a failure turns that engine off for the run and the Mac voice takes over."""
+    say. Gemini or Cloud first; a failure leaves that engine alone for VOICE_RETRY_S, the Mac voice standing in."""
+    if text in _voices:
+        return _voices[text]
+    audio = _speak(text)
+    if audio is not None:
+        if len(_voices) >= 128:
+            _voices.pop(next(iter(_voices)))
+        _voices[text] = audio
+    return audio
+
+
+speak.cache_clear = _voices.clear
+
+
+def _speak(text):
     engine = os.environ.get("MC_TTS", "gemini")
-    if engine == "gemini" and not _cloud["off"]:
+    if engine == "gemini" and not _voice_off():
         try:
             return gemini_tts(text)
         except Exception as e:
-            log.warning("Gemini voice failed, using the local voice from now on: %s", e)
-            _cloud["off"] = True
-    if engine == "cloud" and not _cloud["off"]:
+            log.warning("Gemini voice failed (trying again in %d s): %s", VOICE_RETRY_S, e)
+            _voice_failed()
+    if engine == "cloud" and not _voice_off():
         h = cloud_headers()
         if h:
             try:
                 return cloud_tts(text, h)
             except Exception as e:
-                log.warning("Cloud Text-to-Speech failed, using the local voice from now on: %s", e)
-        _cloud["off"] = True
+                log.warning("Cloud Text-to-Speech failed (trying again in %d s): %s", VOICE_RETRY_S, e)
+        _voice_failed()
     try:
         return say_tts(text)
     except (OSError, subprocess.SubprocessError, RuntimeError) as e:

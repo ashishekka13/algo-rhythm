@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
   "librosa", "pyloudnorm", "soundfile", "numpy", "scipy", "pyrubberband", "mutagen", "jsonschema",
   "sounddevice", "requests", "truststore",
-  "fastapi>=0.115", "pillow>=10", "uvicorn>=0.30", "websockets>=12", "segno>=1.6", "sqlalchemy>=2.0", "psycopg[binary]>=3.2", "google-cloud-storage>=2.18", "google-cloud-bigquery>=3.20",
+  "fastapi>=0.115", "pillow>=10", "uvicorn>=0.30", "websockets>=12", "segno>=1.6", "maxminddb>=2.6", "sqlalchemy>=2.0", "psycopg[binary]>=3.2", "google-cloud-storage>=2.18", "google-cloud-bigquery>=3.20",
 ]
 
 [project.optional-dependencies]

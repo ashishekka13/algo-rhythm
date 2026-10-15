@@ -15,7 +15,7 @@ import re
 from algo_rhythm import dj, genai, search
 from algo_rhythm.search import LEVEL_NAMES, song_level
 
-PROMPT_VERSION = "talk-v3"
+PROMPT_VERSION = "talk-v4"  # v4: dedications
 MOOD_NAMES = ["auto"] + list(dj.MOOD_WORDS)  # live_plan.MOODS
 SHORTLIST = 20
 COMMANDS = ["none", "skip", "play", "pause"]
@@ -30,7 +30,8 @@ SCHEMA = {"type": "OBJECT", "required": ["reply", "level", "songs", "command"], 
     "level": {"type": "STRING", "enum": ["none"] + LEVEL_NAMES},
     "mood": {"type": "STRING", "enum": ["none"] + MOOD_NAMES},
     "songs": {"type": "ARRAY", "items": {"type": "INTEGER"}},
-    "command": {"type": "STRING", "enum": COMMANDS}}}
+    "command": {"type": "STRING", "enum": COMMANDS},
+    "dedicate_to": {"type": "STRING"}}}
 
 PROMPT = """You are the assistant of a live Bollywood DJ. A listener typed a message (English, Hindi or Hinglish).
 Turn it into DJ actions:
@@ -42,6 +43,9 @@ Turn it into DJ actions:
    from the list. Asked for a kind of song ("kuch romantic bajao") = pick up to 3 that fit. A song described by its
    film, actor or scene counts too. Nothing asked = [].
  command: "skip" (next song), "pause", "play" (resume), or "none".
+ dedicate_to: when the listener wants a song dedicated or announced for someone ("dedicate it to Ishan", "Riya ke liye
+   bajao", "announce it's for my sister Meera"), that person's name as given ("Ishan", "Riya", "Meera"); else "".
+   The MC says it over the song's intro; put the song they mean in songs.
  reply: one short friendly sentence for the screen saying what you will do, in the listener's language style.
 Now: level {level}, mood {mood}, status {status}, playing {now}, up next {next}.
 Library{order} (number|song|energy level|style|moment):
@@ -109,6 +113,9 @@ def interpret(text, state, songs, *, generate=genai.generate, cache=None, on_cal
     actions += [{"type": "request", "file": songs[i]["file"]} for i in picked[:MAX_REQUESTS]]
     if a["command"] != "none":
         actions.append({"type": a["command"]})
+    to = re.sub(r"[^\w .'-]", "", str(a.get("dedicate_to") or ""), flags=re.UNICODE).strip()[:40]
+    if to:  # for the song asked for in the same message, else whatever plays next
+        actions.append({"type": "dedicate", "to": to, "file": songs[picked[0]]["file"] if picked else None})
     return {"reply": a["reply"].strip()[:200] or "Okay.", "actions": actions, "source": "gemini"}
 
 
@@ -180,7 +187,7 @@ def rules(text, state, songs, why="down"):
     return {"reply": reply, "actions": actions, "source": "rules"}
 
 
-def apply(result, *, set_level, request, skip, play, pause, set_mood=None):
+def apply(result, *, set_level, request, skip, play, pause, set_mood=None, dedicate=None):
     """Run the actions through the given callables, in order. Returns what was done (one line per action)."""
     done = []
     for a in result["actions"]:
@@ -194,6 +201,9 @@ def apply(result, *, set_level, request, skip, play, pause, set_mood=None):
             elif a["type"] == "request":
                 request(a["file"])
                 done.append(f"requested {a['file']}")
+            elif a["type"] == "dedicate" and dedicate:
+                dedicate(a["to"], a.get("file"))
+                done.append(f"dedication to {a['to']}")
             elif a["type"] in ("skip", "play", "pause"):
                 {"skip": skip, "play": play, "pause": pause}[a["type"]]()
                 done.append(a["type"])

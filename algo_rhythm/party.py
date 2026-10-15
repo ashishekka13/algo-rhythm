@@ -23,6 +23,7 @@ import logging
 import math
 import os
 import random
+import re
 import secrets
 import threading
 import time
@@ -31,7 +32,7 @@ import uuid
 import numpy as np
 from sqlalchemy import func, select, text
 
-from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, recipe, repository, storage, timing
+from algo_rhythm import config, db, dj, joins, library, live, live_plan, mc, mc_lines, places, recipe, repository, storage, timing
 
 log = logging.getLogger("algo_rhythm.party")
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I: read off a big screen
@@ -69,13 +70,15 @@ def new_state(level):
     return {"v": 1, "level": level, "mood": None, "status": "idle", "epoch": 0, "playhead": 0.0, "reported_at": None,
             "seed": secrets.token_hex(8), "history": {}, "counts": {}, "played": [], "requests": [], "deadline": {}, "early": None, "queue": [], "timeline": [],
             "log": [], "positions": 0, "logged": None, "visuals": {"world": "auto", "kaleido": False}, "screen": {"qr": True}, "requesters": {},
-            "mc": {"enabled": True, "used": [], "level": None, "prev": None, "changed": False, "last_line": None,
+            "location": None,
+            "mc": {"enabled": True, "used": [], "level": None, "prev": None, "changed": False, "last_line": None, "dedications": [],
                    "last_at": None}}
 
 
-def create(level="medium", owner_id=None):
+def create(level="medium", owner_id=None, location=None):
     """A new party: (code, host key). Only the hash of the key is stored; the host's page keeps the key.
-    owner_id: the host account that started it (algo_rhythm.accounts)."""
+    owner_id: the host account that started it (algo_rhythm.accounts). location: {"city", "country"} (places), what
+    the MC may greet the room by; the host can change it."""
     if level not in live_plan.LEVELS:
         raise ValueError("unknown level")
     key = secrets.token_urlsafe(24)
@@ -84,7 +87,10 @@ def create(level="medium", owner_id=None):
             code = "".join(secrets.choice(CODE_CHARS) for _ in range(CODE_LEN))
             if not s.scalar(select(db.Party.id).where(db.Party.code == code)):
                 break
-        s.add(db.Party(level=level, code=code, host_key=hash_key(key), state=new_state(level), version=0,
+        state = new_state(level)
+        if location:
+            state["location"] = {**location, "source": "ip"}
+        s.add(db.Party(level=level, code=code, host_key=hash_key(key), state=state, version=0,
                        updated_at=db.now(), owner_id=owner_id))
         s.commit()
     return code, key
@@ -295,41 +301,83 @@ def _mc_state(st):
     return st.setdefault("mc", new_state("medium")["mc"])
 
 
-def _mc_line(lib, st_mc, level, J, j, rng):
-    """(seconds after the join, voice audio, voice gain, line) for an MC line at this join, or None."""
+DEDICATION_JOINS = 5  # a dedication waits this many joins for its song (or for a gap to say it), then it is dropped
+
+
+def _mc_line(lib, st_mc, level, J, j, rng, snap=None):
+    """(seconds after the join, voice audio, voice gain, line) for an MC line at this join, or None. A dedication for
+    the incoming song (or for whatever comes next) is said when there is room; otherwise a line when one is due (the
+    MC's timing rules), from the line library (algo_rhythm.mc_lines): fresh or reused, for this place and vibe."""
     if not st_mc["enabled"]:
         return None
+    snap = snap or {}
     m = mc.MC(enabled=True, ai={"cache": repository.db_cache, "on_call": repository.log_ai_call},
               titles=[s["name"] for s in lib.songs], rng=rng)
     for k in ("level", "prev", "changed", "last_line", "last_at"):
         setattr(m, k, st_mc[k])
     m.used = set(st_mc["used"])
-    room = j.nxt.voc is not None and m.due(J, level) and live.mc_room(j.overlap, j.nxt.audio, j.nxt_skip, j.nxt.voc, j.info)
+    nxt_file = lib.songs[snap["target"]["song"]]["file"] if snap.get("target") else None
+    ded = None
+    for d in st_mc.setdefault("dedications", []):
+        d["joins"] -= 1
+        if ded is None and (d.get("file") in (None, nxt_file)):
+            ded = d
+    due = m.due(J, level)
+    room = j.nxt.voc is not None and (due or ded) and live.mc_room(j.overlap, j.nxt.audio, j.nxt_skip, j.nxt.voc, j.info)
     st_mc.update(level=m.level, prev=m.prev, changed=m.changed)
     if not room:
         return None
-    pool = m.lines()[m.key(level)]
+    music, segs, end_s = room
+    moment = mc_lines.Moment(
+        party_id=snap.get("party_id") or 0, owner_id=snap.get("owner"), level=level, build=m.key(level) == "build",
+        mood=snap.get("mood"), place=places.spoken(snap.get("location")), voice=mc_lines.voice_id(),
+        titles=frozenset(m.titles), dedication={"to": ded["to"], "by": ded.get("by")} if ded else None,
+        recent=tuple(st_mc.get("used", [])[-6:]))
+
+    def placed(text, voice):
+        spot = mc.placement(music, segs, voice, dj.OUT_SR, end_s=end_s)
+        if spot is None:
+            return None
+        m.spoke(text, J + spot[0])
+        st_mc.update(used=sorted(m.used)[-60:], last_line=m.last_line, last_at=m.last_at, changed=False)
+        return spot[0], voice, spot[1], text
+
+    tried = set()
+    for _ in range(3):
+        try:
+            got = mc_lines.pick(moment, rng, speak, exclude=tried, on_call=repository.log_ai_call)
+        except Exception:
+            log.exception("the MC line library failed; using the built-in lines")
+            got = None
+        if not got:
+            break
+        row, voice = got
+        tried.add(row.id)
+        if voice is None or len(voice) > mc.MAX_LINE_S * dj.OUT_SR:
+            continue
+        out = placed(row.text, voice)
+        if out is None:
+            return None  # no instrumental stretch long enough here
+        mc_lines.heard(row.id, moment)
+        if ded:
+            st_mc.setdefault("ded_done", []).append(ded["id"])
+        return out
+    if ded or not due:
+        return None  # a dedication needs its own fresh line; try again at a later join while it waits
+    pool = m.lines()[m.key(level)]  # the library had nothing: the party's line pool (Gemini once, or built-in)
     fresh = [x for x in pool if x not in m.used] or pool
     for line in rng.sample(fresh, len(fresh))[:3]:
         voice = speak(line)
         if voice is None or len(voice) > mc.MAX_LINE_S * dj.OUT_SR:
             continue
-        music, segs, end_s = room
-        spot = mc.placement(music, segs, voice, dj.OUT_SR, end_s=end_s)
-        if spot is None:
-            return None
-        m.spoke(line, J + spot[0])
-        st_mc.update(used=sorted(m.used)[-60:], last_line=m.last_line, last_at=m.last_at, changed=False)
-        return spot[0], voice, spot[1], line
+        return placed(line, voice)
     return None
 
 
 def speak(line):
     """The MC's voice for `line` (float stereo at dj.OUT_SR), made once per line and voice and kept as an asset."""
-    import os
     import soundfile as sf
-    voice_id = f"{os.environ.get('MC_TTS', 'gemini')}:{os.environ.get('MC_VOICE', 'Aoede')}:{os.environ.get('MC_STYLE', mc.MC_STYLE)}"
-    key = hashlib.sha256(f"{voice_id}|{line}".encode()).hexdigest()
+    key = mc_lines.asset_key(mc_lines.voice_id(), line)
     with repository.session() as s:
         row = s.get(db.Asset, key)
     if row:
@@ -428,7 +476,8 @@ def _advance(code, swap, t):
             base, target = tl[-2], tl[-1]["entry"]
         dump(sess, st)
         snap = {"base": copy.deepcopy(base), "target": copy.deepcopy(target), "level": st["level"],
-                "mc": copy.deepcopy(_mc_state(st)), "pos": st["positions"] + 1}
+                "mc": copy.deepcopy(_mc_state(st)), "pos": st["positions"] + 1, "owner": row.owner_id,
+                "location": st.get("location"), "mood": st.get("mood"), "party_id": row.id}
     # 2. render it (no lock: guests can request and vote meanwhile)
     base, nxt_entry = snap["base"], snap["target"]
     name = lib.songs[nxt_entry["song"]]["name"]
@@ -474,7 +523,7 @@ def _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, p
         rng = random.Random(f"{code}:{snap['pos']}")
         with t.stage("mc"):
             try:
-                line = _mc_line(lib, snap["mc"], snap["level"], J, j, rng)
+                line = _mc_line(lib, snap["mc"], snap["level"], J, j, rng, snap)
             except Exception:  # the join goes ahead without the MC
                 log.exception("advance %s: no MC line", code)
                 line = None
@@ -515,6 +564,11 @@ def _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, p
             sess._say(m)
         mc_st = _mc_state(st)  # the MC noticed the level (and may have spoken): keep that, whatever changed meanwhile
         mc_st.update({k: snap["mc"][k] for k in ("used", "last_line", "last_at", "changed", "level", "prev")})
+        # dedications: drop the one just said and those whose time ran out; keep any a guest asked for meanwhile
+        gone = set(snap["mc"].get("ded_done", []))
+        left = {d["id"]: d["joins"] for d in snap["mc"].get("dedications", [])}
+        mc_st["dedications"] = [{**d, "joins": left.get(d["id"], d["joins"])} for d in mc_st.get("dedications", [])
+                                if d["id"] not in gone and left.get(d["id"], d["joins"]) > 0]
         if line:
             sess._say(f"MC: {line[3]}")
         sess.played_hook(e, j.info)
@@ -622,7 +676,7 @@ def react(code, guest, emoji):
         s.commit()
 
 
-def talk(code, text, guest=False):
+def talk(code, text, guest=False, name=None):
     """Talk to the DJ. A guest may only request songs and set the mood. Play, pause and skip are done by the host's
     browser: they come back as client_actions for it."""
     from algo_rhythm import talk as talk_mod
@@ -638,8 +692,9 @@ def talk(code, text, guest=False):
                                 on_call=repository.log_ai_call)
     held = []
     if guest:
-        held = [a for a in result["actions"] if a["type"] not in ("request", "set_mood")]
-        result = {**result, "actions": [a for a in result["actions"] if a["type"] in ("request", "set_mood")]}
+        held = [a for a in result["actions"] if a["type"] not in ("request", "set_mood", "dedicate")]
+        result = {**result, "actions": [a for a in result["actions"] if a["type"] in ("request", "set_mood", "dedicate")]}
+    by = re.sub(r"[^\w .'-]", "", str(name or ""), flags=re.UNICODE).strip()[:24] or None
     client = []
 
     def go(sess, st):
@@ -649,12 +704,19 @@ def talk(code, text, guest=False):
                 repository.record_request(sess.party_id, text.strip()[:300], file, "queued")
             except Exception:
                 log.exception("could not record the request")
-        return talk_mod.apply(result, set_level=sess.set_level, request=req, set_mood=sess.set_mood,
+        def dedicate(to, file):  # the MC says it over that song's intro (or the next join's), when there is room
+            mc_st = _mc_state(st)
+            ds = mc_st.setdefault("dedications", [])
+            ds.append({"id": uuid.uuid4().hex[:8], "to": to, "by": by, "file": file, "joins": DEDICATION_JOINS})
+            del ds[:-5]
+        return talk_mod.apply(result, set_level=sess.set_level, request=req, set_mood=sess.set_mood, dedicate=dedicate,
                               skip=lambda: client.append("skip"), play=lambda: client.append("play"),
                               pause=lambda: client.append("pause"))
     done = act(code, go)
     log.info("talk %s", json.dumps({"text": text[:300], "source": result.get("source"), "done": done}))
     reply = result.get("reply", "") + (" Only the host can change the energy, pause or skip." if held else "")
+    if any(a["type"] == "dedicate" for a in result["actions"]) and not _mc_state(read(code)[1]).get("enabled", True):
+        reply += " (The AI MC is off, so it will not be announced.)"
     return {"reply": reply, "done": done, "source": result.get("source"), "client_actions": client}
 
 
@@ -662,6 +724,20 @@ def set_visuals(code, world, kaleido):
     if world not in WORLDS or not isinstance(kaleido, bool):
         raise ValueError("world must be one of " + ", ".join(WORLDS) + " and kaleido true or false")
     act(code, lambda sess, st: st.update(visuals={"world": world, "kaleido": kaleido}))
+
+
+def set_location(code, text):
+    """The host's words for where the party is ("Bengaluru, India", "Goa"); empty = no place (the MC says none)."""
+    if not isinstance(text, str) or len(text) > 120:
+        raise ValueError("location is text, at most 120 characters")
+    loc = places.parse(text)
+    act(code, lambda sess, st: st.update(location={**loc, "source": "host"} if loc else None))
+
+
+def location_view(st):
+    loc = st.get("location")
+    say, _ = places.spoken(loc)
+    return {"text": places.label(loc), "say": say, "source": (loc or {}).get("source")}
 
 
 def set_screen(code, qr):
@@ -735,6 +811,8 @@ def view(code, host=False):
     v["feedback"] = _tallies(party_id, sess)
     v["visuals"] = dict(st.get("visuals") or {"world": "auto", "kaleido": False})
     v["screen"] = {"qr": (st.get("screen") or {}).get("qr", True)}  # parties from before this field show the QR
+    if host:
+        v["location"] = location_view(st)
     for e in [v["now"], *v["next"]]:
         if e and e.get("request") and e["name"] in st["requesters"]:
             e["by"] = st["requesters"][e["name"]]

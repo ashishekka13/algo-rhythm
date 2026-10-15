@@ -302,6 +302,12 @@ def _mc_state(st):
 
 
 DEDICATION_JOINS = 5  # a dedication waits this many joins for its song (or for a gap to say it), then it is dropped
+DEDICATION_SEARCH_S = 60  # a dedication looks this far into its song for an instrumental gap (a hype line: mc.SEARCH_S)
+
+
+def _dedication_later(d):
+    """No gap to say a dedication over its song's start: say it at the next join instead ("that one was for ...")."""
+    d.update(after=True, file=None, joins=2)
 
 
 def _mc_line(lib, st_mc, level, J, j, rng, snap=None):
@@ -323,7 +329,11 @@ def _mc_line(lib, st_mc, level, J, j, rng, snap=None):
         if ded is None and (d.get("file") in (None, nxt_file)):
             ded = d
     due = m.due(J, level)
-    room = j.nxt.voc is not None and (due or ded) and live.mc_room(j.overlap, j.nxt.audio, j.nxt_skip, j.nxt.voc, j.info)
+    room = j.nxt.voc is not None and (due or ded) and live.mc_room(j.overlap, j.nxt.audio, j.nxt_skip, j.nxt.voc, j.info,
+                                                                  search_s=DEDICATION_SEARCH_S if ded else None)
+    if ded and not room and ded.get("file") and not ded.get("after"):
+        _dedication_later(ded)  # its song's join has no place for a voice: "that one was for ..." at the next join
+        return None
     st_mc.update(level=m.level, prev=m.prev, changed=m.changed)
     if not room:
         return None
@@ -331,7 +341,7 @@ def _mc_line(lib, st_mc, level, J, j, rng, snap=None):
     moment = mc_lines.Moment(
         party_id=snap.get("party_id") or 0, owner_id=snap.get("owner"), level=level, build=m.key(level) == "build",
         mood=snap.get("mood"), place=places.spoken(snap.get("location")), voice=mc_lines.voice_id(),
-        titles=frozenset(m.titles), dedication={"to": ded["to"], "by": ded.get("by")} if ded else None,
+        titles=frozenset(m.titles), dedication={"to": ded["to"], "by": ded.get("by"), "after": bool(ded.get("after"))} if ded else None,
         recent=tuple(st_mc.get("used", [])[-6:]))
 
     def placed(text, voice):
@@ -357,6 +367,8 @@ def _mc_line(lib, st_mc, level, J, j, rng, snap=None):
             continue
         out = placed(row.text, voice)
         if out is None:
+            if ded and ded.get("file") and not ded.get("after"):
+                _dedication_later(ded)
             return None  # no instrumental stretch long enough here
         mc_lines.heard(row.id, moment)
         if ded:
@@ -566,9 +578,10 @@ def _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, p
         mc_st.update({k: snap["mc"][k] for k in ("used", "last_line", "last_at", "changed", "level", "prev")})
         # dedications: drop the one just said and those whose time ran out; keep any a guest asked for meanwhile
         gone = set(snap["mc"].get("ded_done", []))
-        left = {d["id"]: d["joins"] for d in snap["mc"].get("dedications", [])}
-        mc_st["dedications"] = [{**d, "joins": left.get(d["id"], d["joins"])} for d in mc_st.get("dedications", [])
-                                if d["id"] not in gone and left.get(d["id"], d["joins"]) > 0]
+        seen = {d["id"]: d for d in snap["mc"].get("dedications", [])}  # as this join left them (counter, later)
+        mc_st["dedications"] = [{**d, **{k: seen[d["id"]][k] for k in ("joins", "after", "file") if k in seen.get(d["id"], {})}}
+                                for d in mc_st.get("dedications", [])
+                                if d["id"] not in gone and seen.get(d["id"], d)["joins"] > 0]
         if line:
             sess._say(f"MC: {line[3]}")
         sess.played_hook(e, j.info)

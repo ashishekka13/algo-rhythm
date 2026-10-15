@@ -35,6 +35,7 @@ MIN_POOL = 5
 HEARD_DAYS = 7
 DEADLINE_S = 8
 MAX_WORDS = 10
+DEDICATION_WORDS = 7   # a dedication must fit a short instrumental gap: "For Ishan, from Priya!" is about 2 s
 PROMPT_VERSION = "mc-line-v1"
 SCHEMA = {"type": "OBJECT", "required": ["line", "uses_place", "names"], "properties": {
     "line": {"type": "STRING"}, "uses_place": {"type": "BOOLEAN"},
@@ -71,7 +72,7 @@ class Moment:
     place: tuple = (None, None)        # (what the MC says, key), places.spoken()
     voice: str = ""
     titles: frozenset = frozenset()    # song titles, plain (mc.song_titles): a line never names a song
-    dedication: dict | None = None     # {"to": "Ishan", "by": "Priya"}: a personal line, always fresh
+    dedication: dict | None = None     # {"to": "Ishan", "by": "Priya", "after": bool}: a personal line, always fresh
     recent: tuple = ()                 # lines heard lately in this party, to write unlike them
 
 
@@ -123,7 +124,7 @@ def check(answer, m):
         return None
     if m.dedication:
         to = m.dedication["to"]
-        if f" {mc.plain(to)} " not in low:
+        if f" {mc.plain(to)} " not in low or len(text.split()) > DEDICATION_WORDS + 2:
             return None
         return text, "personal"
     if names:  # a generic line never names anyone
@@ -143,8 +144,11 @@ def write(m, generate=genai.generate, on_call=None):
         mood=f" Mood: {m.mood}." if m.mood else "",
         place=(f" The party is in {say}: about half the time, greet the room by name (\"What's up {say}!\")."
                if say and not ded else ""),
-        dedication=(f" This line dedicates the next song to {ded['to']}" + (f", from {ded['by']}" if ded.get("by") else "")
-                    + f". Say {ded['to']}'s name." if ded else ""),
+        dedication=((f" This line says the song that just played was for {ded['to']}" if ded.get("after") else
+                     f" This line dedicates the song starting now to {ded['to']}")
+                    + (f", from {ded['by']}" if ded.get("by") else "")
+                    + f". Say {ded['to']}'s name. Keep it very short: at most {DEDICATION_WORDS} words, like "
+                    + (f"\"That one was for {ded['to']}!\"" if ded.get("after") else f"\"For {ded['to']}, with love!\"") if ded else ""),
         recent="; ".join(m.recent[-6:]) or "none", place_name=say or "a place")
     call = _pool.submit(generate, "mc-line", PROMPT_VERSION, [{"text": prompt}], SCHEMA, cache=NoCache(),
                         **({"on_call": on_call} if on_call else {}))

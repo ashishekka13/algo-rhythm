@@ -162,14 +162,23 @@ def main(library="test_library"):
                     "dedicate_to": "Ishan"}
         if "uses_place" in props:
             text = parts[0]["text"]
-            if "dedicates the next song to Ishan" in text:
-                return {"line": "This one is for Ishan, Bengaluru, from Priya", "uses_place": True, "names": ["Ishan", "Priya"]}
+            if "was for Ishan" in text:
+                return {"line": "That one was for Ishan!", "uses_place": False, "names": ["Ishan"]}
+            if "dedicates the song starting now to Ishan" in text:
+                return {"line": "This one is for Ishan, from Priya", "uses_place": False, "names": ["Ishan", "Priya"]}
             return {"line": "Bengaluru, make some noise", "uses_place": True, "names": []}
         return {k: ["Hands up everybody"] * 3 for k in mc.KEYS}
     genai._post = fake_post
     real_room, real_place = live.mc_room, mc.placement
-    live.mc_room = lambda overlap, nxt, nxt_skip, voc, info, sr=44100: (np.zeros((44100 * 30, 2)), [], 30.0)
-    mc.placement = lambda music, segs, voice, sr, start_s=0.0, end_s=30.0: (2.0, 1.0)
+    live.mc_room = lambda overlap, nxt, nxt_skip, voc, info, sr=44100, search_s=None: (np.zeros((44100 * 30, 2)), [], 30.0)
+    no_gap = {"left": 0}  # placements to refuse (a song whose start has no instrumental stretch)
+
+    def fake_placement(music, segs, voice, sr, start_s=0.0, end_s=30.0):
+        if no_gap["left"]:
+            no_gap["left"] -= 1
+            return None
+        return 2.0, 1.0
+    mc.placement = fake_placement
     try:
         code, key = party.create("medium", a_id, places.parse("Bangalore, India"))
         v = party.view(code, host=True)
@@ -203,6 +212,31 @@ def main(library="test_library"):
         assert row.id not in {r.id for r in mc_lines.candidates(M(9999, None, place=("Bengaluru", "bengaluru")), limit=500)}
         print(f"7. dedication: '{row.text}' said over the join into the requested song; kept for that party only;"
               " the host's MC location set, shown to the host only")
+
+        # no gap at the dedicated song's start: "that one was for ..." at the next join
+        code2, _ = party.create("medium", a_id, places.parse("Goa"))
+        party.start(code2)
+        st = party.read(code2)[1]
+        played = {e["entry"]["song"] for e in st["timeline"]} | {e["song"] for e in st["queue"][:1]}
+        want_i = next(i for i, s in enumerate(lib.songs) if s["file"] not in played)
+        want = lib.songs[want_i]["file"]
+        party.talk(code2, "Play this one and dedicate it to Ishan", guest=True, name="Priya")
+        said_at = None
+        for k in range(7):
+            tl = party.read(code2)[1]["timeline"]
+            party.sync(code2, tl[-1]["start_s"] + 1, "playing")
+            nxt_song = party.read(code2)[1]["queue"][0]["song"] if party.read(code2)[1]["queue"] else None
+            no_gap["left"] = 1 if nxt_song == want else 0  # its song's join: no gap
+            assert party.advance(code2)["status"] == "ready"
+            st = party.read(code2)[1]
+            last = st["timeline"][-1]
+            if any(p.get("role") == "mc" for p in last["item"]["join"]["plays"]):
+                said_at = k
+                break
+        prev_song = st["timeline"][-2]["entry"]["song"]
+        assert said_at is not None and prev_song == want and not st["mc"]["dedications"], (said_at, prev_song, want)
+        assert any("That one was for Ishan" in str(x) for x in st["log"]), st["log"][-3:]
+        print("7b. no gap at the dedicated song's start: 'That one was for Ishan!' at the next join")
     finally:
         live.mc_room, mc.placement = real_room, real_place
     print("MC LINES PASS")

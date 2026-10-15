@@ -703,7 +703,7 @@ def alternatives(planner, songs, entry, nxt_entry, limit=2):
     return [w for _, _, w in sorted(scored, key=lambda x: (x[0], x[1]), reverse=True)[:limit]]
 
 
-def mc_room(overlap, nxt, nxt_skip, nxt_voc, info, sr=dj.OUT_SR):
+def mc_room(overlap, nxt, nxt_skip, nxt_voc, info, sr=dj.OUT_SR, search_s=None):
     """Where an MC line may go near this join: (music, sung segments in it, seconds to search) with music = the overlap
     and the incoming song after it; None when there is no place (no stem, a fill, a blend without the vocal swap, or
     too little song before the next join). The line goes over an instrumental stretch (the echo tail, the incoming
@@ -712,7 +712,7 @@ def mc_room(overlap, nxt, nxt_skip, nxt_voc, info, sr=dj.OUT_SR):
     if nxt_voc is None or info.get("filler") or (info.get("type") == "blend" and not info.get("vocal_swap")):
         return None
     n_ov = len(overlap)
-    room = min(int(mc.SEARCH_S * sr), n_ov + len(nxt) - nxt_skip - 20 * sr)  # stay clear of the next join
+    room = min(int((search_s or mc.SEARCH_S) * sr), n_ov + len(nxt) - nxt_skip - 20 * sr)  # stay clear of the next join
     if room <= 0:
         return None
     ref = transition.vocal_ref_db(nxt_voc, sr)

@@ -498,9 +498,8 @@
   #v-landing h1.brandhero { font-size:clamp(34px, 3.6vw, 48px); margin:0 0 4px; line-height:1; }
   #v-landing h1.brandhero .lw { font-size:1em; }
   #v-landing .tagline { font-size:clamp(14px, 1.2vw, 16px); font-weight:600; color:var(--ink-2); letter-spacing:.02em; margin:0; }
-  #v-landing .lead { font-size:clamp(17px, 1.5vw, 20px); color:var(--ink-2); margin:clamp(32px, 7vh, 72px) 0 28px; max-width:640px; }
-  #v-landing .landgrid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:24px; align-items:start; max-width:1080px; }
-  @media (max-width:820px) { #v-landing .landgrid { grid-template-columns:1fr; gap:0; } }
+  #v-landing .landmain { max-width:720px; margin:clamp(28px, 7vh, 72px) auto 0; }   /* the logo top left; the rest centred */
+  #v-landing .lead { font-size:18px; color:var(--ink-2); margin:0 0 28px; }
   #v-landing .choice { display:grid; gap:12px; margin-bottom:20px; }
   #v-landing .row2 { display:flex; gap:10px; flex-wrap:wrap; }
   #v-landing .row2 > * { flex:1; min-width:180px; }
@@ -676,8 +675,8 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
 <div id="v-landing" class="shell">
   <h1 class="brandhero"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></h1>
   <p class="tagline">Your AI DJ</p>
+  <div class="landmain">
   <p class="lead">Start a party on the device connected to the speakers: it plays and mixes the music. Everyone else joins with the party code to request songs and vote.</p>
-  <div class="landgrid">
   <section class="glass choice" aria-labelledby="h-start">
     <h2 id="h-start">Start a party</h2>
     <div id="signedin" hidden>
@@ -714,8 +713,8 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
       <button class="btn" type="submit">Join</button>
     </form>
   </section>
-  </div>
   <div id="landmsg" role="alert"></div>
+  </div>
   <dialog id="created" aria-labelledby="created-h">
     <h2 id="created-h">Account created</h2>
     <p>It will take up to 24 hours to approve. Once it is approved, sign in here to host a party. You can join parties

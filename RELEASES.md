@@ -15,8 +15,7 @@
 ## Unreleased (v1.2, on staging)
 
 ### Start page
-- A laptop layout: the logo top left with **"Your AI DJ"** as a small tagline under it, "Start a party" and "Join a
-  party" side by side. Phones stack them.
+- The logo sits top left with **"Your AI DJ"** as a small tagline under it; the rest stays centred.
 - The welcome animation plays only when a page first opens, no longer on the host's first Play or a guest's Join.
 
 ### Host

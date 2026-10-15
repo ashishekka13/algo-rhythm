@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>algo-rhythm</title>
+<meta name="theme-color" content="#0e0e10">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="preload" href="/static/brand.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -95,6 +101,17 @@
 
   .wordmark { font-weight:700; font-size:20px; letter-spacing:-.03em; display:flex; align-items:center; gap:10px; }
   .wordmark b { color:var(--acc); font-weight:700; transition:color .6s ease; }
+  /* The logo: "alg", a rose record for the o, a teal beat for the hyphen, "rhythm" (brand colours, whatever the vibe) */
+  @font-face { font-family:"Brand"; src:url(/static/brand.woff2) format("woff2"); font-weight:800; font-display:block; }
+  .lw { font:800 1.12em/1 "Brand", "Inter Tight", sans-serif; letter-spacing:-.045em; color:var(--ink); display:inline-flex; align-items:center; white-space:nowrap; }
+  .lw .lo { width:.8em; height:.8em; margin:0 .02em 0 .01em; transform:translateY(.07em); flex:none; }
+  .lw .lb { width:.95em; height:.62em; margin:0 .04em; transform:translateY(.07em); flex:none; }
+  #intro { position:fixed; inset:0; z-index:1000; background:#0e0e10; display:grid; place-items:center; cursor:pointer; }
+  #intro .iw { font:800 clamp(44px, 12vw, 132px)/1 "Brand", "Inter Tight", sans-serif; letter-spacing:-.045em; color:#f4f2f3;
+    display:flex; align-items:center; white-space:nowrap; }
+  #intro .io { width:.8em; height:.8em; margin:0 .02em 0 .01em; transform-origin:50% 50%; }
+  #intro .ib { width:.95em; height:.62em; margin:0 .04em; }
+  #intro .ir, #intro .ia { display:inline-block; }
   .dot { width:9px; height:9px; border-radius:50%; background:var(--acc); flex:none; animation:pulse var(--beat) ease-in-out infinite; }
   .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius-pill); border:1px solid var(--line);
     background:var(--glass); font-size:13px; color:var(--ink-2); white-space:nowrap; }
@@ -490,6 +507,54 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="ar-rec" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#e8679a"/>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="#0e0e10" stroke-opacity=".28" stroke-width="2.6"/>
+    <circle cx="50" cy="50" r="24" fill="none" stroke="#0e0e10" stroke-opacity=".28" stroke-width="2.6"/>
+    <circle cx="50" cy="50" r="9" fill="#0e0e10"/></symbol>
+  <symbol id="ar-beat" viewBox="0 0 64 40"><path d="M3 22 h13 l5 -15 l8 28 l8 -32 l7 26 l4 -7 h13" fill="none" stroke="#2dd4bf"
+    stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<div id="intro" aria-hidden="true" hidden>
+  <div class="iw"><span class="ia">alg</span><svg class="io" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#e8679a"/>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="#0e0e10" stroke-opacity=".28" stroke-width="2.6"/>
+    <circle cx="50" cy="50" r="24" fill="none" stroke="#0e0e10" stroke-opacity=".28" stroke-width="2.6"/>
+    <path d="M50 50 L94 38 A46 46 0 0 1 90 70 Z" fill="#fff" opacity=".2"/>
+    <circle cx="50" cy="50" r="9" fill="#0e0e10"/></svg><svg class="ib" viewBox="0 0 64 40"><path d="M3 22 h13 l5 -15 l8 28 l8 -32 l7 26 l4 -7 h13"
+    fill="none" stroke="#2dd4bf" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ir">rhythm</span></div>
+</div>
+<script>
+// The welcome: about 1.6 s, once per browser session; a tap skips it; Reduce Motion gets a still fade. The page loads
+// underneath meanwhile. Played with the Web Animations API, so the phones' low-power mode (no CSS animations) keeps it.
+(function () {
+  const box = document.getElementById("intro");
+  let seen = false;
+  try { seen = sessionStorage.getItem("algo-intro") === "1"; } catch (e) {}
+  if ((seen || navigator.webdriver) && !/[?&]intro=1/.test(location.search)) return box.remove();
+  try { sessionStorage.setItem("algo-intro", "1"); } catch (e) {}
+  if (!box.animate) return box.remove();
+  box.hidden = false;
+  const done = () => box.remove(), q = sel => box.querySelector(sel), out = [{opacity: 1}, {opacity: 0}];
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    box.animate([{opacity: 1}, {opacity: 1, offset: .7}, {opacity: 0}], {duration: 1000, fill: "forwards"}).onfinish = done;
+    return;
+  }
+  const ease = "cubic-bezier(.23,1,.32,1)", pop = "cubic-bezier(.34,1.56,.64,1)";
+  q(".io").animate([{transform: "scale(.35) rotate(-320deg)", opacity: 0}, {transform: "scale(1) rotate(0deg)", opacity: 1}],
+                   {duration: 620, easing: ease, fill: "both"});                       // the record spins in
+  q(".ia").animate([{opacity: 0, transform: "translateX(14px)"}, {opacity: 1, transform: "none"}],
+                   {duration: 380, delay: 260, easing: ease, fill: "both"});
+  const beat = q(".ib path"), len = beat.getTotalLength();
+  beat.style.strokeDasharray = len;
+  beat.animate([{strokeDashoffset: len}, {strokeDashoffset: 0}], {duration: 360, delay: 600, easing: "ease-in-out", fill: "both"});
+  q(".ir").animate([{opacity: 0, transform: "translateX(-16px) scale(.94)"}, {opacity: 1, transform: "none"}],
+                   {duration: 340, delay: 930, easing: pop, fill: "both"});          // "rhythm" on the downbeat
+  q(".iw").animate([{transform: "scale(1)"}, {transform: "scale(1.045)"}, {transform: "scale(1)"}], {duration: 280, delay: 950});
+  const leave = box.animate(out, {duration: 360, delay: 1500, easing: "ease", fill: "forwards"});
+  leave.onfinish = done;
+  box.addEventListener("pointerdown", () => { leave.cancel(); box.animate(out, {duration: 160, fill: "forwards"}).onfinish = done; }, {once: true});
+})();
+</script>
 <div class="ambience" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="banners">
   <div id="conn" class="banner bad" role="status" hidden></div>
@@ -502,7 +567,7 @@
 
 <template id="t-landing">
 <div id="v-landing" class="shell">
-  <div class="wordmark"><span class="dot" aria-hidden="true"></span><span>algo<b>-</b>rhythm</span></div>
+  <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
   <h1>Your AI DJ</h1>
   <p class="lead">Start a party on the device connected to the speakers: it plays and mixes the music. Everyone else joins with the party code to request songs and vote.</p>
   <section class="glass choice" aria-labelledby="h-start">
@@ -554,7 +619,7 @@
 <template id="t-admin">
 <div id="v-admin" class="shell">
   <header class="top">
-    <div class="wordmark"><span>algo<b>-</b>rhythm</span></div>
+    <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
     <nav class="tabs" aria-label="Views">
       <a href="host" aria-current="page" data-to="host">Host</a><a href="." target="_blank" rel="noopener" data-to="guest">Guest</a><a href="screen" target="_blank" rel="noopener" data-to="screen">Big screen</a>
     </nav>
@@ -704,7 +769,7 @@
     </form>
   </dialog>
   <header class="top">
-    <div class="wordmark"><span>algo<b>-</b>rhythm</span></div>
+    <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
     <span class="grow"></span>
     <span class="chip"><span class="dot" aria-hidden="true"></span>Live</span>
   </header>
@@ -775,7 +840,7 @@
   <canvas id="garden" role="img" aria-label="Light garden: decorative visual that moves with the music."></canvas>
   <div class="veil"></div>
   <div class="p-tl">
-    <div class="wordmark"><span class="dot" aria-hidden="true"></span><span>algo<b>-</b>rhythm</span></div>
+    <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
     <p class="statusline" id="statusline" aria-hidden="true"></p>
   </div>
   <div class="p-tr">

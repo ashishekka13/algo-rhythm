@@ -175,11 +175,21 @@ def create_app():
             buf, kind="svg", scale=8, border=2, dark="#09090B", light="#FFFFFF", xmldecl=False, svgns=True)
         return Response(buf.getvalue(), media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=3600"})
 
+    BRAND = {"icon.svg": "image/svg+xml", "favicon-32.png": "image/png", "apple-touch-icon.png": "image/png",
+             "icon-192.png": "image/png", "icon-512.png": "image/png", "icon-maskable-512.png": "image/png",
+             "brand.woff2": "font/woff2", "manifest.webmanifest": "application/manifest+json"}
+
     @app.get("/static/{name}")
     def static(name: str):
-        if name not in ("visuals.js", "player.js"):
-            return JSONResponse({"error": "not found"}, 404)
-        return Response((STATIC / name).read_bytes(), media_type="text/javascript", headers={"Cache-Control": "no-store"})
+        if name in ("visuals.js", "player.js"):
+            return Response((STATIC / name).read_bytes(), media_type="text/javascript", headers={"Cache-Control": "no-store"})
+        if name in BRAND:  # the logo's files: they change only with a release
+            return Response((STATIC / name).read_bytes(), media_type=BRAND[name], headers={"Cache-Control": "public, max-age=86400"})
+        return JSONResponse({"error": "not found"}, 404)
+
+    @app.get("/favicon.ico")
+    def favicon():
+        return Response((STATIC / "favicon-32.png").read_bytes(), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
     @app.get("/health")
     @app.get("/healthz")  # Cloud Run's front end answers /healthz itself: use /health there

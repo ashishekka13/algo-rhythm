@@ -17,6 +17,16 @@
 Staging: https://algorythm-web-staging-685886597239.asia-south1.run.app (revision `algorythm-web-staging-00006`,
 commit `e985a13`). Changes since v1.0:
 
+### New: logo and welcome animation
+- **The logo:** "alg", a **rose record** for the o, a **teal beat line** for the hyphen, "rhythm" (rose `#e8679a`,
+  teal `#2dd4bf`, on `#0e0e10`). It's in every page header (start page, host, guests, big screen).
+- **Icons:** a favicon, the iPhone home-screen icon, Android icons (including a maskable one), and a web app manifest,
+  so "Add to Home Screen" shows the logo and name. The logo's font is a 4 KB subset of Bricolage Grotesque (free
+  licence), served by the app itself.
+- **A welcome animation when the app opens,** about 1.6 s, once per browser session:
+  - the record spins in, the beat line draws across, and "rhythm" lands on the downbeat;
+  - a tap skips it, Reduce Motion gets a still fade, and the page loads underneath meanwhile.
+
 ### New: staging environment
 - A separate Cloud Run service, `algorythm-web-staging`, deployed from the `staging` branch.
 - Its own database, `algorhythm_web_staging`: a copy of production's song library and host accounts, without

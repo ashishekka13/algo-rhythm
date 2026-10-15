@@ -20,4 +20,4 @@ dev = ["httpx>=0.27"]
 packages = ["algo_rhythm"]
 
 [tool.setuptools.package-data]
-algo_rhythm = ["static/*.html", "tag_schema.json"]
+algo_rhythm = ["static/*.html", "static/*.js", "static/*.svg", "static/*.png", "static/*.woff2", "static/*.webmanifest", "tag_schema.json"]

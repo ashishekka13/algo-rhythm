@@ -352,10 +352,10 @@ def create_app():
     async def trivia_answer(code: str, request: Request):
         check(code)
         data = await body(request)
-        got = await run_in_threadpool(party.trivia_answer, code, data.get("guest"), data.get("name"), data.get("round"),
-                                      data.get("choice"))
-        hub.publish(code)  # the screens' "N answered"
-        return got
+        # no push to every screen per answer (a burst of them redrew every phone mid-tap): "N answered" comes with the
+        # screens' regular refresh, once a second
+        return await run_in_threadpool(party.trivia_answer, code, data.get("guest"), data.get("name"), data.get("round"),
+                                       data.get("choice"))
 
     @app.get("/api/p/{code}/coins")
     async def trivia_coins(code: str, guest: str = ""):

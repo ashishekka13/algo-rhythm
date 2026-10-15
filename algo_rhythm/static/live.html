@@ -196,7 +196,17 @@
   #ptrivia { position:absolute; z-index:3; left:50%; top:46%; transform:translate(-50%, -50%); width:min(72vw, 1150px);
     background:rgba(8,9,14,.82); border:1px solid var(--line); border-radius:var(--radius-card); padding:clamp(16px, 2vw, 44px); }
   @media (max-width:700px) { #ptrivia { width:calc(100vw - 32px); top:40%; } .trivia .opts { grid-template-columns:1fr; } }
+  #gtrivia { position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom, 0px)); z-index:40;
+    max-height:calc(100dvh - 24px); overflow:auto; background:var(--bg); border:1px solid var(--acc);
+    box-shadow:0 -12px 40px rgba(0,0,0,.55); transition:transform .28s cubic-bezier(.23,1,.32,1); }
+  #gtrivia.away { transform:translateY(calc(100% + 40px)); }
+  #gtrivia .fact, #gtrivia .hint { min-height:2.7em; margin:6px 0 0; }   /* a place kept for the fact: no jump at the reveal */
   #gtrivia .opts { grid-template-columns:1fr; }
+  #gtrivia { padding:16px; }
+  #gtrivia h2 { margin:0; font-size:18px; }
+  #gtrivia .q { margin:8px 0 0; font-size:17px; font-weight:600; }
+  #gtrivia .opts { gap:8px; margin:10px 0 0; }
+  #gtrivia .opt { min-height:48px; padding:10px 14px; }
   #gtrivia .opt { min-height:52px; font-size:17px; }
   #gtrivia .opt:disabled { cursor:default; opacity:1; }
   #gtrivia .opt.dim { opacity:.45; }
@@ -719,12 +729,12 @@
         <div class="reacts" id="reacts" role="group" aria-label="Send a reaction to the big screen"></div>
       </div>
     </section>
-    <section class="glass row trivia" id="gtrivia" aria-labelledby="h-trivia" aria-live="polite" hidden>
+    <section class="glass row trivia away" id="gtrivia" aria-labelledby="h-trivia" aria-live="polite" hidden>
       <div class="row3"><h2 id="h-trivia">Song trivia</h2><span class="left" id="gtleft"></span></div>
       <p class="q" id="gtq"></p>
       <div class="opts" id="gtopts" role="group" aria-label="Your answer"></div>
       <p class="hint" id="gtnote"></p>
-      <p class="fact" id="gtfact" hidden></p>
+      <p class="fact" id="gtfact"></p>
       <p class="hint">Your coins: <span class="coins" id="gtcoins">0</span></p>
     </section>
     <section class="glass row" aria-labelledby="h-req">
@@ -1467,14 +1477,32 @@ function nameSetup() {
 
 // ---- song trivia: the big screen shows the round, a guest answers (the right option comes only with the reveal)
 const LETTERS = ["A", "B", "C", "D"];
-let triviaMine = {}, triviaShown = null, coinsAsked = null, triviaWon = {};
+let triviaMine = {}, coinsAsked = null, triviaWon = {};
+// the countdowns run here, smoothly, from a deadline set when the question arrives (and corrected only past a 1 s drift)
+const clock = {deadline: 0, round: null, phase: null, timer: 0};
+function tickClock() {
+  const left = Math.max(0, Math.ceil(clock.deadline - performance.now() / 1000));
+  const txt = clock.phase === "asking" ? `0:${String(left).padStart(2, "0")}` : "";
+  ifEl("ptleft", e => { e.textContent = clock.phase === "asking" ? txt : "Answer"; });
+  ifEl("gtleft", e => { e.textContent = txt; });
+}
+function setClock(t) {
+  const want = performance.now() / 1000 + t.left_s;
+  if (t.round !== clock.round || t.phase !== clock.phase || Math.abs(want - clock.deadline) > 1) clock.deadline = want;
+  clock.round = t.round; clock.phase = t.phase;
+  if (!clock.timer) clock.timer = setInterval(tickClock, 250);
+  tickClock();
+}
+function stopClock() { clearInterval(clock.timer); clock.timer = 0; clock.round = clock.phase = null; }
+
+let gtRound = null;
 function drawTrivia(t) {
+  if (t) setClock(t); else stopClock();
   ifEl("ptrivia", box => {                          // big screen
     box.hidden = !t;
     ifEl("v-presenter", v => v.classList.toggle("has-trivia", !!t));
     if (!t) return;
     $("ptq").textContent = t.question;
-    $("ptleft").textContent = t.phase === "asking" ? `0:${String(Math.ceil(t.left_s)).padStart(2, "0")}` : "Answer";
     $("ptopts").replaceChildren(...t.options.map((o, k) => {
       const d = el("div", "opt" + (t.phase === "reveal" ? (k === t.answer ? " right" : " dim") : ""));
       d.append(el("b", "", LETTERS[k]), el("span", "", o));
@@ -1487,27 +1515,38 @@ function drawTrivia(t) {
     $("ptboard").replaceChildren(...board.map(r => el("li", "", `${r.name} · ${r.coins} coins`)));
   });
   ifEl("gtrivia", box => {                          // a guest's phone
-    box.hidden = !t;
-    if (!t) { triviaShown = null; return; }
-    const key = `algo-trivia-${CODE}-${t.round}`;
-    const mine = triviaMine[t.round] ?? store(key);
-    $("gtq").textContent = t.question;
-    $("gtleft").textContent = t.phase === "asking" ? `0:${String(Math.ceil(t.left_s)).padStart(2, "0")}` : "";
-    $("gtopts").replaceChildren(...t.options.map((o, k) => {
-      const b = el("button", "opt btn" + (mine === k ? " mine" : "") + (t.phase === "reveal" ? (k === t.answer ? " right" : " dim") : ""));
-      b.type = "button";
-      b.append(el("b", "", LETTERS[k]), el("span", "", o));
-      b.disabled = t.phase !== "asking" || mine !== undefined && mine !== null;
-      b.onclick = () => answerTrivia(t.round, k);
-      return b;
-    }));
+    if (!t) {
+      box.classList.add("away");
+      if (gtRound !== null) setTimeout(() => { if (gtRound === null) box.hidden = true; }, 300);
+      gtRound = null;
+      return;
+    }
+    const mine = triviaMine[t.round] ?? store(`algo-trivia-${CODE}-${t.round}`);
+    if (t.round !== gtRound) {                      // a new question: its buttons are made once, never replaced
+      gtRound = t.round;
+      $("gtq").textContent = t.question;
+      $("gtopts").replaceChildren(...t.options.map((o, k) => {
+        const b = el("button", "opt btn");
+        b.type = "button";
+        b.append(el("b", "", LETTERS[k]), el("span", "", o));
+        b.onclick = () => answerTrivia(t.round, k);
+        return b;
+      }));
+      box.hidden = false;
+      requestAnimationFrame(() => box.classList.remove("away"));
+    }
+    [...$("gtopts").children].forEach((b, k) => {   // after that only their state changes
+      b.classList.toggle("mine", mine === k);
+      b.classList.toggle("right", t.phase === "reveal" && k === t.answer);
+      b.classList.toggle("dim", t.phase === "reveal" && k !== t.answer);
+      b.disabled = t.phase !== "asking" || mine != null;
+    });
     const note = $("gtnote");
     if (t.phase === "asking") note.textContent = mine != null ? `Locked in: ${LETTERS[mine]}. The answer comes in a moment.` : "Tap your answer. Quick answers earn a bonus.";
     else note.textContent = mine == null ? `The answer was ${LETTERS[t.answer]}.`
       : mine === t.answer ? `Right!${triviaWon[t.round] ? ` +${triviaWon[t.round]} coins` : ""}` : `Not this time: it was ${LETTERS[t.answer]}.`;
-    $("gtfact").hidden = t.phase !== "reveal"; $("gtfact").textContent = t.phase === "reveal" ? "Did you know? " + t.fact : "";
+    $("gtfact").textContent = t.phase === "reveal" ? "Did you know? " + t.fact : "";
     if (t.phase === "reveal" && coinsAsked !== t.round) { coinsAsked = t.round; myCoins(); }   // what this round earned
-    triviaShown = t.round;
   });
 }
 async function answerTrivia(round, choice) {
@@ -1516,12 +1555,15 @@ async function answerTrivia(round, choice) {
   try {
     const r = await fetch(apiPath("/answer"), {method: "POST", headers: headers({"Content-Type": "application/json"}),
       body: JSON.stringify({guest: guestId(), name: store("algo-name") || "", round, choice})});
-    if (!r.ok) {
+    if (!r.ok) {                                    // closed or already answered: it stays locked, with the reason
       const d = await r.json().catch(() => ({}));
-      if (r.status !== 409 || !/already/.test(d.error || "")) { delete triviaMine[round]; store(`algo-trivia-${CODE}-${round}`, null); }
-      $("gtnote").textContent = d.error || "That answer did not go through.";
+      $("gtnote").textContent = d.error ? d.error[0].toUpperCase() + d.error.slice(1) + "." : "That answer did not go through.";
     }
-  } catch (e) { delete triviaMine[round]; $("gtnote").textContent = "Could not reach the party. Try again."; }
+  } catch (e) {                                     // never reached the party: unlock so the guest can try again
+    delete triviaMine[round]; store(`algo-trivia-${CODE}-${round}`, null);
+    if (last) drawTrivia(last.trivia);
+    $("gtnote").textContent = "Could not reach the party. Tap again.";
+  }
 }
 async function myCoins() {
   try {

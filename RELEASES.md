@@ -102,6 +102,12 @@ commit `e985a13`). Changes since v1.0:
   - the right option never reaches a screen before the reveal, and a guest's coins don't show right or wrong until
     then;
   - coins are per party, shown on each guest's phone.
+- **Smooth on phones:**
+  - the question is a sheet that slides up over the page, so nothing underneath moves;
+  - its buttons are made once per question, so a tap can't land on a replaced button;
+  - the countdown runs on the phone and goes down a second at a time;
+  - answers no longer push an update to every screen;
+  - a refused answer stays locked, with the reason shown.
 - New tables `song_trivia` and `trivia_answers`; a `trivia` job (production, plus a staging copy); endpoints
   `POST /api/p/CODE/trivia` (host switch), `POST /api/p/CODE/answer` and `GET /api/p/CODE/coins`.
 

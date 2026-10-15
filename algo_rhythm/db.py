@@ -104,6 +104,16 @@ class AuthEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 
+class PartyPresence(Base):
+    """How many guests' screens one server instance holds for a party, refreshed while they are open (the host's guest
+    count sums the instances' rows that are fresh)."""
+    __tablename__ = "party_presence"
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    instance: Mapped[str] = mapped_column(String(32), primary_key=True)
+    guests: Mapped[int] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class SongTrivia(Base):
     """A multiple-choice question about a song (algo_rhythm.trivia): kind "data" (from our song data) or "fact" (Gemini's,
     checked). options: 4 strings; answer: the right one's index."""

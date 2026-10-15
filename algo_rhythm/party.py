@@ -140,12 +140,38 @@ def _entry_in(e, lib):
     return out
 
 
+HOST_GONE_S = 20  # no report from the host's player for this long while playing: the host is offline
+
 def playhead_now(st):
-    """Where the music is now (music time): the host's last report, moved on by the time since, unless paused."""
+    """Where the music is now (music time): the host's last report, moved on by the time since, unless paused. Not more
+    than HOST_GONE_S on: past that the host's player is gone and the music with it (the screens stop with it)."""
     ph = st.get("playhead") or 0.0
     if st.get("status") == "playing" and st.get("reported_at"):
-        ph += max(0.0, time.time() - st["reported_at"])
+        ph += min(max(0.0, time.time() - st["reported_at"]), HOST_GONE_S)
     return ph
+
+
+def host_offline_s(st):
+    """Seconds the host has been offline (playing, no report for HOST_GONE_S), else 0."""
+    if st.get("status") != "playing" or not st.get("reported_at"):
+        return 0
+    age = time.time() - st["reported_at"]
+    return round(age) if age > HOST_GONE_S else 0
+
+
+def set_presence(code, instance, guests):
+    """This instance holds `guests` guests' screens for the party (algo_rhythm.hub)."""
+    with repository.session() as s:
+        s.merge(db.PartyPresence(code=code, instance=instance, guests=int(guests), updated_at=db.now()))
+        s.commit()
+
+
+def guests_online(code):
+    """Guests with the party open, on every instance (rows refreshed in the last 45 s)."""
+    since = db.now() - datetime.timedelta(seconds=45)
+    with repository.session() as s:
+        return int(s.scalar(select(func.sum(db.PartyPresence.guests)).where(
+            db.PartyPresence.code == code, db.PartyPresence.updated_at >= since)) or 0)
 
 
 def session_from(st, lib):
@@ -861,11 +887,21 @@ def trivia_me(code, guest):
     return out
 
 
-def set_screen(code, qr):
-    """The host's choices for the big screen: qr = show the join QR code (and the code) or not."""
-    if not isinstance(qr, bool):
-        raise ValueError("qr must be true or false")
-    act(code, lambda sess, st: st.update(screen={"qr": qr}))
+def set_screen(code, qr=None, board=None):
+    """The host's choices for the big screen: qr = show the join QR code (and the code); board = show the trivia
+    leaderboard along one side. None leaves a choice as it is."""
+    for v in (qr, board):
+        if v is not None and not isinstance(v, bool):
+            raise ValueError("qr and board are true or false")
+
+    def go(sess, st):
+        sc = {"qr": True, "board": False, **(st.get("screen") or {})}
+        if qr is not None:
+            sc["qr"] = qr
+        if board is not None:
+            sc["board"] = board
+        st["screen"] = sc
+    act(code, go)
 
 
 # ---------------------------------------------------------------- what the pages show
@@ -937,7 +973,13 @@ def views(code, kinds=(False, True)):
     v["playhead"] = round(playhead_now(st), 3)
     v["feedback"] = _tallies(party_id, sess)
     v["visuals"] = dict(st.get("visuals") or {"world": "auto", "kaleido": False})
-    v["screen"] = {"qr": (st.get("screen") or {}).get("qr", True)}  # parties from before this field show the QR
+    sc = st.get("screen") or {}
+    v["screen"] = {"qr": sc.get("qr", True), "board": sc.get("board", False)}  # older parties: the QR on, the board off
+    if v["screen"]["board"]:
+        v["leaderboard"] = trivia.board(party_id, 8)
+    v["host_offline_s"] = host_offline_s(st)
+    v["host_offline"] = v["host_offline_s"] > 0
+    v["guests_online"] = guests_online(code)
     v["trivia_on"] = bool((st.get("trivia") or {}).get("on"))
     try:
         v["trivia"] = trivia_view(party_id, st, sess)

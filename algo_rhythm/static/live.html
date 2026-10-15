@@ -213,11 +213,10 @@
   #ptrivia { position:absolute; z-index:3; left:50%; top:46%; transform:translate(-50%, -50%); width:min(72vw, 1150px);
     background:rgba(8,9,14,.82); border:1px solid var(--line); border-radius:var(--radius-card); padding:clamp(16px, 2vw, 44px); }
   @media (max-width:700px) { #ptrivia { width:calc(100vw - 32px); top:40%; } .trivia .opts { grid-template-columns:1fr; } }
-  #gtrivia { position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom, 0px)); z-index:40;
-    max-height:calc(100dvh - 24px); overflow:auto; background:var(--bg); border:1px solid var(--acc);
-    box-shadow:0 -12px 40px rgba(0,0,0,.55); transition:transform .28s cubic-bezier(.23,1,.32,1); }
-  #gtrivia.away { transform:translateY(calc(100% + 40px)); }
-  #gtrivia .fact, #gtrivia .hint { min-height:2.7em; margin:6px 0 0; }   /* a place kept for the fact: no jump at the reveal */
+  #gtrivia { position:fixed; left:20px; right:20px; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); z-index:40;
+    max-width:440px; margin:0 auto; max-height:calc(100dvh - 40px); overflow:auto; background:var(--bg);
+    border:1px solid var(--acc); box-shadow:0 12px 40px rgba(0,0,0,.55); transition:transform .28s cubic-bezier(.23,1,.32,1), opacity .2s; }
+  #gtrivia.away { transform:translateY(calc(100% + 40px)); opacity:0; }
   #gtrivia .opts { grid-template-columns:1fr; }
   #gtrivia { padding:16px; }
   #gtrivia h2 { margin:0; font-size:18px; }
@@ -232,6 +231,24 @@
   #v-presenter.has-trivia .p-bl .sub, #v-presenter.has-trivia .p-bl .meta { display:none; }
   .coins { font-family:var(--mono); color:var(--acc); font-weight:700; }
   .coinchip { gap:6px; color:var(--ink); }
+  #hname { color:var(--ink); font-weight:600; max-width:40vw; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  /* a phone: the guest's name, coins and "Live" fit beside the logo, "Live" as its dot alone */
+  @media (max-width:520px) { #v-guest header.top { flex-wrap:nowrap; gap:6px; } #v-guest header.top .chip { padding:6px 10px; }
+    #v-guest .livechip .lt { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); } #v-guest .lw { font-size:1em; } }
+  .pboard { position:absolute; z-index:2; right:4vw; top:50%; transform:translateY(-50%); width:min(24vw, 420px); min-width:220px;
+    background:rgba(8,9,14,.78); border:1px solid var(--line); border-radius:var(--radius-card); padding:clamp(14px, 1.4vw, 28px); }
+  .pboard ol { margin:10px 0 0; padding-left:1.6em; display:grid; gap:6px; font-size:clamp(15px, 1.3vw, 30px); }
+  .pboard li b { float:right; font-family:var(--mono); color:var(--acc); }
+  #v-presenter.has-board .p-tr .join { margin-top:0; }
+  @media (min-width:901px) { #v-presenter.has-board #ptrivia { left:4vw; transform:translateY(-50%); width:calc(92vw - min(24vw, 420px) - 2vw); } }
+  @media (max-width:900px) { #v-presenter.has-board .pboard { display:none; } }
+  .offline { position:fixed; left:50%; top:calc(14px + env(safe-area-inset-top, 0px)); transform:translateX(-50%); z-index:60;
+    max-width:calc(100vw - 32px); padding:10px 16px; border-radius:999px; background:#2a1a10; border:1px solid #f5a524; color:#ffe2b0;
+    font-size:14px; box-shadow:0 8px 30px rgba(0,0,0,.45); text-align:center; }
+  @media (max-width:700px) { .offline { top:calc(64px + env(safe-area-inset-top, 0px)); width:calc(100vw - 32px); border-radius:14px; font-size:13.5px; } }
+  #gtoast { position:fixed; left:16px; right:16px; bottom:calc(16px + env(safe-area-inset-bottom, 0px)); z-index:41; max-width:460px;
+    margin:0 auto; padding:12px 16px; border-radius:16px; background:var(--bg); border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,.5); }
+  #gtoast b { color:var(--ink); } #gtoast p { margin:4px 0 0; color:var(--ink-2); font-size:14px; }
   .coinchip .coin { width:16px; height:16px; flex:none; }
   .coinchip b { font-family:var(--mono); font-weight:700; }
   .locrow { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; margin-top:14px; }
@@ -353,7 +370,7 @@
   .rules { font-size:13px; color:var(--ink-2); line-height:1.55; display:grid; gap:6px; padding-top:8px; }
   @media (max-width:440px) { .why > div { grid-template-columns:1fr; gap:0; } }
 
-  /* System log, played so far */
+  /* Behind the brains (what the DJ decided), played so far */
   #log { max-height:300px; overflow:auto; font:12.5px/1.6 var(--mono); }
   #log div { display:flex; gap:10px; color:var(--ink-2); overflow-wrap:anywhere; }
   #log div::before { content:""; flex:none; width:6px; height:6px; margin-top:.6em; border-radius:50%; background:var(--success); }
@@ -387,7 +404,16 @@
   @media (hover:hover) and (pointer:fine) { .fbb[aria-pressed="false"]:hover { color:var(--ink); border-color:rgba(245,248,255,.2); } }
   .fbthanks { font-size:14px; color:var(--ink-3); min-height:1.2em; }
   /* Admin: rate the join that just played and the song on air (thumbs up / down, with the room's counts) */
-  .rate { display:grid; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .rate { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  @media (max-width:640px) { .rate { grid-template-columns:1fr; } }
+  .rate .fbthanks { grid-column:1 / -1; }
+  .ratecard { display:grid; gap:10px; padding:14px; border:1px solid var(--line); border-radius:var(--radius-inner); background:rgba(255,255,255,.025); }
+  .ratecard .rq { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .ratecard .rn { font-weight:600; overflow-wrap:anywhere; }
+  .ratecard.wait { color:var(--ink-3); font-size:13px; align-content:start; }
+  .seg { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+  .seg .thumb { min-width:0; border:0; border-radius:0; min-height:44px; background:transparent; }
+  .seg .thumb + .thumb { border-left:1px solid var(--line); }
   .raterow { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; }
   .raterow .rq { flex:1; min-width:12em; display:flex; flex-direction:column; gap:2px; }
   .raterow .rn { font-weight:600; overflow-wrap:anywhere; }
@@ -397,7 +423,7 @@
   .thumb[data-v="up"][aria-pressed="true"] { color:var(--ink); border-color:var(--success); background:rgba(0,190,111,.16); }
   .thumb[data-v="down"][aria-pressed="true"] { color:var(--ink); border-color:var(--bad); background:rgba(255,123,110,.14); }
   .thumb .num { color:var(--ink-3); font-size:13px; }
-  #ratewait { font-size:13px; color:var(--ink-3); }
+
   /* Who asked for the song on air */
   .by { display:inline-flex; align-self:flex-start; align-items:center; gap:8px; margin-top:6px; padding:6px 14px; border-radius:var(--radius-pill);
     background:rgba(242,184,75,.16); color:var(--warn); font-weight:600; font-size:15px; }
@@ -464,7 +490,9 @@
 
   /* Landing: start a party (this device plays the music) or join one with its code */
   #v-landing { max-width:720px; padding-top:max(8vh, 24px); }
-  #v-landing h1 { font-size:clamp(40px, 7vw, 72px); font-weight:700; letter-spacing:-.04em; margin:18px 0 6px; }
+  #v-landing h1.brandhero { font-size:clamp(46px, 10vw, 92px); margin:18px 0 4px; line-height:1; }
+  #v-landing h1.brandhero .lw { font-size:1em; }
+  #v-landing .tagline { font-size:clamp(17px, 2.2vw, 22px); font-weight:600; color:var(--ink-2); letter-spacing:.01em; margin:0 0 18px; }
   #v-landing .lead { font-size:18px; color:var(--ink-2); margin:0 0 28px; }
   #v-landing .choice { display:grid; gap:12px; margin-bottom:20px; }
   #v-landing .row2 { display:flex; gap:10px; flex-wrap:wrap; }
@@ -629,13 +657,14 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
   <div id="err" class="banner bad" role="alert"></div>
 </div>
 <div id="app"></div>
+<div class="offline" id="hostoff" role="status" hidden>The host is offline right now. The music picks up again when they reconnect.</div>
 <div class="bursts" id="bursts" aria-hidden="true"></div>
 <div id="sr-status" class="sr" aria-live="polite"></div>
 
 <template id="t-landing">
 <div id="v-landing" class="shell">
-  <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
-  <h1>Your AI DJ</h1>
+  <h1 class="brandhero"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></h1>
+  <p class="tagline">Your AI DJ</p>
   <p class="lead">Start a party on the device connected to the speakers: it plays and mixes the music. Everyone else joins with the party code to request songs and vote.</p>
   <section class="glass choice" aria-labelledby="h-start">
     <h2 id="h-start">Start a party</h2>
@@ -691,7 +720,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
       <a href="host" aria-current="page" data-to="host">Host</a><a href="." target="_blank" rel="noopener" data-to="guest">Guest</a><a href="screen" target="_blank" rel="noopener" data-to="screen">Big screen</a>
     </nav>
     <span class="grow"></span>
-    <span class="chip" id="where">Plays on this device</span>
+    <span class="chip" id="guestcount" title="Guests with the party open on their phones">0 guests</span>
     <button type="button" class="chip" id="lowpower" role="switch" aria-checked="true"
       title="Low power: no visuals on this screen, so the music plays smoothly. The big screen keeps them.">Low power</button>
     <span class="invitewrap">
@@ -701,6 +730,8 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
     </span>
     <button type="button" class="chip" id="triviaswitch" role="switch" aria-checked="false"
       title="Song trivia: a question per song on the big screen, guests answer on their phones for coins">Trivia</button>
+    <button type="button" class="chip" id="boardswitch" role="switch" aria-checked="false"
+      title="Show the trivia leaderboard along one side of the big screen">Leaderboard</button>
     <button type="button" class="chip" id="qrswitch" role="switch" aria-checked="true"
       title="Show or hide the join QR code on the big screen">QR on big screen</button>
     <span class="chip num" id="timer">Session not started</span>
@@ -724,7 +755,6 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
           <div class="times"><span id="t0">0:00</span><span id="t1">0:00</span></div>
           <div class="controls">
             <button id="transport" type="button">Play</button>
-            <button id="skip" class="btn reserve" type="button" disabled aria-hidden="true" title="Jump to 10 seconds before the next transition">Skip to transition</button>
             <button id="restart" class="btn reserve" type="button" disabled aria-hidden="true">Start over</button>
             <button id="mc" class="btn" type="button" role="switch" aria-checked="false" hidden>AI MC</button>
           </div>
@@ -741,7 +771,6 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
               <option value="auto">Auto (follows the song)</option><option value="koi">Koi</option><option value="lanterns">Lanterns</option>
               <option value="flowers">Flowers</option><option value="holi">Holi</option>
             </select>
-            <button id="kaleido" class="btn" type="button" role="switch" aria-checked="false" title="Mirror the song's art into a slowly turning mandala">Kaleidoscope</button>
           </div>
           <form id="locform" class="locrow">
             <label class="label" for="mcloc">MC location</label>
@@ -765,21 +794,21 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
         <div class="side to"><div class="label">Rising in</div><div class="n" id="blendto">—</div><div class="flow"><i id="blendin" style="width:0%"></i></div></div>
       </div>
       <div class="rate" id="fb" hidden>
-        <div class="raterow" id="fbmix" hidden>
-          <div class="rq"><span class="label">Rate the last join</span><span class="rn" id="ratemix"></span></div>
-          <div class="thumbs" role="group" aria-label="The last join">
-            <button type="button" class="thumb fbb" data-t="transition" data-v="up" aria-pressed="false" aria-label="Good join">👍 Good <span class="num" id="mixup"></span></button>
-            <button type="button" class="thumb fbb" data-t="transition" data-v="down" aria-pressed="false" aria-label="Rough join">👎 Rough <span class="num" id="mixdown"></span></button>
+        <div class="ratecard">
+          <div class="rq"><span class="label">This song</span><span class="rn" id="ratesong"></span></div>
+          <div class="seg" role="group" aria-label="This song">
+            <button type="button" class="thumb fbb" data-t="song" data-v="up" aria-pressed="false" aria-label="Song thumbs up">👍 Love it <span class="num" id="songup"></span></button>
+            <button type="button" class="thumb fbb" data-t="song" data-v="down" aria-pressed="false" aria-label="Song thumbs down">👎 Not now <span class="num" id="songdown"></span></button>
           </div>
         </div>
-        <div id="ratewait" hidden>You can rate the next join while it plays and for 30 seconds after.</div>
-        <div class="raterow">
-          <div class="rq"><span class="label">Rate this song</span><span class="rn" id="ratesong"></span></div>
-          <div class="thumbs" role="group" aria-label="This song">
-            <button type="button" class="thumb fbb" data-t="song" data-v="up" aria-pressed="false" aria-label="Song thumbs up">👍 <span class="num" id="songup"></span></button>
-            <button type="button" class="thumb fbb" data-t="song" data-v="down" aria-pressed="false" aria-label="Song thumbs down">👎 <span class="num" id="songdown"></span></button>
+        <div class="ratecard" id="fbmix" hidden>
+          <div class="rq"><span class="label">The last mix</span><span class="rn" id="ratemix"></span></div>
+          <div class="seg" role="group" aria-label="The last join">
+            <button type="button" class="thumb fbb" data-t="transition" data-v="up" aria-pressed="false" aria-label="Good join">✨ Smooth <span class="num" id="mixup"></span></button>
+            <button type="button" class="thumb fbb" data-t="transition" data-v="down" aria-pressed="false" aria-label="Rough join">🌀 Rough <span class="num" id="mixdown"></span></button>
           </div>
         </div>
+        <div class="ratecard wait" id="ratewait" hidden><span class="label">The last mix</span><span>Rate the next one while it plays, and for 30 s after.</span></div>
         <div class="fbthanks" id="fbthanks" aria-live="polite"></div>
       </div>
     </section>
@@ -816,7 +845,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
         <div id="why"></div>
       </section>
       <section class="glass" aria-labelledby="h-log">
-        <h2 id="h-log">System log <small id="fbtally"></small></h2>
+        <h2 id="h-log">Behind the brains <small id="fbtally"></small></h2>
         <div id="log"></div>
       </section>
     </div>
@@ -838,8 +867,9 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
   <header class="top">
     <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
     <span class="grow"></span>
+    <button type="button" class="chip" id="hname" title="Change your name" hidden></button>
     <span class="chip coinchip" id="hcoins" title="Your trivia coins in this party" hidden><svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#f5b942"/><circle cx="10" cy="10" r="6.2" fill="none" stroke="#b9781a" stroke-width="1.6"/></svg><b id="hcoinsn">0</b><span class="sr"> coins</span></span>
-    <span class="chip"><span class="dot" aria-hidden="true"></span>Live</span>
+    <span class="chip livechip"><span class="dot" aria-hidden="true"></span><span class="lt">Live</span></span>
   </header>
   <main>
     <section class="glass stage" aria-label="Now playing">
@@ -862,13 +892,13 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
         <div class="reacts" id="reacts" role="group" aria-label="Send a reaction to the big screen"></div>
       </div>
     </section>
+    <div id="gtoast" role="status" hidden><b id="gtres"></b><p id="gtfact"></p></div>
     <section class="glass row trivia away" id="gtrivia" aria-labelledby="h-trivia" aria-live="polite" hidden>
       <div class="row3"><h2 id="h-trivia">Song trivia</h2><span class="left" id="gtleft"></span></div>
       <p class="q" id="gtq"></p>
       <div class="opts" id="gtopts" role="group" aria-label="Your answer"></div>
       <p class="hint" id="gtnote"></p>
-      <p class="fact" id="gtfact"></p>
-      <p class="hint">Your coins: <span class="coins" id="gtcoins">0</span></p>
+      <span class="coins" id="gtcoins" hidden>0</span>
     </section>
     <section class="glass row" aria-labelledby="h-req">
       <h2 id="h-req">Request a song</h2>
@@ -909,12 +939,8 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
   <div class="veil"></div>
   <div class="p-tl">
     <div class="wordmark"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></div>
-    <p class="statusline" id="statusline" aria-hidden="true"></p>
   </div>
   <div class="p-tr">
-    <div class="label">Energy</div>
-    <div class="meter" id="meter" role="img" aria-label="Energy level"><i></i><i></i><i></i><i></i></div>
-    <div id="meterlabel"></div>
     <div class="join" id="join" hidden><div class="label">Scan to request a song</div><img class="qr" id="joinqr" alt="QR code: scan to join the party and request a song"><div class="code" id="joincodeshow"></div></div>
   </div>
   <div class="p-bl">
@@ -933,6 +959,11 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
     <p class="fact" id="ptfact" hidden></p>
     <ol class="board" id="ptboard" hidden></ol>
   </section>
+  <aside class="pboard" id="pboard" aria-label="Trivia leaderboard" hidden>
+    <div class="label">Trivia leaderboard</div>
+    <ol id="pboardlist"></ol>
+    <p class="hint" id="pboardempty">Answer the trivia on your phone to get on the board.</p>
+  </aside>
   <div class="p-br" id="upnext" hidden>
     <div class="glass">
       <div class="label">Up next <span id="upkind"></span></div>
@@ -975,7 +1006,7 @@ const short = name => split(name)[0];
 const kindWord = k => k === "echo" ? "echo-out" : k === "cut" ? "cut" : "blend";
 const kindLong = k => k === "echo" ? "echo-out" : k === "cut" ? "cut on the beat" : "blend";
 // "97 BPM · key 10B · energy low · mood": skips whatever an older server did not send
-const meta = e => [has(e.bpm) && `${e.bpm} BPM`, has(e.key) && `key ${e.key}`, has(e.energy) && `energy ${e.energy}`, has(e.mood) && `mood ${e.mood}`]
+const meta = e => [VIEW !== "presenter" && has(e.bpm) && `${e.bpm} BPM`, has(e.key) && `key ${e.key}`, has(e.energy) && `energy ${e.energy}`, has(e.mood) && `mood ${e.mood}`]
   .filter(Boolean).join(" · ");
 const ifEl = (id, fn) => { const e = $(id); if (e) fn(e); };
 
@@ -1095,9 +1126,9 @@ function drawVisual(s) {
     mix: m ? {kind: m.kind, p: m.progress, ...song(m.to, m.to_art)} : null});
 }
 function visSetup() {                                 // admin: the Visuals menu and the Kaleidoscope switch; the Presenter link carries them
-  const sel = $("vis"), k = $("kaleido");
+  const sel = $("vis");
   const paint = () => {
-    sel.value = vis.world; k.setAttribute("aria-checked", vis.kaleido ? "true" : "false");
+    sel.value = vis.world;
     const a = document.querySelector('nav.tabs a[data-to="screen"]');
     if (a) a.setAttribute("href", `/p/${CODE}/screen` + (vis.world !== "auto" || vis.kaleido ? `?world=${vis.world}${vis.kaleido ? "&kaleido=1" : ""}` : ""));
   };
@@ -1105,7 +1136,6 @@ function visSetup() {                                 // admin: the Visuals menu
   const save = () => { store("algo-visuals", {world: vis.world, kaleido: vis.kaleido}); paint(); if (last) drawVisual(last); post("/visuals", vis); };
   visPaint = paint;
   sel.onchange = () => { vis.world = sel.value; save(); };
-  k.onclick = () => { vis.kaleido = !vis.kaleido; save(); };
   paint();
 }
 
@@ -1217,7 +1247,6 @@ function drawTransport(s) {
   t.title = away ? "The party is on: tap to play it on this device from where it is now" : "";
   // Skip and Start over keep their place when not offered, so Play/Pause never changes size or moves
   const offer = (b, on) => { b.hidden = false; b.classList.toggle("reserve", !on); b.disabled = !on; b.setAttribute("aria-hidden", String(!on)); };
-  offer($("skip"), s.status === "playing" && !away);
   const r = $("restart");
   offer(r, s.status !== "idle");
   if (s.status === "idle") sure = false;
@@ -1264,7 +1293,7 @@ function drawUpNext(s) {
   $("upname").textContent = short(n.name) + (n.by ? ` (for ${n.by})` : "");
   ifEl("upkind", k => k.textContent = n.kind ? `· ${kindLong(n.kind)}` : "");
   ifEl("upart", a => a.style.background = artBg(palette(n.name)));
-  $("count").textContent = s.mixing ? "Mixing now" : s.status === "paused" ? "Paused" : `in ${mmss(left(s))}`;
+  $("count").textContent = s.mixing ? (VIEW === "presenter" ? "" : "Mixing now") : s.status === "paused" ? "Paused" : `in ${mmss(left(s))}`;
   $("count").classList.toggle("soon", !s.mixing && s.status === "playing" && left(s) <= 15);
 }
 
@@ -1504,6 +1533,21 @@ function show(s) {
   safe("trivia switch", () => ifEl("triviaswitch", b => b.setAttribute("aria-checked", String(!!s.trivia_on))));
   safe("trivia", () => drawTrivia(s.trivia));
   safe("coins", () => ifEl("hcoins", e => { e.hidden = !(myCoinsN > 0 || s.trivia_on); }));   // a guest's coins, beside Live
+  safe("guests", () => ifEl("guestcount", e => {     // host: guests with the party open
+    const n = s.guests_online || 0;
+    e.textContent = `${n} guest${n === 1 ? "" : "s"}`;
+  }));
+  safe("board switch", () => ifEl("boardswitch", b => b.setAttribute("aria-checked", String(!!(s.screen && s.screen.board)))));
+  safe("leaderboard", () => ifEl("pboard", box => {  // big screen: the trivia leaderboard along one side
+    const on = !!(s.screen && s.screen.board);
+    box.hidden = !on;
+    ifEl("v-presenter", v => v.classList.toggle("has-board", on));
+    if (!on) return;
+    const rows = s.leaderboard || [];
+    $("pboardlist").replaceChildren(...rows.map(r => { const li = el("li", "", r.name + " "); li.append(el("b", "", String(r.coins))); return li; }));
+    $("pboardempty").hidden = rows.length > 0;
+  }));
+  safe("host offline", () => ifEl("hostoff", e => { e.hidden = !(s.host_offline && VIEW !== "admin"); }));
   safe("MC location", () => ifEl("mcloc", inp => {     // host: where the party is, as the MC may say it
     const loc = s.location || {};
     if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = loc.text || "";
@@ -1596,9 +1640,24 @@ function drawTimer() {
 // ---- Ask the DJ: admin and guest (the server keeps a guest to requests and mood)
 // every guest has a name: asked once when they join (it shows with their requests), changeable in the request box
 function nameSetup() {
-  const d = $("namedlg");
-  $("byname").addEventListener("change", () => { const n = $("byname").value.trim(); if (n) store("algo-name", n); });
-  if ((store("algo-name") || "").trim()) return;
+  const d = $("namedlg"), chip = $("hname");
+  const showName = () => { const n = (store("algo-name") || "").trim(); chip.textContent = n; chip.hidden = !n; };
+  showName();
+  $("byname").addEventListener("change", () => { const n = $("byname").value.trim(); if (n) { store("algo-name", n); showName(); } });
+  chip.onclick = () => {                            // change the name: the same dialog, filled in
+    $("guestname").value = store("algo-name") || "";
+    if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+    $("guestname").focus();
+  };
+  $("nameform").addEventListener("submit", () => setTimeout(showName, 0));
+  if ((store("algo-name") || "").trim()) {
+    $("nameform").addEventListener("submit", ev => {
+      const n = $("guestname").value.trim().slice(0, 24);
+      if (!n) { ev.preventDefault(); return; }
+      store("algo-name", n); $("byname").value = n;
+    });
+    return;
+  }
   $("nameform").addEventListener("submit", ev => {
     const n = $("guestname").value.trim().slice(0, 24);
     if (!n) { ev.preventDefault(); return; }
@@ -1650,12 +1709,9 @@ function drawTrivia(t) {
     $("ptboard").replaceChildren(...board.map(r => el("li", "", `${r.name} · ${r.coins} coins`)));
   });
   ifEl("gtrivia", box => {                          // a guest's phone
-    if (!t) {
-      box.classList.add("away");
-      if (gtRound !== null) setTimeout(() => { if (gtRound === null) box.hidden = true; }, 300);
-      gtRound = null;
-      return;
-    }
+    const toast = $("gtoast");
+    const close = () => { box.classList.add("away"); setTimeout(() => { if (box.classList.contains("away")) box.hidden = true; }, 300); };
+    if (!t) { close(); toast.hidden = true; gtRound = null; return; }
     const mine = triviaMine[t.round] ?? store(`algo-trivia-${CODE}-${t.round}`);
     if (t.round !== gtRound) {                      // a new question: its buttons are made once, never replaced
       gtRound = t.round;
@@ -1667,21 +1723,26 @@ function drawTrivia(t) {
         b.onclick = () => answerTrivia(t.round, k);
         return b;
       }));
-      box.hidden = false;
-      requestAnimationFrame(() => box.classList.remove("away"));
     }
-    [...$("gtopts").children].forEach((b, k) => {   // after that only their state changes
-      b.classList.toggle("mine", mine === k);
-      b.classList.toggle("right", t.phase === "reveal" && k === t.answer);
-      b.classList.toggle("dim", t.phase === "reveal" && k !== t.answer);
-      b.disabled = t.phase !== "asking" || mine != null;
-    });
-    const note = $("gtnote");
-    if (t.phase === "asking") note.textContent = mine != null ? `Locked in: ${LETTERS[mine]}. The answer comes in a moment.` : "Tap your answer. Quick answers earn a bonus.";
-    else note.textContent = mine == null ? `The answer was ${LETTERS[t.answer]}.`
-      : mine === t.answer ? `Right!${triviaWon[t.round] ? ` +${triviaWon[t.round]} coins` : ""}` : `Not this time: it was ${LETTERS[t.answer]}.`;
-    $("gtfact").textContent = t.phase === "reveal" ? "Did you know? " + t.fact : "";
-    if (t.phase === "reveal" && coinsAsked !== t.round) { coinsAsked = t.round; myCoins(); }   // what this round earned
+    [...$("gtopts").children].forEach((b, k) => { b.classList.toggle("mine", mine === k); b.disabled = t.phase !== "asking" || mine != null; });
+    if (t.phase === "asking" && mine == null) {     // open: the pop-up, until the guest answers
+      if (box.hidden) { box.hidden = false; requestAnimationFrame(() => box.classList.remove("away")); }
+      $("gtnote").textContent = "Tap your answer. Quick answers earn a bonus.";
+      toast.hidden = true;
+      return;
+    }
+    close();                                        // answered, or the time is up: a small card instead
+    const opt = k => `${LETTERS[k]}: ${t.options[k]}`;
+    if (t.phase === "asking") {
+      $("gtres").textContent = `Locked in ${opt(mine)}`;
+      $("gtfact").textContent = "The answer comes when the time is up.";
+    } else {
+      $("gtres").textContent = mine == null ? `The answer: ${opt(t.answer)}`
+        : mine === t.answer ? `Right! ${triviaWon[t.round] ? `+${triviaWon[t.round]} coins` : ""}` : `Not this time: it was ${opt(t.answer)}`;
+      $("gtfact").textContent = "Did you know? " + t.fact;
+      if (coinsAsked !== t.round) { coinsAsked = t.round; myCoins(); }   // what this round earned
+    }
+    toast.hidden = false;
   });
 }
 async function answerTrivia(round, choice) {
@@ -1819,7 +1880,8 @@ function report(playhead, st) {
 // live updates: the server pushes the state on every change and once a second; polling takes over while it is down
 function connect() {
   const k = VIEW === "admin" ? hostKey() : null;
-  const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/p/${CODE}` + (k ? "?key=" + encodeURIComponent(k) : "");
+  const who = k ? "key=" + encodeURIComponent(k) : VIEW === "guest" ? "role=guest&g=" + encodeURIComponent(guestId()) : "role=screen";
+  const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/p/${CODE}?${who}`;
   try { sock = new WebSocket(url); } catch (e) { sock = null; return; }
   sock.onopen = () => { sockTries = 0; $("conn").hidden = true; };
   sock.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m.type === "state") show(m.state); };
@@ -1939,6 +2001,12 @@ vis = visPrefs();
       await post("/trivia", {on});
       b.disabled = false;
     };
+    $("boardswitch").onclick = async () => {
+      const b = $("boardswitch"), on = b.getAttribute("aria-checked") !== "true";
+      b.disabled = true;
+      await post("/screen", {board: on});
+      b.disabled = false;
+    };
     $("qrswitch").onclick = async () => {             // the big screen hears it through the live updates
       const b = $("qrswitch"), on = b.getAttribute("aria-checked") !== "true";
       b.disabled = true;
@@ -1974,7 +2042,6 @@ vis = visPrefs();
       const s = await post("/transport", {action: "play"});
       if (s && P.status === "idle") await playHere(s);
     };
-    $("skip").onclick = () => hostAction("skip");
     $("levels").addEventListener("keydown", ev => {     // arrow keys move between levels; Enter or Space picks one
       const d = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[ev.key];
       const bs = [...$("levels").children], i = bs.indexOf(document.activeElement);

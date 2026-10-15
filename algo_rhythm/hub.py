@@ -32,6 +32,8 @@ MAX_SCREENS = 500  # per party: a guard, not a plan
 class _Party:
     def __init__(self, loop):
         self.screens = set()           # (websocket, host)
+        self.guests = {}               # websocket -> guest id, for the guests' screens (the host's guest count)
+        self.presence = None           # (guest count, monotonic time) last written to party_presence
         self.wake = asyncio.Event()
         self.task = None
         self.loop = loop
@@ -68,20 +70,43 @@ def _wake_here(code):
         pass
 
 
+def _tick(view):
+    """How long until the next view: TICK_S while the host plays; slower while the host is offline (nothing moves), so
+    an abandoned party costs next to nothing."""
+    gone = (view or {}).get("host_offline_s") or 0
+    return TICK_S if not gone else 5.0 if gone < 300 else 30.0
+
+
+async def _presence(code, p, force=False):
+    """Write this instance's guest count for the party when it changed, or every 15 s (rows older than 45 s expire)."""
+    n = len(set(p.guests.values()))
+    now = asyncio.get_running_loop().time()
+    if force or p.presence is None or p.presence[0] != n or now - p.presence[1] > 15:
+        p.presence = (n, now)
+        try:
+            await run_in_threadpool(party.set_presence, code, INSTANCE, n)
+        except Exception:
+            log.exception("could not note the guests of party %s", code)
+
+
 async def _pump(code, p):
-    """Send views to the party's screens: on every publish, and every TICK_S. Ends when the last screen leaves."""
+    """Send views to the party's screens: on every publish, and every TICK_S (slower while the host is offline). Ends
+    when the last screen leaves."""
+    wait = TICK_S
     while p.screens:
         try:
-            await asyncio.wait_for(p.wake.wait(), TICK_S)
+            await asyncio.wait_for(p.wake.wait(), wait)
         except asyncio.TimeoutError:
             pass
         p.wake.clear()
         screens = list(p.screens)
         if not screens:
             break
+        await _presence(code, p)
         try:
             built = await run_in_threadpool(party.views, code, tuple({h for _, h in screens}))
             views = {h: json.dumps({"type": "state", "state": v}, ensure_ascii=False) for h, v in built.items()}
+            wait = _tick(next(iter(built.values()), None))
         except party.NotFound:
             for ws, _ in screens:
                 await ws.close(code=4404)
@@ -94,11 +119,15 @@ async def _pump(code, p):
                 await ws.send_text(views[host])
             except Exception:
                 p.screens.discard((ws, host))
+                p.guests.pop(ws, None)
+    if p.presence and p.presence[0]:
+        p.guests.clear()
+        await _presence(code, p, force=True)  # nobody left here
     if _parties.get(code) is p:
         _parties.pop(code, None)
 
 
-async def serve(ws: WebSocket, code, host):
+async def serve(ws: WebSocket, code, host, guest=None):
     """One screen. The host's player also reports its playhead here: {"type": "sync", "playhead": s, "status": ...}."""
     loop = _loop["loop"] = asyncio.get_running_loop()
     await ws.accept()
@@ -110,6 +139,8 @@ async def serve(ws: WebSocket, code, host):
         return
     me = (ws, host)
     p.screens.add(me)
+    if guest:
+        p.guests[ws] = guest
     if p.task is None or p.task.done():
         p.task = asyncio.create_task(_pump(code, p))
     p.wake.set()
@@ -133,6 +164,8 @@ async def serve(ws: WebSocket, code, host):
         pass
     finally:
         p.screens.discard(me)
+        if p.guests.pop(ws, None):
+            p.wake.set()  # the host's guest count drops now, not at the next tick
 
 
 # ---------------------------------------------------------------- across instances: PostgreSQL NOTIFY / LISTEN

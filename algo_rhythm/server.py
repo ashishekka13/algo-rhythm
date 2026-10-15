@@ -394,7 +394,7 @@ def create_app():
     async def screen_options(code: str, request: Request):
         await host_of(request, code)
         data = await body(request)
-        return await answer(code, lambda: party.set_screen(code, data.get("qr")), host=True)
+        return await answer(code, lambda: party.set_screen(code, data.get("qr"), data.get("board")), host=True)
 
     @app.post("/api/p/{code}/request")
     async def request_song(code: str, request: Request):
@@ -432,7 +432,8 @@ def create_app():
             return
         key = websocket.query_params.get("key")
         host = bool(key) and await run_in_threadpool(party.is_host, code, key)
-        await hub.serve(websocket, code, host)
+        guest = websocket.query_params.get("g") if websocket.query_params.get("role") == "guest" else None
+        await hub.serve(websocket, code, host, guest if guest and party.live_guest_id(guest) else None)
 
     return app
 

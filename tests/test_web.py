@@ -7,6 +7,7 @@ host's page does (play, advance, sync, a request moved up, votes, reactions, tal
 screen gets, over HTTP and over the WebSocket.
 """
 import os
+import time
 import sys
 import tempfile
 from pathlib import Path
@@ -185,12 +186,38 @@ def main(library="test_library"):
     s = c.post(f"/api/p/{code}/transport", json={"action": "restart"}, headers=H).json()
     assert s["status"] == "idle" and s["engine"]["epoch"] == 1 and not s["engine"]["items"], s["engine"]
     # the host shows or hides the join QR on the big screen; guests cannot
-    assert c.get(f"/api/p/{code}/state").json()["screen"] == {"qr": True}
+    assert c.get(f"/api/p/{code}/state").json()["screen"]["qr"] is True
     assert c.post(f"/api/p/{code}/screen", json={"qr": False}).status_code == 403
     assert c.post(f"/api/p/{code}/screen", json={"qr": "no"}, headers=H).status_code == 400
-    assert c.post(f"/api/p/{code}/screen", json={"qr": False}, headers=H).json()["screen"] == {"qr": False}
-    assert c.get(f"/api/p/{code}/state").json()["screen"] == {"qr": False}
-    assert c.post(f"/api/p/{code}/screen", json={"qr": True}, headers=H).json()["screen"] == {"qr": True}
+    assert c.post(f"/api/p/{code}/screen", json={"qr": False}, headers=H).json()["screen"]["qr"] is False
+    assert c.get(f"/api/p/{code}/state").json()["screen"]["qr"] is False
+    assert c.post(f"/api/p/{code}/screen", json={"qr": True}, headers=H).json()["screen"]["qr"] is True
+
+    # the host's guest count: guests' live screens, each guest once (two tabs), not the big screen
+    # (one event loop for all of them, as on a server: a TestClient used without "with" makes one per connection)
+    with TestClient(server.create_app()) as cl, cl.websocket_connect(f"/ws/p/{code}?role=guest&g=guest-count-0001") as w1, \
+         cl.websocket_connect(f"/ws/p/{code}?role=guest&g=guest-count-0001") as w2, \
+         cl.websocket_connect(f"/ws/p/{code}?role=guest&g=guest-count-0002") as w3, \
+         cl.websocket_connect(f"/ws/p/{code}?role=screen") as w4:
+        for w in (w1, w2, w3, w4):
+            w.receive_json()
+        time.sleep(1.5)  # a tick: the count is written
+        n = cl.get(f"/api/p/{code}/state", headers=H).json()["guests_online"]
+    assert n == 2, n
+    # the leaderboard on the big screen: the host's switch
+    assert c.post(f"/api/p/{code}/screen", json={"board": True}).status_code == 403
+    v = c.post(f"/api/p/{code}/screen", json={"board": True}, headers=H).json()
+    assert v["screen"] == {"qr": True, "board": True} and v["leaderboard"] == [], v["screen"]
+    c.post(f"/api/p/{code}/screen", json={"board": False}, headers=H)
+    # the host goes offline: the screens say so, the clock stops 20 s on
+    st = party.read(code)[1]
+    if st["status"] == "playing":
+        party.act(code, lambda sess, s_: s_.update(reported_at=s_["reported_at"] - 120))
+        v = c.get(f"/api/p/{code}/state").json()
+        assert v["host_offline"] and v["host_offline_s"] >= 100, (v["host_offline"], v["host_offline_s"])
+        assert v["playhead"] <= st["playhead"] + party.HOST_GONE_S + 1, (v["playhead"], st["playhead"])
+        party.sync(code, st["playhead"], "playing")
+        assert not c.get(f"/api/p/{code}/state").json()["host_offline"]
 
     # sign out; then failed sign-ins from one address are limited
     assert c.post("/api/auth/logout", json={}).status_code == 200 and c.get("/api/auth/me").json()["user"] is None

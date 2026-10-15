@@ -12,6 +12,38 @@
 
 ---
 
+## Unreleased (v1.2, on staging)
+
+### Start page
+- The logo is much bigger, with **"Your AI DJ"** as a small tagline under it.
+
+### Host
+- **Guest count in the header:** how many guests are connected right now ("3 guests"). Two tabs of one guest count
+  once. Each server keeps the count in memory from its open connections; a small `party_presence` row per server
+  adds them up when production runs several servers.
+- **Leaderboard switch:** shows the trivia leaderboard on the big screen, on the right side. On screens under 900 px
+  it stays hidden so it doesn't cover the music.
+- **Ratings redesigned** as two cards: "This song" (👍 Love it / 👎 Not now) and "The last mix" (✨ Smooth / 🌀 Rough).
+- "System log" is now **"Behind the brains"**.
+- Removed: "Plays on this device", the **Skip to transition** button, and the **Kaleidoscope** visual.
+
+### When the host goes offline
+- If the host's player stops reporting for 20 s, guests and the big screen show a small notice: "The host is offline
+  right now. The music picks up again when they reconnect." It clears when the host is back.
+- The server stops guessing where the song is (the playhead stops at 20 s past the last report) and slows its live
+  updates for that party to every 5 s, then to every 30 s after 5 minutes, so an abandoned party costs almost nothing.
+
+### Guests
+- **Name and coins at the top:** tap the name to change it; the coins chip sits next to it.
+- **Trivia is a small popup** at the bottom instead of a full-screen sheet. It closes as soon as you answer, and a
+  small card shows your pick ("Locked in B: 2023"), then the result and the "Did you know?" fact.
+
+### Big screen
+- Removed: "Up next" at the top, the BPM, the energy meter, and the "Mixing now" text. The song details stay.
+- With the leaderboard on, the trivia card moves left to make room for it.
+
+---
+
 ## v1.1 (2026-10-16)
 
 Production: https://algo-rhythm.in (the commit tagged `v1.1`). Changes since v1.0:

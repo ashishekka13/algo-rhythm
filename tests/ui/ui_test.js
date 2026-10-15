@@ -128,8 +128,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   check("guest: has request search and Ask the DJ, no admin controls or view tabs", o.q && o.talk && !o.tabs && o.transport === null && o.levels.length === 0, o);
   check("guest: no script errors, no goodbye beacon", !o.errors.length && o.err === "" && o.beacons === 0, o);
   o = await load(() => base, {path: "/presenter"});
-  check("presenter: renders title, status line, up next countdown", o.now === "Behti Hawa Sa Tha Woh" && /Up next/.test(o.status) && /Kabira Encore in 0:31/.test(o.up), [o.now, o.status, o.up]);
-  check("presenter: energy meter shows the level", o.meter === "low" && o.meterOn === 1, [o.meter, o.meterOn]);
+  check("presenter: renders the title and the up-next card; no status line, no energy meter, no BPM", o.now === "Behti Hawa Sa Tha Woh"
+    && o.status === null && /Kabira Encore in 0:31/.test(o.up) && o.meter === null && !/BPM/.test(o.info), [o.now, o.status, o.up, o.meter, o.info]);
   check("presenter: read-only, no script errors, no goodbye beacon", !o.q && !o.tabs && o.transport === null && !o.errors.length && o.err === "" && o.beacons === 0, o);
   o = await load(() => ({...base, status: "idle", now: null, next: []}), {path: "/presenter"});
   check("presenter idle: Warming up, no up next", o.now === "Warming up…" && o.up === "", [o.now, o.up]);
@@ -249,11 +249,12 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     gopts[2].click();
     await wait(300);
     const posted = xposts.find(x => x.url === "/answer");
-    const locked = [...g.D.querySelectorAll("#gtopts button")].every(b => b.disabled) && /Locked in: C/.test(g.D.getElementById("gtnote").textContent);
+    const locked = [...g.D.querySelectorAll("#gtopts button")].every(b => b.disabled) && g.D.getElementById("gtrivia").classList.contains("away")
+      && !g.D.getElementById("gtoast").hidden && /Locked in C: 2009/.test(g.D.getElementById("gtres").textContent);
     check("guest: the coins chip beside Live shows once trivia is on", !g.D.getElementById("hcoins").hidden, g.D.getElementById("hcoins").outerHTML);
     check("guest: the phone runs light: no light garden, no animations (the big screen keeps them)",
       g.D.documentElement.classList.contains("lowpower") && !g.D.getElementById("lowpower"), g.D.documentElement.className);
-    check("guest: trivia buttons answer once with the guest id and round, then lock", shown && posted && posted.round === 7
+    check("guest: trivia pop-up answers once with the guest id and round, closes, and a small card says it is locked in", shown && posted && posted.round === 7
       && posted.choice === 2 && posted.guest.length >= 8 && locked, [shown, posted, locked]);
     st = {...st, trivia: null};
     check("reactions: a tap posts /react with the guest id and the emoji rises", xposts[0] && xposts[0].url === "/react" && xposts[0].emoji === "🎉"
@@ -326,8 +327,8 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
   check("vibes: arrow key moves focus to the next vibe without posting", D.activeElement === lv[1] && posts.length === 0, posts);
   lv[5].click(); await wait(50);
   check("vibes: tapping peak posts /vibe peak", posts.length === 1 && posts[0].url === "/vibe" && posts[0].vibe === "peak", posts);
-  D.getElementById("skip").click(); await wait(50);
-  check("transport: skip does nothing until this device plays the music", posts.length === 1, posts);
+  check("host: no Skip to transition, no Kaleidoscope, no 'Plays on this device'", !D.getElementById("skip") && !D.getElementById("kaleido")
+    && !D.getElementById("where") && /guests?$/.test(D.getElementById("guestcount").textContent), D.getElementById("guestcount").textContent);
   posts.length = 0;
   const T = D.getElementById("talk"); T.value = "build it up";
   D.getElementById("talkform").dispatchEvent(new dom.window.Event("submit", {cancelable: true}));
@@ -585,15 +586,13 @@ const check = (name, cond, detail) => { if (!cond) { failures++; } console.log(`
     // admin: the Visuals menu and the Kaleidoscope switch take effect, are kept in this browser, and ride on the Presenter link
     const A = vis("/", () => base);
     await wait(300);
-    const sel = A.D.getElementById("vis"), kal = A.D.getElementById("kaleido"), aG = A.G();
-    check("admin visuals: Auto by default, kaleidoscope off, world from the song", sel.value === "auto" && kal.getAttribute("aria-checked") === "false"
+    const sel = A.D.getElementById("vis"), aG = A.G();
+    check("admin visuals: Auto by default, world from the song, no Kaleidoscope switch", sel.value === "auto" && !A.D.getElementById("kaleido")
       && aG.stats.world === "koi" && aG.kaleido === false, [sel.value, aG.stats.world, aG.kaleido]);
     sel.value = "flowers"; sel.dispatchEvent(new A.dom.window.Event("change"));
-    kal.click();
     const saved = JSON.parse(A.dom.window.localStorage.getItem("algo-visuals")), link = A.D.querySelector('nav.tabs a[data-to="screen"]').getAttribute("href");
-    check("admin visuals: Flowers + Kaleidoscope apply at once, are stored, and the Presenter link carries them",
-      aG.stats.world === "flowers" && aG.kaleido === true && kal.getAttribute("aria-checked") === "true" && saved.world === "flowers" && saved.kaleido === true
-      && link === `/p/${CODE}/screen?world=flowers&kaleido=1`, [aG.stats.world, aG.kaleido, saved, link]);
+    check("admin visuals: Flowers applies at once, is stored, and the Presenter link carries it",
+      aG.stats.world === "flowers" && saved.world === "flowers" && link === `/p/${CODE}/screen?world=flowers`, [aG.stats.world, saved, link]);
     A.dom.window.close();
     const U = vis("/presenter?world=lanterns&kaleido=1", () => base);
     await wait(300);

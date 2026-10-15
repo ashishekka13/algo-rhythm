@@ -89,6 +89,10 @@ commit `e985a13`). Changes since v1.0:
 - **Questions:** about 1 in 4 from our own song data (who sings it, the year), 3 in 4 lesser-known facts from
   Gemini, written ahead of time by the `trivia` job. No AI runs during a party. Gemini's questions are checked and
   dropped if Gemini isn't sure, if the answer is on screen, or if the question gives it away.
+- **Blind re-check of every Gemini fact:** Gemini answers the question again without seeing the answer, 3 times with
+  the options in a new order each time. The fact is kept only if it's right every time and never flagged as
+  ambiguous. This catches wrong and ambiguous questions; in a first sample, about a quarter were one or the other.
+  `--refresh` writes and checks the facts again for every song.
 - **Scoring on the server:**
   - 10 coins for a right answer, +5 within the first 5 s;
   - one answer per guest per question, and late answers are refused;

@@ -30,17 +30,21 @@ DATA_SHARE = 0.25          # of the questions asked: from our song data; the res
 FACTS_PER_SONG = 3
 MIN_CONFIDENCE = 0.8       # Gemini's own: a fact it is less sure of is not asked
 BATCH = 10
-PROMPT_VERSION = "trivia-v1"
+VERIFY_PASSES = 3          # a fact is kept only if Gemini, not shown the answer, picks it every time (options reshuffled)
+VERIFY_BATCH = 30
+PROMPT_VERSION = "trivia-v2"
 SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT",
           "required": ["n", "question", "options", "answer", "fact", "confidence"], "properties": {
               "n": {"type": "INTEGER"}, "question": {"type": "STRING"},
               "options": {"type": "ARRAY", "items": {"type": "STRING"}}, "answer": {"type": "INTEGER"},
               "fact": {"type": "STRING"}, "confidence": {"type": "NUMBER"}}}}
-PROMPT = """You write trivia for a live Bollywood party. For each numbered song below, write up to {k} multiple-choice
+PROMPT = """You write trivia for a live Bollywood party. For each numbered song below, write {k} multiple-choice
 questions with a surprising, true fact most listeners do not know: how the song was made, recorded or composed, the
 music director or lyricist, the film's cast or story, awards, records, a remake or its original, a famous moment.
 Rules:
  - Only facts you are certain of and that are widely documented. If unsure, write fewer questions or none.
+ - Ask about THIS song (not the whole album or the film's other songs), so exactly one option is right; no two options
+   that could both be right (a song's title in two languages, a duo and one of its members).
  - The answer must not be given away by the song title or film name (they are on screen).
  - Exactly 4 options, short (at most 6 words), of the same kind, all plausible; one right. answer = its index (0-3).
  - question: at most 18 words, easy to medium, no trick questions, no lyrics quotes.
@@ -121,14 +125,65 @@ def gemini_questions(rows, generate=genai.generate, on_call=None):
     return out
 
 
-def run(limit=None, generate=genai.generate, on_call=None, rng=None):
-    """The job: questions for every song that has none yet. Returns how many were stored."""
+VERIFY_SCHEMA = {"type": "ARRAY", "items": {"type": "OBJECT", "required": ["id", "choice", "ambiguous"], "properties": {
+    "id": {"type": "INTEGER"}, "choice": {"type": "INTEGER"}, "ambiguous": {"type": "BOOLEAN"}}}}
+VERIFY_PROMPT = """You check trivia questions about Bollywood songs before they are asked at a party. Answer each
+numbered question yourself. choice = the index (0-3) of the one right option. ambiguous = true when more than one
+option could be right, none is right, or you are not sure.
+{items}
+"""
+
+
+def verify(items, generate=genai.generate, on_call=None, rng=None):
+    """The ones of [(song, question)] that Gemini, not shown the answer, gets right in every one of VERIFY_PASSES
+    tries with the options in a new order, never calling them ambiguous. Catches the wrong and the ambiguous."""
+    rng = rng or random.Random(11)
+    ok = [True] * len(items)
+    for _ in range(VERIFY_PASSES):
+        for k in range(0, len(items), VERIFY_BATCH):
+            part = list(range(k, min(k + VERIFY_BATCH, len(items))))
+            orders, lines = {}, []
+            for j in part:
+                song, q = items[j]
+                order = list(range(4))
+                rng.shuffle(order)
+                orders[j] = order
+                l = song.get("llm") or {}
+                opts = " | ".join(f"{n}) {q['options'][o]}" for n, o in enumerate(order))
+                lines.append(f"{j}. [{l.get('title') or song['name']}, {l.get('film') or 'no film'}] {q['question']} {opts}")
+            try:
+                got = generate("trivia-check", PROMPT_VERSION, [{"text": VERIFY_PROMPT.format(items="\n".join(lines))}],
+                               VERIFY_SCHEMA, timeout=300, **({"on_call": on_call} if on_call else {}))
+            except genai.GenAIError as e:
+                log.warning("trivia: could not check questions %d-%d (%s): not kept", k, part[-1], e)
+                got = []
+            seen = set()
+            for a in got:
+                j, c = a.get("id"), a.get("choice")
+                if j in orders and isinstance(c, int) and 0 <= c <= 3 and j not in seen:
+                    seen.add(j)
+                    if a.get("ambiguous") or orders[j][c] != items[j][1]["answer"]:
+                        ok[j] = False
+            for j in part:
+                if j not in seen:  # not answered: not checked, not kept
+                    ok[j] = False
+    return [it for it, good in zip(items, ok) if good]
+
+
+def run(limit=None, generate=genai.generate, on_call=None, rng=None, refresh=False):
+    """The job: questions for every song that has none yet (refresh: Gemini's facts are written and checked again
+    for every song, and the old ones go). Returns how many were stored."""
     rng = rng or random.Random(7)
     songs, _ = repository.load_songs(Path(tempfile.mkdtemp()))
     with repository.session() as s:
+        if refresh:
+            s.execute(db.SongTrivia.__table__.delete().where(db.SongTrivia.kind == "fact"))
+            s.commit()
         has = set(s.scalars(select(db.SongTrivia.song_id).distinct()))
+        has_data = set(s.scalars(select(db.SongTrivia.song_id).where(db.SongTrivia.kind == "data").distinct()))
         ids = dict(s.execute(select(db.Song.file, db.Song.id)).all())
-    todo = [(i, sg) for i, sg in enumerate(songs) if ids.get(sg["file"]) not in has][:limit]
+    todo = [(i, sg) for i, sg in enumerate(songs) if refresh or ids.get(sg["file"]) not in has][:limit]
+    written = kept = 0
     stored = 0
     for k in range(0, len(todo), BATCH):
         part = todo[k:k + BATCH]
@@ -137,16 +192,24 @@ def run(limit=None, generate=genai.generate, on_call=None, rng=None):
         except genai.GenAIError as e:
             log.warning("trivia: no Gemini facts for songs %d-%d (%s); data questions only", k, k + len(part), e)
             facts = {}
+        cand = [(i, q) for i, qs in facts.items() for q in qs]
+        good = verify([(songs[i], q) for i, q in cand], generate, on_call, rng)
+        good_ids = {id(q) for _, q in good}
+        written += len(cand)
+        kept += len(good)
+        facts = {i: [q for q in qs if id(q) in good_ids] for i, qs in facts.items()}
         with repository.session() as s:
             for i, sg in part:
-                for kind, qs in (("data", data_questions(i, songs, rng)), ("fact", facts.get(i, []))):
+                data = [] if ids[sg["file"]] in has_data else data_questions(i, songs, rng)
+                for kind, qs in (("data", data), ("fact", facts.get(i, []))):
                     for q in qs:
                         s.add(db.SongTrivia(song_id=ids[sg["file"]], kind=kind, question=q["question"],
                                             options=q["options"], answer=q["answer"], fact=q["fact"],
                                             source="data" if kind == "data" else "gemini", prompt_version=PROMPT_VERSION))
                         stored += 1
             s.commit()
-        log.info("trivia: %d of %d songs done, %d questions so far", min(k + BATCH, len(todo)), len(todo), stored)
+        log.info("trivia: %d of %d songs done, %d questions so far (Gemini's facts: %d written, %d passed the check)",
+                 min(k + BATCH, len(todo)), len(todo), stored, written, kept)
     return stored
 
 
@@ -208,8 +271,9 @@ def counts(party_id, round_):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--refresh", action="store_true", help="write and check Gemini's facts again for every song")
     args = ap.parse_args(argv)
-    print(f"{run(args.limit, on_call=repository.log_ai_call)} questions stored")
+    print(f"{run(args.limit, on_call=repository.log_ai_call, refresh=args.refresh)} questions stored")
 
 
 if __name__ == "__main__":

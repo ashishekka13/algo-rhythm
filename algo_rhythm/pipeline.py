@@ -174,6 +174,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("step", choices=("songs", "details", "art", "trivia"))
     ap.add_argument("--limit", type=int, help="at most this many songs (per task, for songs)")
+    ap.add_argument("--refresh", action="store_true", help="trivia: write and check Gemini's facts again for every song")
     args = ap.parse_args(argv)
     from algo_rhythm.server import setup_logging
     setup_logging(config.settings().log_level)
@@ -183,7 +184,7 @@ def main(argv=None):
         return run_details()
     if args.step == "trivia":  # questions for every song without them (algo_rhythm.trivia)
         from algo_rhythm import repository, trivia
-        log.info("trivia: %d questions stored", trivia.run(args.limit, on_call=repository.log_ai_call))
+        log.info("trivia: %d questions stored", trivia.run(args.limit, on_call=repository.log_ai_call, refresh=args.refresh))
         return 0
     return run_art(args.limit)
 

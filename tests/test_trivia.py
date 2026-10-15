@@ -14,6 +14,7 @@ Temp SQLite database (TEST_DATABASE_URL: PostgreSQL instead).
 """
 import os
 import random
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -34,8 +35,24 @@ def main(library="test_library"):
     lib = lib_mod.get()
 
     # 1. the job, with Gemini's answers good and bad
+    checks = []
+
     def fake_generate(task, version, parts, schema, **k):
         text = parts[0]["text"]
+        if task == "trivia-check":  # the blind re-check: right on the composer, unsure of the award
+            checks.append(text)
+            import re
+            out = []
+            for line in text.splitlines():
+                m = re.match(r"(\d+)\. \[.*?\] (.*?) 0\) (.*?) \| 1\) (.*?) \| 2\) (.*?) \| 3\) (.*)$", line)
+                if not m:
+                    continue
+                j, question, opts = int(m.group(1)), m.group(2), [m.group(k) for k in range(3, 7)]
+                if "composed" in question:
+                    out.append({"id": j, "choice": opts.index("A. R. Rahman"), "ambiguous": False})
+                else:
+                    out.append({"id": j, "choice": 0, "ambiguous": True})
+            return out
         nums = [int(line.split(" | ")[0]) for line in text.splitlines() if " | " in line and line.split(" | ")[0].isdigit()]
         out = []
         for n in nums:
@@ -61,12 +78,15 @@ def main(library="test_library"):
         songs_with = s.scalar(select(func.count(func.distinct(db.SongTrivia.song_id))))
         facts = [q.question for q in s.scalars(select(db.SongTrivia).where(db.SongTrivia.kind == "fact"))]
     n = len(lib.songs)
-    assert songs_with == n and by_kind["fact"] == 2 * n, (songs_with, by_kind)
-    assert set(facts) == {"Who composed the music for this song?", "Which award did it win?"}, set(facts)
+    assert songs_with == n and by_kind["fact"] == n, (songs_with, by_kind)
+    assert set(facts) == {"Who composed the music for this song?"}, set(facts)  # the award failed the re-check
+    assert len(checks) == trivia.VERIFY_PASSES * -(-2 * n // trivia.VERIFY_BATCH), len(checks)
+    orders = {tuple(re.findall(r"\d\) ([^|]+?)(?: \||$)", c.splitlines()[-2])) for c in checks if c.strip()}
+    assert len(orders) > 1, "the options are shuffled between passes"
     assert by_kind["data"] >= n, by_kind
     assert trivia.run(generate=fake_generate) == 0, "songs with questions are not asked again"
     print(f"1. {stored} questions for {n} songs: {by_kind['data']} from our data, {by_kind['fact']} facts; "
-          "5 kinds of bad answer dropped")
+          f"5 kinds of bad answer dropped, and the ambiguous one by the blind re-check ({len(checks)} checks)")
 
     # 2. a round from the playhead
     ph = trivia.phase

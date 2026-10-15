@@ -28,6 +28,12 @@ from scipy.signal import butter, sosfilt
 
 from algo_rhythm import timing
 
+import concurrent.futures
+import os
+# rubberband runs as its own process: the stretches of a blend (2, or 6 with a vocal swap) run side by side
+_warp_pool = concurrent.futures.ThreadPoolExecutor(max_workers=int(os.environ.get("WARP_THREADS", "6")),
+                                                   thread_name_prefix="warp")
+
 OVERLAP_BEATS = 32
 BASS_SWAP_BEATS = 8
 ECHO_REPEATS, ECHO_FEEDBACK = 4, 0.5
@@ -348,8 +354,14 @@ def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None,
             "beat_pairing": f"{step_a}:{step_b}"}
 
     a0 = int(round(tail[0] * sr))
-    a_w = warp(a[a0:], tail, slots, sr)
-    b_w = warp(b, head, slots, sr)
+    w = timing.bound(warp)
+    jobs = {"a": (a[a0:], tail), "b": (b, head)}
+    if a_voc is not None and b_voc is not None:
+        # each instrumental is stretched once, as itself (the browser subtracts before it changes the speed, too)
+        jobs.update(av=(a_voc[a0:], tail), bv=(b_voc, head), ai=(a[a0:] - a_voc[a0:], tail), bi=(b - b_voc, head))
+    futs = {k: _warp_pool.submit(w, x, beats_, slots, sr) for k, (x, beats_) in jobs.items()}
+    warped = {k: f.result() for k, f in futs.items()}
+    a_w, b_w = warped["a"], warped["b"]
     nudge = phase_offset(a_w, b_w, sr)
     b_w = shift(b_w, nudge)
     info.update(type="blend", overlap_s=round(float(slots[-1]), 1), phase_nudge_ms=round(nudge / sr * 1000, 1))
@@ -357,14 +369,12 @@ def transition(a, a_beats, b, b_beats, sr, kind="blend", a_voc=None, b_voc=None,
     if dj.GRID_SLIP_GUARD:  # only the guard reads it: two cross-correlation sweeps, 30-40% of a blend's render
         info["grid_slip_ms"] = _timed_slip(a_w, b_w, slots, sr)
     if a_voc is not None and b_voc is not None:
-        av_w, bv_w = warp(a_voc[a0:], tail, slots, sr), shift(warp(b_voc, head, slots, sr), nudge)
+        av_w, bv_w = warped["av"], shift(warped["bv"], nudge)
         g_out, g_in, lines = line_swap_gains(av_w, bv_w, sr, ref_a=vocal_ref_db(a_voc, sr), ref_b=vocal_ref_db(b_voc, sr))
         info.update(vocal_swap=True, **lines,
                     vocal_overlap_s=vocal_overlap_s(av_w, bv_w, g_out, g_in, sr, follow=False),
                     vocal_overlap_s_without=vocal_overlap_s(av_w, bv_w, np.ones(len(av_w)), np.ones(len(av_w)), sr))
-        # each instrumental is stretched once, as itself (the browser subtracts before it changes the speed, too)
-        ai_w = warp(a[a0:] - a_voc[a0:], tail, slots, sr)
-        bi_w = shift(warp(b - b_voc, head, slots, sr), nudge)
+        ai_w, bi_w = warped["ai"], shift(warped["bi"], nudge)
         mixed = blend_swap(ai_w, bi_w, av_w, bv_w, slots, sr, g_out, g_in, instrumentals=True)
     else:
         mixed = blend(a_w, b_w, slots, sr)

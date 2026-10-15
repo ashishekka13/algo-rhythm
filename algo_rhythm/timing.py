@@ -18,6 +18,7 @@ class Timer:
     def __init__(self):
         self.t0 = time.perf_counter()
         self.stages, self.counts = {}, {}
+        self.lock = threading.Lock()  # helper threads count into the same request
 
     @contextlib.contextmanager
     def stage(self, name):
@@ -52,5 +53,20 @@ def count(name):
         yield
     finally:
         if t is not None:
-            n, s = t.counts.get(name, (0, 0.0))
-            t.counts[name] = (n + 1, s + time.perf_counter() - t0)
+            with t.lock:
+                n, s = t.counts.get(name, (0, 0.0))
+                t.counts[name] = (n + 1, s + time.perf_counter() - t0)
+
+
+def bound(fn):
+    """fn, counting into the request measured in the calling thread when it runs on another thread (a pool)."""
+    t = getattr(_local, "timer", None)
+
+    def run(*a, **k):
+        prev = getattr(_local, "timer", None)
+        _local.timer = t
+        try:
+            return fn(*a, **k)
+        finally:
+            _local.timer = prev
+    return run

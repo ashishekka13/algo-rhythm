@@ -252,6 +252,14 @@ def make_engine(url):
     """postgresql:// URLs use psycopg 3 (the driver installed); sqlite:///path.db works as is."""
     if url.startswith("postgresql://"):
         url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    if url.startswith("postgresql"):
+        # Each instance keeps at most DB_POOL_SIZE + DB_POOL_OVERFLOW connections (default 5 + 5): the database's own
+        # limit is shared by every instance of production and staging (db-f1-micro allows about 25 in all).
+        # A request waits up to 10 s for one rather than 30 s, and connections are renewed every 30 minutes.
+        import os
+        return create_engine(url, pool_pre_ping=True, pool_size=int(os.environ.get("DB_POOL_SIZE", "5")),
+                             max_overflow=int(os.environ.get("DB_POOL_OVERFLOW", "5")), pool_timeout=10,
+                             pool_recycle=1800)
     return create_engine(url, pool_pre_ping=True)
 
 

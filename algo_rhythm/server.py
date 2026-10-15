@@ -9,6 +9,7 @@ reactions), /p/CODE/screen (the big screen). API under /api (see /docs); live up
 The host's actions carry its key (header X-Host-Key; ?key= on the WebSocket), returned once when the party is made.
 """
 import argparse
+import asyncio
 import json
 import logging
 import re
@@ -69,8 +70,9 @@ def create_app():
     app = FastAPI(title="algo-rhythm", docs_url="/docs", redoc_url=None)
 
     @app.on_event("startup")
-    def warm():
-        library.get()  # the first request should not wait for the library
+    async def warm():
+        await run_in_threadpool(library.get)  # the first request should not wait for the library
+        app.state.listener = asyncio.create_task(hub.listen())  # other instances' party updates (PostgreSQL only)
 
     page_html = (STATIC / "live.html").read_bytes()
 

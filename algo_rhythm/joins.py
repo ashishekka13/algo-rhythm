@@ -10,14 +10,18 @@ the previous request worked with (rebuild) instead of keeping it in memory betwe
     j.nxt, j.nxt_skip                                          the incoming song, and where it carries on after the join
     a2 = joins.rebuild(library, songs[i], j.nxt.p)            the same audio as j.nxt, from its description only
 """
+import concurrent.futures
 import copy
 import json
+import os
 
 import numpy as np
 
 from algo_rhythm import dj, filler, live, timing, transition
 
 SR = dj.OUT_SR
+_try_pool = concurrent.futures.ThreadPoolExecutor(max_workers=int(os.environ.get("TRY_THREADS", "4")),
+                                                  thread_name_prefix="blend-try")
 
 
 class Excerpt:
@@ -171,34 +175,50 @@ def render_join(library, songs, entry, a, skip, nxt_entry, alternatives=lambda l
         why = ""
         tries = [original] + alternatives(3)
         limit = len(tries) - 1  # the last try is taken even if a line is cut, rather than an echo-out
-        for n, w in enumerate(tries):
-            if n:
-                nxt_entry["window"] = w
-                nxt = load_in(w)
+
+        def attempt(n, w):
+            """(why it fails or None, the join's parts) for part w of the song (try n)."""
+            nx = nxt if n == 0 else load_in(w)
             plan = {}
             with timing.count("blend_try"):
-                before, overlap, nxt_skip, info = transition.transition(seg, beats, nxt.audio, nxt.beats, SR, "blend",
-                                                                        seg_voc, nxt.voc, plan=plan)
+                before, overlap, nxt_skip, info = transition.transition(seg, beats, nx.audio, nx.beats, SR, "blend",
+                                                                        seg_voc, nx.voc, plan=plan)
             if plan.get("kind") != "blend":  # the incoming excerpt is too short to hold the overlap at this tempo ratio
-                why = "the next song's part was too short for a blend"
-                break
+                return "short", None
             if info.get("vocal_swap"):
-                overlap = live.level_swap(before[skip:], overlap, nxt.audio, nxt_skip, SR, plan=plan)
+                overlap = live.level_swap(before[skip:], overlap, nx.audio, nxt_skip, SR, plan=plan)
             clash = min(entry["window"]["out_vocal"], w["in_vocal"])
             if clash > dj.QA_MAX_VOCAL_CLASH and not info.get("vocal_swap"):  # with the swap, voices cannot overlap
-                why = "two voices would overlap"
-            elif dj.GRID_SLIP_GUARD and info.get("grid_slip_ms", 0) > dj.GRID_MAX_SLIP_MS:
-                why = "one song's beats slipped off the grid"
-            elif info.get("in_midline") and n < limit:
-                why = "the next song's singer would come in mid-line"
-            elif not live.blend_is_clean(before[skip:], overlap, nxt.audio, nxt_skip, info, SR):
-                why = "the blend did not line up"
-            elif live.dip_db(before[skip:], overlap, nxt.audio, nxt_skip, SR) > max(
+                return "two voices would overlap", None
+            if dj.GRID_SLIP_GUARD and info.get("grid_slip_ms", 0) > dj.GRID_MAX_SLIP_MS:
+                return "one song's beats slipped off the grid", None
+            if info.get("in_midline") and n < limit:
+                return "the next song's singer would come in mid-line", None
+            if not live.blend_is_clean(before[skip:], overlap, nx.audio, nxt_skip, info, SR):
+                return "the blend did not line up", None
+            if live.dip_db(before[skip:], overlap, nx.audio, nxt_skip, SR) > max(
                     0.75 * dj.QA_MAX_DIP_DB, live.own_dip_db(before[skip:], SR) + live.OWN_DIP_MARGIN_DB):
-                why = "the blend had a hole in it"
-            else:
+                return "the blend had a hole in it", None
+            return None, (before, overlap, nx, nxt_skip, info, plan)
+
+        # the planned part first (most joins end here); if it fails, the other parts side by side, and the first that
+        # passes in their order wins: the same choice as trying them one by one, in about the time of one
+        results = {0: _try_pool.submit(timing.bound(attempt), 0, tries[0])}
+        n = 0
+        for n in range(len(tries)):
+            if n == 1:
+                results.update({k: _try_pool.submit(timing.bound(attempt), k, tries[k]) for k in range(1, len(tries))})
+            why, got = results[n].result()
+            if why == "short":
+                why = "the next song's part was too short for a blend"
+                break
+            if why is None:
+                before, overlap, nxt, nxt_skip, info, plan = got
+                nxt_entry["window"] = tries[n]
                 if n:
                     say(f"into '{name}': used a different part of the song for a smoother mix")
+                for f in results.values():
+                    f.cancel()  # the ones not started yet; those running finish on their own
                 return Join(before, overlap, nxt, nxt_skip, info, plan)
         nxt_entry["window"] = original  # nothing worked: echo out into the planned part
         nxt = load_in(original)

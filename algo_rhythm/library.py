@@ -126,6 +126,7 @@ def store_asset(kind, audio, key=None):
     media.encode(audio, media.SR, path)
     if config.settings().storage_url:
         storage.upload(path, rel)
+        storage.forget(path)  # the browser fetches it from the bucket; the server fetches it back if ever needed
     with repository.session() as s:
         s.merge(db.Asset(key=key[:64], kind=kind, path=rel, seconds=len(audio) / media.SR))
         s.commit()

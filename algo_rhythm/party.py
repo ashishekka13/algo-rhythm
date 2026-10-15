@@ -415,6 +415,7 @@ def _clip(party_id, pos, j, skip):
         sf.write(path, 0.97 * dj.soft_limit(x.copy()), sr, format="FLAC")
         if config.settings().storage_url:
             storage.upload(path, rel)
+            storage.forget(path)  # uploaded: the instance's disk (its memory) does not keep every join of the night
         repository.set_play_clip(party_id, pos, rel)
     except Exception:
         log.exception("could not write the clip of join %s", pos)
@@ -815,6 +816,12 @@ def engine_view(sess, st):
 def view(code, host=False):
     """What a page shows: the shape the page has always read (live.Session.view) plus votes, reactions, visuals,
     "requested by", the MC; for the host, also what its player needs (engine)."""
+    return views(code, (host,))[host]
+
+
+def views(code, kinds=(False, True)):
+    """{host: view} for the kinds asked, from one read of the party and one query each for votes and reactions (the
+    live updates build both every second for every party)."""
     lib = library.get()
     party_id, st = read(code)
     sess = session_from(st, lib)
@@ -824,8 +831,6 @@ def view(code, host=False):
     v["feedback"] = _tallies(party_id, sess)
     v["visuals"] = dict(st.get("visuals") or {"world": "auto", "kaleido": False})
     v["screen"] = {"qr": (st.get("screen") or {}).get("qr", True)}  # parties from before this field show the QR
-    if host:
-        v["location"] = location_view(st)
     for e in [v["now"], *v["next"]]:
         if e and e.get("request") and e["name"] in st["requesters"]:
             e["by"] = st["requesters"][e["name"]]
@@ -838,6 +843,9 @@ def view(code, host=False):
     v["mc"] = {"enabled": m["enabled"], "last_line": m["last_line"], "last_at_s": m["last_at"],
                "next_eligible_s": round(nxt if m["changed"] else max(nxt, (m["last_at"] or 0) + mc.EVERY_S))}
     v["engine_error"] = None
-    if host:
-        v["engine"] = engine_view(sess, st)
-    return v
+    out = {}
+    if False in kinds:
+        out[False] = v
+    if True in kinds:  # the host's: the same, plus the MC location and what its player needs
+        out[True] = {**v, "location": location_view(st), "engine": engine_view(sess, st)}
+    return out

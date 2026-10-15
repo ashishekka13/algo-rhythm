@@ -4,14 +4,17 @@ second besides (countdowns, progress bars).
     hub.publish(code)        something changed (any thread): push the new view to that party's screens now
     await hub.serve(ws, code, host)   one screen's connection, until it closes
 
-ponytail: one process. publish() reaches the sockets of this instance only, so the service runs with at most one
-instance (and session affinity) for now. To run several, make publish() also send a PostgreSQL NOTIFY on channel
-"party" with the code, and have each instance LISTEN and call _wake(code): nothing else changes.
+Several instances: a party's screens may be on different instances. publish() also sends a PostgreSQL NOTIFY on
+channel "party" ("CODE|instance"), and every instance LISTENs (listen(), started with the server) and wakes its own
+screens of that party. Without PostgreSQL (SQLite: tests, a laptop) it is one process and the NOTIFY is skipped.
 """
 import asyncio
+import concurrent.futures
 import json
 import logging
+import os
 import threading
+import uuid
 
 from starlette.concurrency import run_in_threadpool
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -19,7 +22,10 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from algo_rhythm import party
 
 log = logging.getLogger("algo_rhythm.hub")
-TICK_S = 1.0       # a view at least this often, so clocks on the screens keep moving
+TICK_S = float(os.environ.get("HUB_TICK_S", "1.0"))  # a view at least this often, so clocks on the screens keep moving
+CHANNEL = "party"
+INSTANCE = uuid.uuid4().hex[:12]  # this process: its own NOTIFYs are not acted on twice
+_notify_pool = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="notify")
 MAX_SCREENS = 500  # per party: a guard, not a plan
 
 
@@ -43,7 +49,13 @@ def _wake(code):
 
 
 def publish(code):
-    """Push the party's view to its screens now. Safe from any thread (request handlers run in a thread pool)."""
+    """Push the party's view to its screens now, here and on every other instance. Safe from any thread."""
+    if _pg_url():
+        _notify_pool.submit(_notify, code)
+    _wake_here(code)
+
+
+def _wake_here(code):
     loop = _loop["loop"]
     if loop is None:
         return
@@ -68,10 +80,8 @@ async def _pump(code, p):
         if not screens:
             break
         try:
-            views = {}
-            for host in {h for _, h in screens}:
-                views[host] = json.dumps({"type": "state", "state": await run_in_threadpool(party.view, code, host)},
-                                         ensure_ascii=False)
+            built = await run_in_threadpool(party.views, code, tuple({h for _, h in screens}))
+            views = {h: json.dumps({"type": "state", "state": v}, ensure_ascii=False) for h, v in built.items()}
         except party.NotFound:
             for ws, _ in screens:
                 await ws.close(code=4404)
@@ -123,3 +133,52 @@ async def serve(ws: WebSocket, code, host):
         pass
     finally:
         p.screens.discard(me)
+
+
+# ---------------------------------------------------------------- across instances: PostgreSQL NOTIFY / LISTEN
+
+def _pg_url():
+    """The libpq URL of the database when it is PostgreSQL, else None."""
+    from algo_rhythm import config
+    url = config.settings().database_url or ""
+    if not url.startswith("postgresql"):
+        return None
+    return "postgresql://" + url.split("://", 1)[1]
+
+
+def _notify(code):
+    from sqlalchemy import text
+    from algo_rhythm import repository
+    try:
+        with repository.session() as s:
+            s.execute(text("SELECT pg_notify(:ch, :msg)"), {"ch": CHANNEL, "msg": f"{code}|{INSTANCE}"})
+            s.commit()
+    except Exception:
+        log.exception("could not tell the other instances about party %s", code)
+
+
+async def listen():
+    """Wake this instance's screens when another instance changed one of their parties. Runs for the server's life;
+    reconnects after a database restart (screens still get a view every TICK_S meanwhile)."""
+    url = _pg_url()
+    if not url:
+        return
+    import psycopg
+    _loop["loop"] = asyncio.get_running_loop()
+    delay = 1
+    while True:
+        try:
+            async with await psycopg.AsyncConnection.connect(url, autocommit=True) as conn:
+                await conn.execute(f"LISTEN {CHANNEL}")
+                log.info("listening for other instances' party updates (instance %s)", INSTANCE)
+                delay = 1
+                async for n in conn.notifies():
+                    code, _, sender = n.payload.partition("|")
+                    if sender != INSTANCE:
+                        _wake(code)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning("party updates from other instances paused (%s); retrying in %d s", e, delay)
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, 30)

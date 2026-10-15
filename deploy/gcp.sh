@@ -53,6 +53,17 @@ TAG=${TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M)}
 API_IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPO/server:$TAG"
 JOBS_IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPO/jobs:$TAG"
 CONN="$PROJECT:$REGION:$SQL_INSTANCE"
+# The server's size. gen2: a microVM, faster for rubberband's processes and files than gen1's sandbox. 4 vCPU: a join's
+# stretches and the parts of a song it tries run side by side. CONCURRENCY: open screens are idle WebSockets.
+# MAX_INSTANCES: parties share updates across instances (LISTEN/NOTIFY), but each instance holds up to
+# DB_POOL_SIZE + DB_POOL_OVERFLOW + 1 database connections: db-f1-micro allows 25 in all (production, staging and the
+# Oct 10 app share it), so keep 1 until the database tier is larger (db-g1-small: 50; db-custom-1-3840: 100).
+CPU=${CPU:-4}
+MEMORY=${MEMORY:-4Gi}
+CONCURRENCY=${CONCURRENCY:-250}
+MAX_INSTANCES=${MAX_INSTANCES:-1}
+DB_POOL_SIZE=${DB_POOL_SIZE:-3}
+DB_POOL_OVERFLOW=${DB_POOL_OVERFLOW:-5}
 G="gcloud --project=$PROJECT"
 
 say() { printf '\n== %s\n' "$*"; }
@@ -126,12 +137,12 @@ build)
   $G builds submit --config cloudbuild.yaml --substitutions="_API=$API_IMAGE,_JOBS=$JOBS_IMAGE" .
   ;;
 server)
-  # One instance at most for now: the WebSocket hub is in-process (algo_rhythm/hub.py says how to lift this).
+  # Sized by CPU, MEMORY, CONCURRENCY and MAX_INSTANCES above.
   $G run deploy "$SERVICE" --image="$API_IMAGE" --region="$REGION" --service-account="$SA" \
     --add-cloudsql-instances="$CONN" --set-secrets="DATABASE_URL=$DB_SECRET:latest" \
-    --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT,MC_TTS=gemini,LOG_LEVEL=INFO" \
-    --cpu=2 --memory=4Gi --concurrency=40 --min-instances=0 --max-instances=1 --timeout=3600 \
-    --session-affinity --cpu-boost --allow-unauthenticated
+    --set-env-vars="STORAGE_URL=gs://$BUCKET/$LIBRARY_PREFIX,GEMINI_BACKEND=vertex,GEMINI_AUTH=adc,GEMINI_SERVICE_ACCOUNT=$AI_SA,GOOGLE_CLOUD_PROJECT=$PROJECT,MC_TTS=gemini,LOG_LEVEL=INFO,DB_POOL_SIZE=$DB_POOL_SIZE,DB_POOL_OVERFLOW=$DB_POOL_OVERFLOW,LOCAL_CACHE_MB=1000,RENDER_SLOTS=2" \
+    --cpu="$CPU" --memory="$MEMORY" --concurrency="$CONCURRENCY" --min-instances=0 --max-instances="$MAX_INSTANCES" \
+    --execution-environment=gen2 --timeout=3600 --session-affinity --cpu-boost --allow-unauthenticated
   $G run services describe "$SERVICE" --region="$REGION" --format="value(status.url)"
   ;;
 staging-db)

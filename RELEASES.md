@@ -78,11 +78,28 @@ commit `e985a13`). Changes since v1.0:
 - **Fix:** one failed speech request no longer silences the MC until the next deploy; the voice is tried again
   after 5 minutes.
 
+### Performance and capacity
+- **No more slow memory growth:**
+  - Files the server makes (transition clips, MC voices, overlap audio) are deleted locally once uploaded.
+  - Songs fetched from the bucket are kept up to 1 GB, least recently used out first. On Cloud Run the disk is the
+    instance's memory, so a long night used to fill it until the instance crashed.
+- **Faster transitions:**
+  - A blend's stretches (2, or 6 with a vocal swap) run side by side.
+  - When the planned part of a song fails its checks, the other parts are tried side by side, and the first that
+    passes in order still wins. The audio is bit-identical to before.
+  - Locally the 5-transition test set took 13.9 s instead of 19.1 s.
+- **Server:** gen2 runtime, 4 vCPU, 250 open connections per instance (was 40), two transitions prepared at once.
+- **Fewer database calls:** the host's and guests' live views are built from one read per second per party. The
+  connection pool is sized for a database that production and staging share.
+- **Ready for more than one instance:** a change on one instance reaches screens on another at once through
+  PostgreSQL `LISTEN/NOTIFY` (0.02 s in the two-process test). The instance limit stays at 1 until the database tier
+  is raised (`db-f1-micro` allows 25 connections, about 22 already in use).
+
 ### Under the hood
 - New tables `mc_lines` and `mc_plays`.
 - New endpoints: `POST /api/p/CODE/location` and `POST /api/p/CODE/screen`. `/talk` takes the guest's `name`.
 - Gemini prompt versions `talk-v4` (dedications) and `mc-line-v1`.
-- New tests: `test_variety`, `test_mc_lines`, plus additions to `test_bugs`, `test_web`, `test_mc` and the jsdom
+- New tests: `test_variety`, `test_mc_lines`, `test_instances`, plus additions to `test_bugs`, `test_web`, `test_mc` and the jsdom
   and Chromium UI tests.
 
 ---

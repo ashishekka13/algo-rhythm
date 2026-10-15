@@ -5,7 +5,11 @@
 //
 // POST /_edge/mail (with EDGE_SECRET) emails support: the services send {subject, text, html} (algo_rhythm/notify.py)
 // and Cloudflare Email Routing delivers it from no-reply@ to MAIL_TO, support's verified inbox (Email Routing can
-// send only to verified destination addresses; support@ forwards there too).
+// send only to verified destination addresses; support@ forwards there too). MAIL_CC: more verified addresses, each
+// sent the same message (shown as Cc).
+//
+// Mail to support@ (Email Routing rule "Send to a Worker": algo-rhythm-edge) is forwarded to MAIL_TO and every
+// MAIL_CC address: Email Routing alone forwards an address to one destination.
 const ORIGINS = {
   "algo-rhythm.in": "algo-rhythm-web-zakvaz2hfa-el.a.run.app",
   "staging.algo-rhythm.in": "algorythm-web-staging-zakvaz2hfa-el.a.run.app",
@@ -28,14 +32,20 @@ function base64(s) {
 }
 
 // a multipart/alternative message (plain text and HTML), every part base64 so any character survives
-export function mime({ subject, text, html }, to, id = crypto.randomUUID(), date = new Date()) {
+export function mime({ subject, text, html }, to, cc = [], id = crypto.randomUUID(), date = new Date()) {
   const boundary = "b" + id.replace(/-/g, "");
   const part = (type, body) => [`--${boundary}`, `Content-Type: ${type}; charset=UTF-8`,
     "Content-Transfer-Encoding: base64", "", base64(body).replace(/.{1,76}/g, "$&\r\n").trimEnd()];
-  return [`From: algo-rhythm <${FROM}>`, `To: ${to}`, `Subject: =?UTF-8?B?${base64(subject)}?=`,
+  return [`From: algo-rhythm <${FROM}>`, `To: ${to}`, ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []), `Subject: =?UTF-8?B?${base64(subject)}?=`,
     `Message-ID: <${id}@algo-rhythm.in>`, `Date: ${date.toUTCString()}`, "MIME-Version: 1.0",
     `Content-Type: multipart/alternative; boundary="${boundary}"`, "",
     ...part("text/plain", text), ...part("text/html", html), `--${boundary}--`, ""].join("\r\n");
+}
+
+// the Cc addresses: MAIL_CC, comma-separated, without support's own inbox
+export function ccList(env) {
+  const all = (env.MAIL_CC || "").split(/[\s,;]+/).filter(Boolean).map((a) => a.toLowerCase());
+  return [...new Set(all)].filter((a) => a !== String(env.MAIL_TO || "").toLowerCase());
 }
 
 async function mail(request, env) {
@@ -49,15 +59,37 @@ async function mail(request, env) {
     return new Response("need subject, text and html", { status: 400 });
   }
   const { EmailMessage } = await import("cloudflare:email");
+  // one message, delivered to support's inbox and to each Cc (each must be a verified Email Routing address)
+  const cc = ccList(env);
+  const raw = mime(m, "support@algo-rhythm.in", cc);
   try {
-    await env.SUPPORT_MAIL.send(new EmailMessage(FROM, env.MAIL_TO, mime(m, "support@algo-rhythm.in")));
+    await env.SUPPORT_MAIL.send(new EmailMessage(FROM, env.MAIL_TO, raw));
   } catch (e) {
     return new Response(`not sent: ${e.message}`, { status: 502 });
   }
-  return Response.json({ ok: true });
+  const failed = [];
+  for (const to of cc) {
+    try {
+      await env.SUPPORT_MAIL.send(new EmailMessage(FROM, to, raw));
+    } catch (e) {
+      failed.push(`${to}: ${e.message}`);
+    }
+  }
+  return Response.json({ ok: true, cc: cc.length - failed.length, failed });
 }
 
 export default {
+  // mail arriving for support@: one copy to each of support's inbox and the Cc list (one bad address skips only itself)
+  async email(message, env) {
+    for (const to of [env.MAIL_TO, ...ccList(env)]) {
+      try {
+        await message.forward(to);
+      } catch (e) {
+        console.log(`not forwarded to ${to}: ${e.message}`);
+      }
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/_edge/mail") return mail(request, env);

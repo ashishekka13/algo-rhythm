@@ -118,6 +118,9 @@
 
   header.top { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:18px; }
   header.top .grow { flex:1; }
+  /* the host's chips: right-aligned, so when they wrap, End session stays at the top right edge */
+  .hchips { flex:1 1 480px; display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:8px; }
+  @media (max-width:1440px) { .hchips .chip { padding:6px 10px; } }
   /* Low-power mode: the host's page (on unless the host turns it off: it plays the music) and every guest's phone. No
      decoration that costs CPU or GPU every frame (the light garden, the blurred mood glow, glass blur, animations).
      The big screen keeps them. */
@@ -274,7 +277,7 @@
     box-shadow:inset -12px 0 0 2px rgba(9,9,11,.55); transition:background-color .2s ease, box-shadow .2s ease; }
   #mc[aria-checked="true"], #kaleido[aria-checked="true"] { color:var(--ink); border-color:color-mix(in srgb, var(--acc) 50%, transparent); }
   #mc[aria-checked="true"]::before, #kaleido[aria-checked="true"]::before { background:var(--acc); box-shadow:inset 12px 0 0 2px rgba(9,9,11,.55); }
-  #restart.sure { border-color:var(--bad); color:var(--bad); }
+  #restart.sure, #endparty.sure { border-color:var(--bad); color:var(--bad); }
 
   /* Energy control: the largest control on the page. Level shown by name, colour AND bar height. */
   .levels { display:grid; grid-template-columns:repeat(6, 1fr); gap:10px; }
@@ -731,7 +734,7 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
     <nav class="tabs" aria-label="Views">
       <a href="host" aria-current="page" data-to="host">Host</a><a href="." target="_blank" rel="noopener" data-to="guest">Guest</a><a href="screen" target="_blank" rel="noopener" data-to="screen">Big screen</a>
     </nav>
-    <span class="grow"></span>
+    <div class="hchips">
     <span class="chip" id="guestcount" title="Guests with the party open on their phones">0 guests</span>
     <button type="button" class="chip" id="lowpower" role="switch" aria-checked="true"
       title="Low power: no visuals on this screen, so the music plays smoothly. The big screen keeps them.">Low power</button>
@@ -747,6 +750,9 @@ window.introOn = () => !navigator.webdriver || /[?&]intro=1/.test(location.searc
     <button type="button" class="chip" id="qrswitch" role="switch" aria-checked="true"
       title="Show or hide the join QR code on the big screen">QR on big screen</button>
     <span class="chip num" id="timer">Session not started</span>
+    <button type="button" class="chip" id="endparty" hidden
+      title="Stop the music and see the report for tonight">End session</button>
+    </div>
   </header>
 
   <p class="statusline" id="statusline" aria-hidden="true"></p>
@@ -1551,6 +1557,11 @@ function show(s) {
     const n = s.guests_online || 0;
     e.textContent = `${n} guest${n === 1 ? "" : "s"}`;
   }));
+  safe("end session", () => ifEl("endparty", b => {   // the host: offered once the night has begun; ended: the report
+    if (s.status === "ended") { location.href = `/p/${CODE}/report`; return; }
+    if (!b.disabled) b.hidden = s.status === "idle";
+  }));
+  safe("ended", () => { if (VIEW !== "admin") block("ended", s.status === "ended"); });
   safe("board switch", () => ifEl("boardswitch", b => b.setAttribute("aria-checked", String(!!(s.screen && s.screen.board)))));
   safe("leaderboard", () => ifEl("pboard", box => {  // big screen: the trivia leaderboard along one side
     const on = !!(s.screen && s.screen.board);
@@ -1897,12 +1908,17 @@ const blockWhy = {};
 function block(why, on) {
   const d = $("blocker");
   if (!d) return;
-  if (on && !blockWhy[why]) blockWhy[why] = setTimeout(() => { blockWhy[why] = "shown"; drawBlock(); }, why === "host" ? 4000 : 8000);
+  if (on && !blockWhy[why]) blockWhy[why] = setTimeout(() => { blockWhy[why] = "shown"; drawBlock(); }, {host: 4000, lost: 8000, ended: 0}[why]);
   if (!on && blockWhy[why]) { clearTimeout(blockWhy[why]); delete blockWhy[why]; drawBlock(); }
 }
 function drawBlock() {
-  const d = $("blocker"), why = Object.keys(blockWhy).find(k => blockWhy[k] === "shown");
-  if (why === "lost") {
+  const shown = Object.keys(blockWhy).filter(k => blockWhy[k] === "shown");
+  const d = $("blocker"), why = shown.includes("ended") ? "ended" : shown[0];
+  d.querySelector(".spin").hidden = why === "ended";
+  if (why === "ended") {
+    $("blocker-h").textContent = "That's a wrap";
+    $("blocker-p").textContent = "The host has ended the party. Thanks for being part of the night.";
+  } else if (why === "lost") {
     $("blocker-h").textContent = "Connection lost";
     $("blocker-p").textContent = "The music is paused while this device reconnects. It plays on as soon as the connection is back.";
     if (P && P.status === "playing") { P.pause(); lostPaused = true; }
@@ -2068,6 +2084,19 @@ vis = visPrefs();
     });
     for (const a of document.querySelectorAll("nav.tabs a[data-to]"))
       if (a.dataset.to !== "screen") a.setAttribute("href", a.dataset.to === "host" ? `/p/${CODE}/host` : `/p/${CODE}`);
+    let ending = false;
+    $("endparty").onclick = async () => {               // twice, like Start over: it stops the music for everyone
+      const b = $("endparty");
+      if (!ending) {
+        ending = true; b.textContent = "Tap again to end the night"; b.classList.add("sure");
+        setTimeout(() => { if (!b.disabled) { ending = false; b.textContent = "End session"; b.classList.remove("sure"); } }, 4000);
+        return;
+      }
+      b.disabled = true; b.classList.remove("sure"); b.textContent = "Writing the report…";
+      try { P.pause(); P.reset(); } catch (e) {}
+      try { await fetch(apiPath("/end"), {method: "POST", headers: headers({"Content-Type": "application/json"}), body: "{}"}); } catch (e) {}
+      location.href = `/p/${CODE}/report`;             // the night is over either way: show what there is
+    };
     $("restart").onclick = async () => {
       if (!sure) { sure = true; if (last) drawTransport(last); setTimeout(() => { sure = false; if (last) drawTransport(last); }, 4000); return; }
       sure = false; P.reset(); await post("/transport", {action: "restart"});

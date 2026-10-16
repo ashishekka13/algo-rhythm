@@ -104,6 +104,17 @@ def is_host(code, key):
     return h is not None and secrets.compare_digest(h, hash_key(key))
 
 
+def owner_of(code):
+    """users.id of the account that started the party, or None."""
+    with repository.session() as s:
+        return s.scalar(select(db.Party.owner_id).where(db.Party.code == code))
+
+
+def exists(code):
+    with repository.session() as s:
+        return s.scalar(select(db.Party.id).where(db.Party.code == code)) is not None
+
+
 # ---------------------------------------------------------------- state <-> live.Session
 
 def _plain(x):
@@ -311,6 +322,8 @@ def start(code):
     """First Play: pick the opening song and make it ready for the browser. Idempotent while it is on."""
     lib = library.get()
     with locked(code) as (row, st):
+        if st["status"] == "ended":
+            return  # the night is over: Play does not start it again
         if st["status"] != "idle" and st["timeline"]:
             if st["status"] == "paused":
                 st["status"], st["reported_at"] = "playing", time.time()
@@ -334,8 +347,8 @@ def sync(code, playhead, status):
     if status not in ("playing", "paused"):
         raise ValueError("status is playing or paused")
     with locked(code) as (row, st):
-        if st["status"] == "idle":
-            return
+        if st["status"] in ("idle", "ended"):
+            return  # a player still running after the end does not bring the party back
         st.update(playhead=float(playhead), reported_at=time.time(), status=status)
 
 
@@ -504,7 +517,7 @@ def _advance(code, swap, t):
     # 1. decide what to render, and claim it
     with t.stage("claim"), locked(code) as (row, st):
         party_id = row.id
-        if st["status"] == "idle" or not st["timeline"]:
+        if st["status"] in ("idle", "ended") or not st["timeline"]:
             return {"status": "nothing"}
         sess = session_from(st, lib)
         tl, ph = sess.timeline, playhead_now(st)
@@ -639,6 +652,8 @@ def _render_and_attach(code, token, swap, t, lib, snap, base, nxt_entry, name, p
 def transport(code, action):
     """Host buttons the server must know about. Play and pause happen in the host's browser; this records them."""
     def go(sess, st):
+        if st["status"] == "ended":
+            return  # nothing to pause, resume or start over once the night has ended
         if action == "pause":
             if st["status"] == "playing":
                 st.update(status="paused", playhead=playhead_now(st), reported_at=time.time())
@@ -659,6 +674,26 @@ def transport(code, action):
     if action == "play":
         return start(code)
     return act(code, go)
+
+
+def end(code):
+    """Close the night: stop the music and stamp when it ended, so the report has a boundary.
+
+    Deliberately not a delete. The party, its plays, votes and reactions stay exactly as they are; this only says
+    the host is finished, which is what the report is drawn from and what stops `advance` carrying on afterwards.
+    Ending twice is harmless and keeps the first time.
+    """
+    def go(sess, st):
+        if st["status"] == "ended":
+            return
+        if st["status"] == "playing":
+            st["playhead"] = playhead_now(st)
+        st.update(status="ended", reported_at=None)
+        st.setdefault("ended_at", time.time())
+        st.pop("swapping", None)
+        sess._say("the host ended the party")
+    act(code, go)
+    return read(code)[0]        # the party id, for report.build
 
 
 # ---------------------------------------------------------------- guests
@@ -964,7 +999,7 @@ def engine_view(sess, st):
             media[f] = library.song_media(f, stem)
     last = tl[-1] if tl else None
     rendering = bool(last and "item" not in last and last.get("rendering") and time.time() - last["rendering"][1] < RENDER_STALE_S)
-    need = bool(st["status"] != "idle" and last and not rendering and ("item" not in last or last["start_s"] <= ph + 1))
+    need = bool(st["status"] not in ("idle", "ended") and last and not rendering and ("item" not in last or last["start_s"] <= ph + 1))
     swap = bool(sess.early is not None and len(tl) >= 2 and last and "item" in last
                 and last["start_s"] - ph >= live.EARLY_MIN_LEFT_S)
     return {"epoch": st["epoch"], "items": items, "media": media, "need_advance": need, "swap_pending": swap,
@@ -994,7 +1029,7 @@ def views(code, kinds=(False, True)):
         v["leaderboard"] = trivia.board(party_id, 8)
     v["host_offline_s"] = host_offline_s(st)
     v["guests_online"], hosts = presence(code)
-    v["host_offline"] = v["host_offline_s"] > 0 or not hosts  # no report for a while, or no host page connected
+    v["host_offline"] = st["status"] != "ended" and (v["host_offline_s"] > 0 or not hosts)  # no report, or no host page
     v["trivia_on"] = bool((st.get("trivia") or {}).get("on"))
     try:
         v["trivia"] = trivia_view(party_id, st, sess)

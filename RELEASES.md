@@ -14,6 +14,23 @@
 
 ## Unreleased (v1.2, on staging)
 
+### New: End session and the night's report
+- **End session** (host header, top right; tap twice): the music stops for everyone, guests and the big screen see
+  "That's a wrap", and the host lands on the report at `/p/CODE/report`. Nothing is deleted: the party, its plays,
+  votes and reactions stay. Ending twice is harmless; an ended party can't be started again by Play or the player.
+- **The report** (`algo_rhythm/report.py`, `static/report.html`): the night at a glance; a short write-up by Gemini;
+  the energy of each song against the vibe, with the reactions on the same clock below; how every join was made;
+  the night song by song (and as a table); joins the planner was sure of that the room voted down; how Gemini's
+  scores of the joins compare with the room's votes (a 2x2 split, with a note when there are too few to say); the
+  most-liked songs; the trivia leaderboard; and what the next party starts from (liked, turned down, by mood, joins
+  to avoid, requests we couldn't play). Save as PDF, Copy link, Start another party.
+- **Code counts every number; Gemini only writes prose over them,** and is told never to invent a number, song, time
+  or name, nor to say the music sounded good. If Gemini is unavailable, the report shows the figures and says the
+  write-up isn't available. Reloading the report makes no second Gemini call (the AI cache answers it).
+- **Who can see it:** the host's browser (its party key), or the host's account signed in on another device. The key is
+  never put in the address.
+- `python -m tools.seed_report` seeds a finished demo party (`DEMO23`) for working on the page.
+
 ### Start page
 - The logo sits top left with **"Your AI DJ"** as a small tagline under it; the rest stays centred.
 - The welcome animation plays only when a page first opens, no longer on the host's first Play or a guest's Join.

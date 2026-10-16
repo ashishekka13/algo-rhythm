@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>algo-rhythm · the night's report</title>
+<meta name="theme-color" content="#09090B">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preload" href="/static/brand.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* The party report (algo_rhythm.report): every figure on this page was counted by code; only the write-up is Gemini's.
+     Chart colours were checked for colour-vision deficiency on #09090B (worst CVD dE 9.4; vote pair 12.0): keep them. */
+  :root {
+    --bg:#09090B; --ink:#F5F8FF; --ink-2:rgba(245,248,255,.7); --ink-3:rgba(245,248,255,.48);
+    --line:rgba(245,248,255,.09); --glass:rgba(255,255,255,.045); --card:#111114;
+    --blend:#3987e5; --echo:#d95926; --react:#199e70; --up:#34D399; --down:#F43F5E; --bad:#FF7B6E;
+    --rose:#e8679a; --teal:#2dd4bf;
+    --font:"Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color-scheme:dark;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 var(--font); -webkit-font-smoothing:antialiased; }
+  a { color:var(--teal); }
+  .wrap { max-width:1080px; margin:0 auto; padding-inline:clamp(16px, 4vw, 40px); }
+  @font-face { font-family:"Brand"; src:url(/static/brand.woff2) format("woff2"); font-weight:800; font-display:block; }
+  .lw { font:800 1.12em/1 "Brand", "Inter Tight", sans-serif; letter-spacing:-.045em; display:inline-flex; align-items:center; white-space:nowrap; }
+  .lw .lo { width:.8em; height:.8em; margin:0 .02em 0 .01em; transform:translateY(.07em); }
+  .lw .lb { width:.95em; height:.62em; margin:0 .04em; transform:translateY(.07em); }
+  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+  /* 1. hero: the art is atmosphere only, every word sits on the veil */
+  .hero { position:relative; overflow:hidden; isolation:isolate; padding-block:calc(28px + env(safe-area-inset-top, 0px)) 36px; }
+  .hero .bgart { position:absolute; inset:-40px; z-index:-2; background-size:cover; background-position:center; filter:blur(38px) saturate(1.2); opacity:.55; transform:scale(1.1); }
+  .hero::after { content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(9,9,11,.72), rgba(9,9,11,.82) 60%, var(--bg)); }
+  .hero .top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .hero .brand { font-size:22px; color:var(--ink); text-decoration:none; }
+  .hero .when { color:var(--ink-2); font-size:14px; }
+  .hero h1 { font-size:clamp(34px, 6vw, 64px); line-height:1.02; letter-spacing:-.035em; margin:44px 0 10px; max-width:16ch; }
+  .hero .sub { color:var(--ink-2); font-size:clamp(15px, 1.6vw, 18px); margin:0; }
+  .strip { display:flex; gap:8px; margin-top:26px; overflow:hidden; }
+  .strip img, .strip svg { width:56px; height:56px; border-radius:10px; flex:none; object-fit:cover; box-shadow:0 6px 18px rgba(0,0,0,.4); }
+
+  section.card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:clamp(18px, 2.4vw, 28px); margin-block:18px; }
+  section.card > h2 { margin:0 0 4px; font-size:clamp(19px, 2vw, 23px); letter-spacing:-.02em; }
+  section.card > .lede { margin:0 0 16px; color:var(--ink-2); font-size:14.5px; }
+  .muted { color:var(--ink-3); }
+  .note { color:var(--ink-2); background:rgba(242,184,75,.08); border:1px solid rgba(242,184,75,.3); border-radius:12px; padding:10px 14px; font-size:14px; margin:12px 0 0; }
+
+  /* 2. tiles */
+  .tiles { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-top:-8px; }
+  @media (max-width:760px) { .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+  .tile { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px 18px; }
+  .tile b { display:block; font:600 clamp(26px, 3.4vw, 36px)/1.1 var(--mono); letter-spacing:-.02em; }
+  .tile span { color:var(--ink-2); font-size:14px; }
+
+  /* 3. the write-up */
+  .story p { margin:0 0 12px; font-size:clamp(16px, 1.5vw, 18px); line-height:1.6; max-width:68ch; }
+  .highlights { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:14px; }
+  .highlights div { border:1px solid var(--line); border-radius:14px; padding:12px 14px; background:var(--glass); }
+  .highlights b { display:block; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--teal); margin-bottom:4px; }
+  .nexttime { margin-top:14px; color:var(--ink-2); }
+
+  /* 4. charts */
+  .chartbox { position:relative; }
+  svg.chart { display:block; width:100%; height:auto; overflow:visible; }
+  .chart text { fill:var(--ink-3); font:11px var(--mono); }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--ink-2); margin:6px 0 10px; align-items:center; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:6px; }
+  .legend svg { vertical-align:middle; margin-right:6px; }
+  .tip { position:absolute; pointer-events:none; background:#1b1b20; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:13px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5); min-width:160px; max-width:260px; transform:translate(-50%, calc(-100% - 10px)); z-index:5; }
+  .tip b { display:block; }
+  .sublabel { font-size:12px; color:var(--ink-3); margin:8px 0 2px; letter-spacing:.06em; text-transform:uppercase; }
+
+  /* 5. the ribbon */
+  .ribbon { display:flex; height:30px; border-radius:8px; overflow:hidden; gap:2px; }
+  .ribbon span { flex:1; min-width:4px; position:relative; }
+  .ribbon span.blend { background:var(--blend); }
+  .ribbon span.echo { background:var(--echo); }
+  .ribbon span.other { background:#555; }
+  .ribbon span.bad::after { content:"✗"; position:absolute; inset:0; display:grid; place-items:center; font-size:13px; color:#fff; font-weight:700; }
+
+  /* 6. the spine */
+  .spine { list-style:none; margin:0; padding:0; }
+  .spine li { position:relative; display:grid; grid-template-columns:28px 56px minmax(0, 1fr) auto; gap:14px; align-items:center; padding:11px 0; }
+  .spine .rail { position:relative; align-self:stretch; display:grid; place-items:center; }
+  .spine .rail::before { content:""; position:absolute; left:50%; transform:translateX(-50%); top:-14px; bottom:-14px;
+    width:calc(2px + var(--e, 0) * 5px); background:rgba(232,103,154, calc(.25 + var(--e, 0) * .65)); border-radius:4px; }
+  .spine li:first-child .rail::before { top:50%; }
+  .spine li:last-child .rail::before { bottom:50%; }
+  .spine .node { position:relative; width:12px; height:12px; border-radius:50%; background:var(--ink); border:3px solid var(--card); box-sizing:content-box; }
+  .spine li.bad { background:linear-gradient(90deg, rgba(244,63,94,.12), transparent 70%); border-radius:12px; }
+  .spine li.bad .node { background:var(--down); }
+  .spine .cover img, .spine .cover svg { width:56px; height:56px; border-radius:10px; display:block; object-fit:cover; }
+  .spine .name { font-weight:600; overflow-wrap:anywhere; }
+  .spine .meta { color:var(--ink-2); font-size:13.5px; }
+  .spine .badline { color:#ffb3bf; font-size:13.5px; margin-top:2px; }
+  .spine .counts { text-align:right; font-size:13px; color:var(--ink-2); white-space:nowrap; }
+  .spine .counts .up { color:var(--up); } .spine .counts .down { color:var(--down); }
+  .kind { display:inline-block; font-size:11.5px; border-radius:999px; padding:1px 8px; margin-right:6px; color:#fff; }
+  .kind.blend { background:var(--blend); } .kind.echo { background:var(--echo); } .kind.start { background:#3a3a44; } .kind.other { background:#555; }
+  @media (max-width:560px) { .spine li { grid-template-columns:22px 44px minmax(0, 1fr); } .spine .counts { grid-column:3; text-align:left; } .spine .cover img, .spine .cover svg { width:44px; height:44px; } }
+  details { margin-top:16px; }
+  summary { cursor:pointer; color:var(--teal); font-weight:600; }
+  summary:focus-visible, button:focus-visible, a:focus-visible { outline:2px solid var(--teal); outline-offset:3px; border-radius:6px; }
+  .tablewrap { overflow-x:auto; margin-top:10px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td.n, th.n { text-align:right; font-family:var(--mono); }
+
+  /* 7-9 */
+  .disagree { display:grid; gap:10px; }
+  .disagree div { border:1px solid rgba(244,63,94,.35); background:rgba(244,63,94,.07); border-radius:14px; padding:12px 14px; }
+  .matrix { display:grid; grid-template-columns:auto 1fr 1fr; gap:8px; align-items:stretch; }
+  .matrix .h { font-size:12.5px; color:var(--ink-2); align-self:end; padding:0 4px; }
+  .matrix .rh { font-size:12.5px; color:var(--ink-2); align-self:center; padding-right:6px; max-width:120px; }
+  .matrix .cell { border-radius:14px; padding:12px; border:1px solid var(--line); min-height:86px; }
+  .matrix .cell.agree { background:rgba(52,211,153,.08); border-color:rgba(52,211,153,.35); }
+  .matrix .cell.off { background:rgba(244,63,94,.07); border-color:rgba(244,63,94,.35); }
+  .matrix .cell b { font:600 22px var(--mono); }
+  .matrix .cell p { margin:4px 0 0; font-size:12.5px; color:var(--ink-2); }
+  .bars { display:grid; gap:10px; }
+  .bar { display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(0, 2fr) auto; gap:12px; align-items:center; }
+  .bar .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar .track { display:flex; height:14px; border-radius:7px; overflow:hidden; background:var(--glass); }
+  .bar .track i { display:block; height:100%; }
+  .bar .track i.u { background:var(--up); } .bar .track i.d { background:var(--down); }
+  .bar .sc { font:13px var(--mono); color:var(--ink-2); white-space:nowrap; }
+  ol.board { margin:0; padding-left:1.4em; display:grid; gap:6px; }
+  ol.board li span { color:var(--ink-2); font-size:13.5px; }
+  .profile { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .profile h3 { font-size:14px; margin:0 0 6px; color:var(--ink-2); font-weight:600; }
+  .profile ul { margin:0; padding-left:1.1em; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips span { border:1px solid var(--line); border-radius:999px; padding:3px 10px; font-size:13px; background:var(--glass); }
+
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin:26px 0 10px; }
+  .actions button, .actions a { font:600 15px var(--font); border-radius:999px; padding:12px 18px; border:1px solid var(--line);
+    background:var(--glass); color:var(--ink); cursor:pointer; text-decoration:none; }
+  .actions .primary { background:var(--teal); color:#062a25; border-color:transparent; }
+  footer { color:var(--ink-3); font-size:13px; padding-block:10px calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .state { padding:80px 0; text-align:center; color:var(--ink-2); }
+  @media print {
+    html, body { background:#fff; color:#000; }
+    .hero .bgart, .hero::after, .actions { display:none; }
+    section.card, .tile { background:#fff; border-color:#ccc; break-inside:avoid; }
+    .muted, .meta, .lede, .tile span { color:#444 !important; }
+    details { display:block; } details > *:not(summary) { display:block; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="ar-rec" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#e8679a"/>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="#0e0e10" stroke-opacity=".28" stroke-width="2.6"/>
+    <circle cx="50" cy="50" r="24" fill="none" stroke="#0e0e10" stroke-opacity=".28" stroke-width="2.6"/>
+    <circle cx="50" cy="50" r="9" fill="#0e0e10"/></symbol>
+  <symbol id="ar-beat" viewBox="0 0 64 40"><path d="M3 22 h13 l5 -15 l8 28 l8 -32 l7 26 l4 -7 h13" fill="none" stroke="#2dd4bf"
+    stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<main id="app"><div class="wrap state" id="state">Loading the night…</div></main>
+<script>
+"use strict";
+const CODE = (location.pathname.match(/^\/p\/([A-Za-z0-9]+)/) || [])[1] || "";
+// The host's key lives in the hosting browser; another device signed in as the host gets in by its account instead.
+const KEY = (() => { try { return localStorage.getItem("algo-host-" + CODE) || ""; } catch (e) { return ""; } })();
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const mmss = s => { s = Math.max(0, Math.round(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}` : `${m}:${String(x).padStart(2, "0")}`; };
+const short = n => String(n || "").replace(/\.(mp3|m4a|flac|wav)$/i, "");
+const kindOf = k => !k ? "other" : k === "blend" ? "blend" : k === "start" ? "start" : String(k).startsWith("echo") ? "echo" : "other";
+const kindLabel = k => ({blend: "Blend", echo: "Echo-out", start: "Opener", other: "Cut"})[kindOf(k)];
+const pct = x => x == null ? "–" : Math.round(x * 100) + "%";
+
+// 6.2 a cover drawn from the song's own name (the same song always wears the same face), hue by energy: indigo to
+// crimson the long way round the wheel, never through green
+function hash(s) { let h = 2166136261; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function fallbackCover(name, energy) {
+  const h = hash(name), e = Math.max(0, Math.min(1, energy == null ? .5 : energy));
+  const hue = Math.round(252 + e * 105 + (h % 18) - 9) % 360;
+  const hue2 = (hue + 28 + (h >> 5) % 26) % 360;
+  const r = 18 + (h >> 9) % 22, cx = 20 + (h >> 13) % 60, cy = 20 + (h >> 17) % 60, id = "g" + h.toString(36);
+  return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(short(name))}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="hsl(${hue} 70% 52%)"/><stop offset="1" stop-color="hsl(${hue2} 75% 36%)"/></linearGradient></defs>
+    <rect width="100" height="100" fill="url(#${id})"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(255,255,255,.16)"/>
+    <circle cx="${100 - cx}" cy="${100 - cy}" r="${r / 2 + 6}" fill="rgba(0,0,0,.18)"/></svg>`;
+}
+const cover = s => s.art ? `<img src="${esc(s.art)}" alt="" loading="lazy">` : fallbackCover(s.name, s.energy);
+
+async function load() {
+  let r;
+  try { r = await fetch(`/api/p/${CODE}/report`, {headers: KEY ? {"X-Host-Key": KEY} : {}, credentials: "same-origin"}); }
+  catch (e) { return fail("Could not reach the server. Check the connection and reload."); }
+  if (r.status === 403) return fail("Only the host can see this report. Open it on the device that hosted the party, or sign in with the host's account.");
+  if (r.status === 404) return fail("There is no party with this code.");
+  if (!r.ok) return fail("The report could not be made just now. Reload in a moment.");
+  render(await r.json());
+}
+function fail(msg) { $("app").innerHTML = `<div class="wrap state"><p>${esc(msg)}</p><p><a href="/">Back to the start</a></p></div>`; }
+
+function render(d) {
+  const t = d.totals, p = d.party, songs = d.songs || [], n = d.narrative;
+  const mostReacted = songs.filter(s => s.art).sort((a, b) => b.reactions - a.reactions)[0];
+  const when = p.started_at ? new Date(p.started_at) : null;
+  const html = [];
+
+  // 1. hero
+  html.push(`<header class="hero">
+    ${mostReacted ? `<div class="bgart" style="background-image:url('${esc(mostReacted.art)}')"></div>` : ""}
+    <div class="wrap">
+      <div class="top"><a class="brand" href="/"><span class="lw" role="img" aria-label="algo-rhythm"><span aria-hidden="true">alg</span><svg class="lo" aria-hidden="true"><use href="#ar-rec"/></svg><svg class="lb" aria-hidden="true"><use href="#ar-beat"/></svg><span aria-hidden="true">rhythm</span></span></a>
+        <span class="when">${when ? esc(when.toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"})) : ""}${p.location ? " · " + esc(p.location) : ""} · party ${esc(p.code)}</span></div>
+      <h1>${esc((n && n.headline) || "That's my time, guys!")}</h1>
+      <p class="sub">${t.songs} song${t.songs === 1 ? "" : "s"} over ${mmss(p.minutes * 60)}${t.guests ? `, ${t.guests} guest${t.guests === 1 ? "" : "s"} in the room` : ""}.</p>
+      ${songs.length ? `<div class="strip" aria-hidden="true">${songs.slice(0, 12).map(cover).join("")}</div>` : ""}
+    </div></header>`);
+  html.push(`<div class="wrap">`);
+
+  // 2. the night at a glance
+  html.push(`<h2 class="sr">The night at a glance</h2><div class="tiles">
+    <div class="tile"><b>${mmss(p.minutes * 60)}</b><span>of party</span></div>
+    <div class="tile"><b>${t.songs}</b><span>songs, ${t.blends} blended</span></div>
+    <div class="tile"><b>${t.guests}</b><span>guests joined in</span></div>
+    <div class="tile"><b>${t.reactions + t.votes}</b><span>reactions and votes</span></div></div>`);
+
+  // 3. how it went (only with the write-up)
+  if (n && n.story) {
+    html.push(`<section class="card story" aria-labelledby="h-story"><h2 id="h-story">How it went</h2>
+      ${String(n.story).split(/\n\s*\n/).map(x => `<p>${esc(x.trim())}</p>`).join("")}
+      ${(n.highlights || []).length ? `<div class="highlights">${n.highlights.map(h => `<div><b>${esc(h.label)}</b>${esc(h.text)}</div>`).join("")}</div>` : ""}
+      ${n.next_time ? `<p class="nexttime"><b>Next time:</b> ${esc(n.next_time)}</p>` : ""}</section>`);
+  }
+
+  // 4. energy, with the reactions under it on the same time axis
+  html.push(`<section class="card" aria-labelledby="h-energy"><h2 id="h-energy">The energy of the night</h2>
+    <p class="lede">The energy of each song as it played, against the vibe you set. Below it, on the same clock, when the room reacted.</p>
+    <div class="legend"><span><i style="background:var(--rose)"></i>Energy played</span>
+      <span><svg width="22" height="4" aria-hidden="true"><line x1="0" y1="2" x2="22" y2="2" stroke="#F5F8FF" stroke-opacity=".6" stroke-width="2" stroke-dasharray="4 3"/></svg>Target vibe</span>
+      <span><i style="background:var(--react)"></i>Reactions</span></div>
+    <div class="chartbox" id="energy">${songs.length ? "" : `<p class="muted">No songs played.</p>`}</div></section>`);
+
+  // 5. the ribbon
+  const joins = songs.slice(1);
+  html.push(`<section class="card" aria-labelledby="h-joins"><h2 id="h-joins">How every join was made</h2>
+    <p class="lede">${joins.length ? `${t.blends} blend${t.blends === 1 ? "" : "s"} (two songs playing together for a moment), ${t.echoes} echo-out${t.echoes === 1 ? "" : "s"} (the song trails off in an echo as the next begins). Planner's average match ${pct(t.avg_match)}.` : "Only one song played, so there were no joins."}</p>
+    ${joins.length ? `<div class="legend"><span><i style="background:var(--blend)"></i>Blend</span><span><i style="background:var(--echo)"></i>Echo-out</span><span>✗ voted rough by the room</span></div>
+    <div class="ribbon" role="list">${joins.map(s => { const bad = s.mix_down > s.mix_up && s.mix_down + s.mix_up > 0;
+      const label = `Into ${short(s.name)}: ${kindLabel(s.kind)}, match ${pct(s.match)}${s.mix_up + s.mix_down ? `, room ${s.mix_up} smooth / ${s.mix_down} rough` : ""}`;
+      return `<span role="listitem" class="${kindOf(s.kind)}${bad ? " bad" : ""}" title="${esc(label)}" aria-label="${esc(label)}"></span>`; }).join("")}</div>` : ""}</section>`);
+
+  // 6. the spine
+  html.push(`<section class="card" aria-labelledby="h-spine"><h2 id="h-spine">The night, song by song</h2>
+    <p class="lede">The line grows thicker and brighter as the energy rises.</p>
+    <ol class="spine" aria-hidden="true">${songs.map((s, i) => { const bad = i > 0 && s.mix_down > s.mix_up && s.mix_down + s.mix_up > 0;
+      return `<li class="${bad ? "bad" : ""}" style="--e:${s.energy == null ? .3 : Math.max(0, Math.min(1, s.energy)).toFixed(2)}">
+        <div class="rail"><span class="node"></span></div><div class="cover">${cover(s)}</div>
+        <div><div class="name">${esc(short(s.name))}${s.requested ? ` <span class="muted">· requested</span>` : ""}</div>
+          <div class="meta"><span class="kind ${kindOf(s.kind)}">${kindLabel(s.kind)}</span>${mmss(s.at_s)}${s.match != null && i ? ` · match ${pct(s.match)}` : ""}</div>
+          ${bad ? `<div class="badline">The room called this join rough: ${s.mix_down} rough, ${s.mix_up} smooth.</div>` : ""}</div>
+        <div class="counts">${s.song_up || s.song_down ? `<span class="up">+${s.song_up}</span> / <span class="down">−${s.song_down}</span>` : ""}${s.reactions ? ` · ${esc(s.emoji || "")} ${s.reactions}` : ""}</div></li>`; }).join("")}</ol>
+    <details><summary>The set list as a table</summary><div class="tablewrap"><table>
+      <caption class="sr">Every song of the night, in order</caption>
+      <thead><tr><th class="n">#</th><th>Song</th><th>At</th><th>Join</th><th class="n">Match</th><th class="n">Energy</th><th class="n">Song 👍/👎</th><th class="n">Join smooth/rough</th><th class="n">Reactions</th><th class="n">Gemini</th></tr></thead>
+      <tbody>${songs.map((s, i) => `<tr><td class="n">${s.position}</td><td>${esc(short(s.name))}${s.requested ? " (requested)" : ""}</td><td class="num">${mmss(s.at_s)}</td><td>${kindLabel(s.kind)}</td>
+        <td class="n">${i ? pct(s.match) : "–"}</td><td class="n">${pct(s.energy)}</td><td class="n">${s.song_up}/${s.song_down}</td><td class="n">${i ? `${s.mix_up}/${s.mix_down}` : "–"}</td>
+        <td class="n">${s.reactions}</td><td class="n">${s.gemini_score == null ? "–" : s.gemini_score + "/5"}</td></tr>`).join("")}</tbody></table></div></details></section>`);
+
+  // 7. disagreements
+  html.push(`<section class="card" aria-labelledby="h-dis"><h2 id="h-dis">Where the room disagreed with the DJ</h2>
+    <p class="lede">Joins the planner was sure of (match ${pct(.7)} or more) that ${3}+ guests voted on, and more called rough than smooth.</p>
+    ${(d.disagreements || []).length ? `<div class="disagree">${d.disagreements.map(x => `<div><b>Into ${esc(short(x.name))}</b> · ${kindLabel(x.kind)}, planner match ${pct(x.match)}<br>
+      <span class="muted">The room: ${x.down} rough, ${x.up} smooth.${x.why ? ` The planner's reason: ${esc(x.why)}.` : ""}</span></div>`).join("")}</div>`
+      : `<p class="muted">None: the room didn't vote down any join the planner was confident about.</p>`}</section>`);
+
+  // 8. Gemini vs the room
+  const c = d.calibration || {matrix: {}}, m = c.matrix || {};
+  const cell = (k, agree, label) => { const names = m[k] || [];
+    return `<div class="cell ${agree ? "agree" : "off"}"><b>${agree ? "✓" : "✗"} ${names.length}</b><p>${label}</p>${names.length ? `<p>${names.slice(0, 4).map(x => esc(short(x))).join(", ")}${names.length > 4 ? "…" : ""}</p>` : ""}</div>`; };
+  html.push(`<section class="card" aria-labelledby="h-cal"><h2 id="h-cal">Did the AI hear what the room heard?</h2>
+    <p class="lede">After each join, Gemini listens to a recording of it and scores it out of 5. Here's how that compares with the room's votes, for joins with ${3}+ votes.
+      ${c.judged ? ` They agreed on ${c.agreed} of ${c.judged} (${pct(c.rate)}).` : ""}</p>
+    <div class="matrix" role="table" aria-label="Gemini's verdict against the room's">
+      <div role="row" style="display:contents"><span></span><span class="h" role="columnheader">Room: smooth</span><span class="h" role="columnheader">Room: rough</span></div>
+      <div role="row" style="display:contents"><span class="rh" role="rowheader">Gemini: good (4–5)</span>${cell("ai_good|room_good", true, "Both liked it")}${cell("ai_good|room_bad", false, "Gemini liked it, the room didn't")}</div>
+      <div role="row" style="display:contents"><span class="rh" role="rowheader">Gemini: rough (1–3)</span>${cell("ai_bad|room_good", false, "The room liked it, Gemini didn't")}${cell("ai_bad|room_bad", true, "Both called it rough")}</div>
+    </div>${c.note ? `<p class="note">${esc(c.note)}</p>` : ""}</section>`);
+
+  // 9. what the room liked most
+  const top = d.top_songs || [], maxv = Math.max(1, ...top.map(s => s.song_up + s.song_down));
+  html.push(`<section class="card" aria-labelledby="h-top"><h2 id="h-top">What the room liked most</h2>
+    ${top.length ? `<div class="bars">${top.map(s => `<div class="bar"><span class="nm">${esc(short(s.name))}</span>
+      <span class="track" aria-hidden="true"><i class="u" style="width:${s.song_up / maxv * 100}%"></i><i class="d" style="width:${s.song_down / maxv * 100}%"></i></span>
+      <span class="sc">+${s.song_up} / −${s.song_down}</span></div>`).join("")}</div>`
+      : `<p class="muted">No song got ${3} or more votes, so there's no verdict yet.</p>`}</section>`);
+
+  // 10. trivia
+  const tv = d.trivia || {players: []};
+  if ((tv.players || []).length) {
+    html.push(`<section class="card" aria-labelledby="h-trivia"><h2 id="h-trivia">Trivia leaderboard</h2>
+      <p class="lede">${tv.rounds} round${tv.rounds === 1 ? "" : "s"} played.</p>
+      <ol class="board">${tv.players.map(x => `<li><b>${esc(x.name)}</b> · <span class="num">${x.coins}</span> coins <span>(${x.right} of ${x.answered} right, ${x.seconds}s on average)</span></li>`).join("")}</ol></section>`);
+  }
+
+  // 11. the next party
+  const pr = d.profile || {}, moods = Object.entries(pr.by_mood || {}).sort((a, b) => b[1].played - a[1].played);
+  html.push(`<section class="card" aria-labelledby="h-next"><h2 id="h-next">What the next party starts from</h2>
+    <p class="lede">What this room reached for and turned away from.</p>
+    <div class="profile">
+      <div><h3>Liked</h3>${(pr.liked || []).length ? `<div class="chips">${pr.liked.map(x => `<span>${esc(short(x))}</span>`).join("")}</div>` : `<p class="muted">No clear favourites yet.</p>`}</div>
+      <div><h3>Turned down</h3>${(pr.disliked || []).length ? `<div class="chips">${pr.disliked.map(x => `<span>${esc(short(x))}</span>`).join("")}</div>` : `<p class="muted">Nothing voted down.</p>`}</div>
+      <div><h3>By mood</h3>${moods.length ? `<ul>${moods.map(([k, v]) => `<li>${esc(k)}: ${v.played} played, +${v.up} / −${v.down}, ${v.reactions} reactions</li>`).join("")}</ul>` : `<p class="muted">–</p>`}</div>
+      <div><h3>Joins to avoid</h3>${(pr.weak_joins || []).length ? `<ul>${pr.weak_joins.map(x => `<li>${esc(short(x.from))} → ${esc(short(x.to))} (${kindLabel(x.kind)}${x.down ? `, ${x.down} rough` : ""}${x.gemini_score != null ? `, Gemini ${x.gemini_score}/5` : ""})</li>`).join("")}</ul>` : `<p class="muted">None stood out.</p>`}</div>
+      <div><h3>Requests we couldn't play</h3>${(pr.unplayed_requests || []).length ? `<ul>${pr.unplayed_requests.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">Every request was played.</p>`}</div>
+    </div></section>`);
+
+  // 12. actions and the footer
+  html.push(`<div class="actions"><button type="button" class="primary" id="print">Save as PDF</button>
+    <button type="button" id="copy">Copy link</button><a href="/">Start another party</a></div>
+    <footer>Every figure on this page was counted from the night's own data: what played, the votes, the reactions and the requests.
+    ${n ? "Only the write-up was written by Gemini, from those figures." : "The write-up isn't available right now, so this report shows the figures only."}</footer></div>`);
+
+  $("app").innerHTML = html.join("");
+  document.title = `${(n && n.headline) || "The night"} · algo-rhythm`;
+  if (songs.length) energyChart($("energy"), d);
+  $("print").onclick = () => window.print();
+  $("copy").onclick = async () => {
+    const b = $("copy");
+    try { await navigator.clipboard.writeText(location.origin + location.pathname); b.textContent = "Link copied"; }
+    catch (e) { b.textContent = "Copy failed: " + location.pathname; }
+    setTimeout(() => { b.textContent = "Copy link"; }, 2500);
+  };
+}
+
+// 4. two plots stacked on one time axis, each with its own single scale (never a dual axis)
+function energyChart(box, d) {
+  const songs = d.songs, tl = d.reaction_timeline || [];
+  const total = Math.max(1, ...songs.map(s => s.at_s + s.seconds), d.party.minutes * 60);
+  const W = box.clientWidth < 600 ? 480 : 1000, L = 36, R = 12, H1 = 220, GAP = 34, H2 = 70, T = 10, H = T + H1 + GAP + H2 + 24;
+  const x = s => L + (s / total) * (W - L - R);
+  const y1 = e => T + H1 - Math.max(0, Math.min(1, e)) * H1;
+  const pts = songs.map(s => [s.at_s + s.seconds / 2, s.energy == null ? null : s.energy]).filter(p => p[1] != null);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y1(p[1]).toFixed(1)}`).join("");
+  let target = "";
+  songs.forEach((s, i) => { if (s.target == null) return; const a = x(s.at_s), b = x(i + 1 < songs.length ? songs[i + 1].at_s : total);
+    target += `${target ? "L" : "M"}${a.toFixed(1)},${y1(s.target).toFixed(1)}L${b.toFixed(1)},${y1(s.target).toFixed(1)}`; });
+  const top2 = T + H1 + GAP, maxR = Math.max(1, ...tl);
+  const bw = (W - L - R) / Math.max(1, tl.length);
+  const bars = tl.map((v, i) => v ? `<rect x="${(L + i * bw + 1).toFixed(1)}" y="${(top2 + H2 - v / maxR * H2).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${(v / maxR * H2).toFixed(1)}" rx="2" fill="#199e70"/>` : "").join("");
+  const ticks = [];
+  const step = total > 5400 ? 1800 : total > 1800 ? 900 : total > 600 ? 300 : 60;
+  for (let s = 0; s <= total; s += step) ticks.push(`<line x1="${x(s)}" y1="${T}" x2="${x(s)}" y2="${top2 + H2}" stroke="rgba(245,248,255,.06)"/><text x="${x(s)}" y="${H - 4}" text-anchor="middle">${mmss(s)}</text>`);
+  // hover bands: from the midpoint with the song before to the midpoint with the song after, full plot height
+  const mids = songs.map(s => x(s.at_s + s.seconds / 2));
+  const bands = songs.map((s, i) => { const a = i ? (mids[i - 1] + mids[i]) / 2 : L, b = i + 1 < songs.length ? (mids[i] + mids[i + 1]) / 2 : W - R;
+    return `<rect class="band" data-i="${i}" x="${a.toFixed(1)}" y="${T}" width="${Math.max(1, b - a).toFixed(1)}" height="${top2 + H2 - T}" fill="transparent"/>`; }).join("");
+  box.insertAdjacentHTML("beforeend", `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Energy of each song over the night, with reactions below on the same time axis. The table under 'The night, song by song' has the same figures.">
+    ${ticks.join("")}
+    <text x="${L - 6}" y="${y1(1) + 4}" text-anchor="end">high</text><text x="${L - 6}" y="${y1(0) + 4}" text-anchor="end">low</text>
+    <line x1="${L}" y1="${T + H1}" x2="${W - R}" y2="${T + H1}" stroke="rgba(245,248,255,.15)"/>
+    ${target ? `<path d="${target}" fill="none" stroke="#F5F8FF" stroke-opacity=".6" stroke-width="2" stroke-dasharray="6 5"/>` : ""}
+    <path d="${line}" fill="none" stroke="#e8679a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y1(p[1]).toFixed(1)}" r="4" fill="#e8679a"/>`).join("")}
+    <text x="${L}" y="${top2 - 8}">reactions</text>
+    <line x1="${L}" y1="${top2 + H2}" x2="${W - R}" y2="${top2 + H2}" stroke="rgba(245,248,255,.15)"/>
+    ${bars}
+    <line class="guide" x1="0" y1="${T}" x2="0" y2="${top2 + H2}" stroke="rgba(245,248,255,.5)" visibility="hidden"/>
+    ${bands}</svg><div class="tip" hidden></div>`);
+  // svg.chart, not "#energy svg": the legend's dashed swatch is an inline svg too, and comes first
+  const svg = box.querySelector("svg.chart"), tip = box.querySelector(".tip"), guide = svg.querySelector(".guide");
+  const showTip = i => {
+    const s = songs[i], r = svg.getBoundingClientRect(), b = box.getBoundingClientRect(), k = r.width / W;
+    const px = mids[i] * k + (r.left - b.left);
+    guide.setAttribute("x1", mids[i]); guide.setAttribute("x2", mids[i]); guide.setAttribute("visibility", "visible");
+    tip.innerHTML = `<b>${esc(short(s.name))}</b>${mmss(s.at_s)} · energy ${pct(s.energy)}${s.target != null ? ` (target ${pct(s.target)})` : ""}<br>${s.reactions} reaction${s.reactions === 1 ? "" : "s"}${s.emoji ? " " + esc(s.emoji) : ""}`;
+    tip.hidden = false;
+    tip.style.left = Math.max(90, Math.min(b.width - 90, px)) + "px";
+    const ty = (s.energy == null ? T : y1(s.energy)) * k + (r.top - b.top);
+    tip.style.top = ty + "px";
+    tip.style.transform = ty < 80 ? "translate(-50%, 14px)" : "";   // near the top: below the point, not cut off
+  };
+  for (const band of svg.querySelectorAll("rect.band")) {
+    band.addEventListener("mouseenter", () => showTip(+band.dataset.i));
+    band.addEventListener("touchstart", () => showTip(+band.dataset.i), {passive: true});
+  }
+  svg.addEventListener("mouseleave", () => { tip.hidden = true; guide.setAttribute("visibility", "hidden"); });
+}
+
+load();
+</script>
+</body>
+</html>

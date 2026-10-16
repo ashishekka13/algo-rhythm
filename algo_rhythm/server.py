@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 
-from algo_rhythm import (accounts, config, hub, library, live, live_plan, notify, party, places, repository,
+from algo_rhythm import (accounts, config, hub, library, live, live_plan, notify, party, places, report, repository,
                          storage)
 
 log = logging.getLogger("algo_rhythm.server")
@@ -134,6 +134,7 @@ def create_app():
         app.state.listener = asyncio.create_task(hub.listen())  # other instances' party updates (PostgreSQL only)
 
     page_html = (STATIC / "live.html").read_bytes()
+    report_html = (STATIC / "report.html").read_bytes()
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -220,6 +221,10 @@ def create_app():
     @app.get("/p/{code}/screen")
     def screen(code: str):
         return page()
+
+    @app.get("/p/{code}/report")
+    def report_page(code: str):  # the shell only: the figures come from the API, for the host
+        return HTMLResponse(report_html, headers={"Cache-Control": "no-store"})
 
     @app.get("/qr/{code}.svg")
     def qr(code: str, request: Request):
@@ -414,6 +419,33 @@ def create_app():
         await run_in_threadpool(party.transport, code, data["action"])
         hub.publish(code)
         return JSONResponse(await run_in_threadpool(party.view, code, True), headers={"Cache-Control": "no-store"})
+
+    async def report_host(request, code):
+        """The report is the host's: the party's key (X-Host-Key, from the browser that hosted it), or the signed-in
+        account that started the party (so the host can open it on another device without a key in the address)."""
+        check(code)
+        if await is_host(request, code):
+            return
+        user = await signed_in(request)
+        if user and await run_in_threadpool(party.owner_of, code) == user["id"]:
+            return
+        if not await run_in_threadpool(party.exists, code):
+            raise party.NotFound("no such party")
+        raise PermissionError("only the host can see the report")
+
+    @app.post("/api/p/{code}/end")
+    async def end(code: str, request: Request):
+        """End the night (asks twice on the page): the music stops for everyone; the report comes back."""
+        await report_host(request, code)
+        pid = await run_in_threadpool(party.end, code)
+        hub.publish(code)
+        return JSONResponse(await run_in_threadpool(report.build, pid, True), headers={"Cache-Control": "no-store"})
+
+    @app.get("/api/p/{code}/report")
+    async def party_report(code: str, request: Request):
+        await report_host(request, code)
+        pid = await run_in_threadpool(report.party_id_for, code)
+        return JSONResponse(await run_in_threadpool(report.build, pid, True), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/p/{code}/vibe")
     async def vibe(code: str, request: Request):

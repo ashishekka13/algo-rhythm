@@ -74,6 +74,8 @@ def _tick(view):
     """How long until the next view: TICK_S while the host plays; slower while the host is offline (nothing moves), so
     an abandoned party costs next to nothing."""
     view = view or {}
+    if view.get("status") == "ended":
+        return 30.0  # nothing moves any more
     gone = view.get("host_offline_s") or 0
     return 30.0 if gone >= 300 else 5.0 if gone or view.get("host_offline") else TICK_S
 

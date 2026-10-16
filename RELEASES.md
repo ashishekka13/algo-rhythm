@@ -12,7 +12,25 @@
 
 ---
 
-## Unreleased (v1.2, on staging)
+## Unreleased
+
+Nothing yet.
+
+---
+
+## v1.2 (2026-10-16)
+
+Production: https://algo-rhythm.in (the commit tagged `v1.2`). Changes since v1.1:
+
+### New: sign-up approval by email
+- **A sign-up emails support** (support@algo-rhythm.in, forwarded by the Cloudflare Worker to everyone on its list)
+  with the account's details and an **Approve** button. The button opens `/admin/approve`, which only shows the
+  account (mail scanners open links); its own Approve button turns the account on. The link is signed for that one
+  account and lasts 14 days. A failed email never fails a sign-up.
+- **The approved user gets a "You're in" email** with a Start listening button, sent through Resend from
+  no-reply@algo-rhythm.in (replies go to support@). Without the `resend-api-key` secret, no email is sent and
+  nothing breaks.
+- The sign-up dialog says "our team will approve it soon" instead of "24 hours"; the note under the password is gone.
 
 ### New: End session and the night's report
 - **End session** (host header, top right; tap twice): the music stops for everyone, guests and the big screen see

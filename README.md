@@ -270,6 +270,7 @@ The synthetic library (`python -m tools.make_test_track --library test_library -
 | New songs do not appear | Servers check the database every 5 minutes; a new deploy picks them up at once. |
 | Google sign-in errors locally | `GOOGLE_APPLICATION_CREDENTIALS` must point at a file that exists, or be unset. |
 
+
 ## 8. Known limits
 - Only about 8% of song pairs can blend; most joins are echo-outs. Next step: a shorter blend or a cut on the downbeat.
 - One server instance (the WebSocket hub is in-process): fine for a party or a few; `hub.py` says what changes for more.
